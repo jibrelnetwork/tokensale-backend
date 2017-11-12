@@ -1,0 +1,12 @@
+<tr>
+    <td><a href="{{url_for('proposals', account_id = account['email'])}}">{{account['fullname']}}</a></td>
+    <td>{{account['email']}}</td>
+    <td>{{account['country']}}</td>
+    <td>{{account['citizenship']}}</td>
+    <td>
+        <input type="checkbox" class="docs_received" id="{{account['id']}}"
+                   {% if account.docs_received %}
+                               checked="checked" disabled="true"
+                   {% endif %}>
+    </td>
+</tr>

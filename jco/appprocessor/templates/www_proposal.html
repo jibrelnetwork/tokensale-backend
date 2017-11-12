@@ -1,0 +1,12 @@
+<tr>
+    <td>{{proposal['proposal_id']}}</td>
+    <td>{{proposal['address']['address']}}</td>
+    <td><a href="{{url_for('proposals', account_id = proposal['email'])}}">{{proposal['fullname']}}</a></td>
+    <td>{{proposal['email']}}</td>
+    <td>{{proposal['country']}}</td>
+    <td>{{proposal['citizenship']}}</td>
+    <td>{{proposal['currency']}}</td>
+    <td>{{proposal['amount']}}</td>
+    <td>{{proposal['created']}}</td>
+    <td><a href="{{url_for('transactions', proposal_id = proposal['id'])}}">transactions</a></td>
+</tr>
