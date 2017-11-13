@@ -40,9 +40,9 @@ SECRET_KEY = '78fta+ic^6f*a+gngvllkmnmvqu=sdgtn5$*s8e=*li%7sqbs+'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
-
+SITE_ID = 1
 # Application definition
 
 INSTALLED_APPS = [
@@ -52,10 +52,18 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites',
 
+    # 3rd-party apps
     'rest_framework',
     'rest_framework.authtoken',
+    'allauth',
+    'allauth.account',
+    'rest_auth.registration',
     'rest_auth',
+   
+    # jco apps
+    'jco.api',
 ]
 
 MIDDLEWARE = [
@@ -136,7 +144,24 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/1.11/howto/static-files/
 
 STATIC_URL = '/static/'
+STATIC_ROOT = here('static')
 
+
+EMAIL_HOST = 'smtp.mailgun.org'
+EMAIL_PORT = 587
+EMAIL_HOST_USER = 'postmaster@mailgun.jibrel.network'
+EMAIL_HOST_PASSWORD = '13636d38c8761bf4121f961da10e574b'
+EMAIL_USE_TLS = True
+
+
+ACCOUNT_CONFIRM_EMAIL_ON_GET = True
+
+
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    )
+}
 
 #######################################################################
 #

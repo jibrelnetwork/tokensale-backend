@@ -1,4 +1,6 @@
 
+DEBUG = True
+
 MAILGUN__API_KEY = "key-c5a56f1eeaf5a5ada613497ec9e01e86"
 
 CRAWLER_PROXY__ENABLED = True

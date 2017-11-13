@@ -18,7 +18,7 @@ from sqlalchemy.orm.util import aliased
 from sqlalchemy.dialects.postgresql import insert
 
 from jco.appdb.db import session
-from jco.appdb.models import CurrencyType, Proposal, Address, Transaction, JNT, Price, Account
+from jco.appdb.models import CurrencyType, Address, Transaction, JNT, Price, Account
 from jco.commonutils.crypto import HDPrivateKey, HDKey
 from jco.commonutils.bitfinex import Bitfinex
 from jco.commonconfig.config import (INVESTMENTS__TOKEN_PRICE_IN_USD,
@@ -162,74 +162,6 @@ def fill_fake_tickers_price(*, start_offset: Optional[int] = 2, end_offset: Opti
 
     logging.getLogger(__name__).info("Finished to set test fake prices BTC/USD and ETH/USD")
 
-
-#
-# Add new proposal
-#
-
-def add_proposal(fullname: str, email: str, country: str, citizenship: str,
-                 currency: str, amount: float, reference_id: Optional[str]) -> Tuple[bool, str]:
-    # noinspection PyBroadException
-    try:
-        logging.getLogger(__name__).info("Start to persist proposal and assign address")
-
-        insert_statement = insert(Account).values(fullname=fullname,
-                                                  email=email,
-                                                  country=country,
-                                                  citizenship=citizenship)
-        do_nothing_statement = insert_statement.on_conflict_do_nothing(index_elements=["email"])
-
-        session.execute(do_nothing_statement)
-
-        proposal = Proposal()
-        proposal.fullname = fullname
-        proposal.email = email
-        proposal.country = country
-        proposal.citizenship = citizenship
-        proposal.currency = currency
-        proposal.amount = amount
-        proposal.proposal_id = generate_request_id()
-        if reference_id is not None:
-            proposal.set_reference_id(reference_id)
-
-        session.add(proposal)
-        session.commit()
-
-        if currency in [CurrencyType.btc, CurrencyType.eth]:
-            addressIdSubquery = session.query(Address.id) \
-                .filter(Address.type == currency) \
-                .filter(Address.is_usable == True) \
-                .filter(Address.proposal_id.is_(None)) \
-                .order_by(Address.id) \
-                .limit(1) \
-                .with_for_update() \
-                .subquery()
-            session.query(Address) \
-                .filter(Address.id.in_(addressIdSubquery)) \
-                .update({Address.proposal_id: proposal.id}, synchronize_session=False)
-            session.commit()
-
-        if currency in [CurrencyType.btc, CurrencyType.eth]:
-            address = session.query(Address) \
-                .filter(Address.proposal_id == proposal.id) \
-                .one()  # type: Address
-            address_str = address.address
-        else:
-            address_str = ""
-
-        logging.getLogger(__name__).info("Proposal with email '{}' persisted with ID {} and '{}' address assigned '{}'"
-                                         .format(email, proposal.id, currency, address_str))
-
-        return True, address_str
-
-    except Exception:
-        exception_str = ''.join(traceback.format_exception(*sys.exc_info()))
-        logging.getLogger(__name__).error("Failed to to persist proposal and assign address due to error:\n{}"
-                                          .format(exception_str))
-
-        session.rollback()
-
-        return False, "Internal error"
 
 
 #

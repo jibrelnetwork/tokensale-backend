@@ -55,133 +55,15 @@ class Account(db.Model):
         }
 
 
-class Proposal(db.Model):
-    # Fields
-    id = db.Column(db.Integer, primary_key=True)
-    fullname = db.Column(db.String(120), nullable=False)
-    email = db.Column(db.String(120), nullable=False)
-    country = db.Column(db.String(120), nullable=False)
-    citizenship = db.Column(db.String(120), nullable=False)
-    currency = db.Column(db.String(10), nullable=False)
-    amount = db.Column(db.Float, nullable=False)
-    proposal_id = db.Column(db.String(64), nullable=False, unique=True)
-    created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    meta = db.Column(JSONB, nullable=False, default=lambda: {})
-
-    # Relationships
-    address = db.relationship('Address',
-                              back_populates="proposal",
-                              cascade="all, delete-orphan",
-                              passive_deletes=True,
-                              uselist=False)  # type: Address
-
-    # Meta keys
-    meta_key_notified = 'notified'
-    meta_key_failed_notifications = 'failed_notifications'
-    meta_key_reference_id = 'reference_id'
-    meta_key_mailgun_message_id = 'mailgun_message_id'
-    meta_key_mailgun_delivered = 'mailgun_delivered'
-
-    # Methods
-    def get_notified(self) -> Optional[bool]:
-        if self.meta_key_notified not in self.meta:
-            return None
-        return self.meta[self.meta_key_notified]
-
-    def set_notified(self, value: bool):
-        if self.meta is None:
-            self.meta = {}
-        self.meta[self.meta_key_notified] = value
-        flag_modified(self, "meta")
-
-    def get_failed_notifications(self) -> Optional[int]:
-        if self.meta_key_failed_notifications not in self.meta:
-            return None
-        return self.meta[self.meta_key_failed_notifications]
-
-    def set_failed_notifications(self, value: int):
-        if self.meta is None:
-            self.meta = {}
-        self.meta[self.meta_key_failed_notifications] = value
-        flag_modified(self, "meta")
-
-    def get_reference_id(self) -> Optional[str]:
-        if self.meta_key_reference_id not in self.meta:
-            return None
-        return self.meta[self.meta_key_reference_id]
-
-    def set_reference_id(self, value: str):
-        if self.meta is None:
-            self.meta = {}
-        self.meta[self.meta_key_reference_id] = value
-        flag_modified(self, "meta")
-
-    def get_mailgun_message_id(self) -> Optional[str]:
-        if self.meta_key_mailgun_message_id not in self.meta:
-            return None
-        return self.meta[self.meta_key_mailgun_message_id]
-
-    def set_mailgun_message_id(self, value: int):
-        if self.meta is None:
-            self.meta = {}
-        self.meta[self.meta_key_mailgun_message_id] = value
-        flag_modified(self, "meta")
-
-    def get_mailgun_delivered(self) -> Optional[str]:
-        if self.meta_key_mailgun_delivered not in self.meta:
-            return None
-        return self.meta[self.meta_key_mailgun_delivered]
-
-    def set_mailgun_delivered(self, value: int):
-        if self.meta is None:
-            self.meta = {}
-        self.meta[self.meta_key_mailgun_delivered] = value
-        flag_modified(self, "meta")
-
-    def __repr__(self):
-        fieldsToPrint = (('id', self.id),
-                         ('fullname', self.fullname),
-                         ('email', self.email),
-                         ('country', self.country),
-                         ('citizenship', self.citizenship),
-                         ('currency', self.currency),
-                         ('amount', self.amount),
-                         ('proposal_id', self.proposal_id),
-                         ('created', self.created),
-                         ('meta', self.meta))
-
-        argsString = ', '.join(['{}={}'.format(f[0], '"' + f[1] + '"' if (type(f[1]) == str) else f[1])
-                                for f in fieldsToPrint])
-        return '<{}({})>'.format(self.__class__.__name__, argsString)
-
-    def as_dict(self):
-        return {
-            'id': self.id,
-            'fullname': self.fullname,
-            'email': self.email,
-            'country': self.country,
-            'citizenship': self.citizenship,
-            'currency': self.currency,
-            'amount': self.amount,
-            'proposal_id': self.proposal_id,
-            'created': self.created,
-            'address': self.address.as_dict(),
-            'mailgun_message_id': self.get_mailgun_message_id(),
-            'mailgun_delivered': self.get_mailgun_delivered()
-        }
-
-
 class Address(db.Model):
     # Fields
     id = db.Column(db.Integer, primary_key=True)
     address = db.Column(db.String(255), unique=True, nullable=False)
     type = db.Column(db.String(10), nullable=False)
     is_usable = db.Column(db.Boolean, nullable=False, default=True)
-    proposal_id = db.Column(db.Integer, db.ForeignKey('proposal.id'), unique=True)
     meta = db.Column(JSONB, nullable=False, default=lambda: {})
 
     # Relationships
-    proposal = db.relationship(Proposal, back_populates="address")  # type: Proposal
     transactions = db.relationship('Transaction',
                                    back_populates="address",
                                    cascade="all, delete-orphan",
@@ -208,7 +90,6 @@ class Address(db.Model):
                          ('address', self.address),
                          ('type', self.type),
                          ('is_usable', self.is_usable),
-                         ('proposal_id', self.proposal_id),
                          ('meta', self.meta))
 
         argsString = ', '.join(['{}={}'.format(f[0], '"' + f[1] + '"' if (type(f[1]) == str) else f[1])
@@ -221,7 +102,6 @@ class Address(db.Model):
             'address': self.address,
             'type': self.type,
             'is_usable': self.is_usable,
-            'proposal_id': self.proposal_id
         }
 
 
@@ -260,7 +140,6 @@ class Transaction(db.Model):
             'block_height': self.block_height,
             'address_id': self.address_id,
             'address': self.address.as_dict(),
-            'proposal': self.address.proposal.as_dict(),
             'mailgun_message_id': self.get_mailgun_message_id(),
             'mailgun_delivered': self.get_mailgun_delivered()
         }
