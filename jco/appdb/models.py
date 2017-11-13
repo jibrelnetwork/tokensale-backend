@@ -16,6 +16,50 @@ class CurrencyType:
     chf = 'CHF'
 
 
+class User(db.Model):
+    """
+    Django auth user
+    """
+
+    __tablename__ = 'auth_user'
+
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(120), nullable=False)
+    email = db.Column(db.String(120), nullable=False, unique=True)
+
+    addresses = db.relationship('Address',
+                                back_populates="user",
+                                cascade="all, delete-orphan",
+                                passive_deletes=True)  # type: Address
+
+    # Methods
+    def __repr__(self):
+        fieldsToPrint = (('id', self.id),
+                         ('fullname', self.fullname),
+                         ('email', self.email),
+                         ('country', self.country),
+                         ('citizenship', self.citizenship),
+                         ('created', self.created),
+                         ('notified', self.notified),
+                         ('docs_received', self.docs_received))
+
+        argsString = ', '.join(['{}={}'.format(f[0], '"' + f[1] + '"' if (type(f[1]) == str) else f[1])
+                                for f in fieldsToPrint])
+        return '<{}({})>'.format(self.__class__.__name__, argsString)
+
+    def as_dict(self):
+        return {
+            'id': self.id,
+            'fullname': self.fullname,
+            'email': self.email,
+            'country': self.country,
+            'citizenship': self.citizenship,
+            'created': self.created,
+            'notified': self.notified,
+            'docs_received': self.docs_received
+        }
+
+
 class Account(db.Model):
     # Fields
     id = db.Column(db.Integer, primary_key=True)
@@ -62,7 +106,9 @@ class Address(db.Model):
     type = db.Column(db.String(10), nullable=False)
     is_usable = db.Column(db.Boolean, nullable=False, default=True)
     meta = db.Column(JSONB, nullable=False, default=lambda: {})
-
+    user_id = db.Column(db.Integer, db.ForeignKey('auth_user.id'), unique=True)
+    user = db.relationship(User, back_populates="addresses")  # type: User
+    
     # Relationships
     transactions = db.relationship('Transaction',
                                    back_populates="address",

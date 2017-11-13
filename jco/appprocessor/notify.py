@@ -175,66 +175,66 @@ def _send_email(sender: str,
     return success, message_id
 
 
-def send_email_payment_data_crypto(proposal: Proposal, investments_limit_min: float) -> Tuple[bool, Optional[str]]:
-    if not config.EMAIL_NOTIFICATIONS__ENABLED:
-        return False, None
+# def send_email_payment_data_crypto(proposal: Proposal, investments_limit_min: float) -> Tuple[bool, Optional[str]]:
+#     if not config.EMAIL_NOTIFICATIONS__ENABLED:
+#         return False, None
 
-    logging.getLogger(__name__).info('Start to send payment data: {}'.format(proposal))
+#     logging.getLogger(__name__).info('Start to send payment data: {}'.format(proposal))
 
-    templateLoader = FileSystemLoader(searchpath=EMAIL_NOTIFICATIONS__TEMPLATES_PATH)
-    templateEnv = Environment(loader=templateLoader)
-    template = templateEnv.get_template("email_payment-data_crypto.html")
+#     templateLoader = FileSystemLoader(searchpath=EMAIL_NOTIFICATIONS__TEMPLATES_PATH)
+#     templateEnv = Environment(loader=templateLoader)
+#     template = templateEnv.get_template("email_payment-data_crypto.html")
 
-    email_text = template.render(cryptocurrency_name=proposal.currency,
-                                 cryptocurrency_amount=proposal.amount,
-                                 jibrel_cryptocurrency_address=proposal.address.address,
-                                 investments_limit_min=investments_limit_min)
+#     email_text = template.render(cryptocurrency_name=proposal.currency,
+#                                  cryptocurrency_amount=proposal.amount,
+#                                  jibrel_cryptocurrency_address=proposal.address.address,
+#                                  investments_limit_min=investments_limit_min)
 
-    email_subject = 'Your Jibrel Network Token Application'
-    email_files = _format_email_files(
-        attachments_inline=[("jibrel_logo.png",
-                             Path(EMAIL_NOTIFICATIONS__TEMPLATES_PATH, "jibrel_logo.png"))])
-    success, message_id = _send_email(config.EMAIL_NOTIFICATIONS__SENDER,
-                          proposal.email,
-                          email_subject,
-                          email_text,
-                          proposal.proposal_id,
-                          files=email_files)
+#     email_subject = 'Your Jibrel Network Token Application'
+#     email_files = _format_email_files(
+#         attachments_inline=[("jibrel_logo.png",
+#                              Path(EMAIL_NOTIFICATIONS__TEMPLATES_PATH, "jibrel_logo.png"))])
+#     success, message_id = _send_email(config.EMAIL_NOTIFICATIONS__SENDER,
+#                           proposal.email,
+#                           email_subject,
+#                           email_text,
+#                           proposal.proposal_id,
+#                           files=email_files)
 
-    logging.getLogger(__name__).info('Finished to send payment data: {}"'.format(proposal))
+#     logging.getLogger(__name__).info('Finished to send payment data: {}"'.format(proposal))
 
-    return success, message_id
+#     return success, message_id
 
 
-def send_email_payment_data_fiat(proposal: Proposal, investments_limit_min: float) -> Tuple[bool, Optional[str]]:
-    if not config.EMAIL_NOTIFICATIONS__ENABLED:
-        return False, None
+# def send_email_payment_data_fiat(proposal: Proposal, investments_limit_min: float) -> Tuple[bool, Optional[str]]:
+#     if not config.EMAIL_NOTIFICATIONS__ENABLED:
+#         return False, None
 
-    logging.getLogger(__name__).info('Start to send payment data: {}'.format(proposal))
+#     logging.getLogger(__name__).info('Start to send payment data: {}'.format(proposal))
 
-    templateLoader = FileSystemLoader(searchpath=EMAIL_NOTIFICATIONS__TEMPLATES_PATH)
-    templateEnv = Environment(loader=templateLoader)
-    template = templateEnv.get_template("email_payment-data_fiat.html")
+#     templateLoader = FileSystemLoader(searchpath=EMAIL_NOTIFICATIONS__TEMPLATES_PATH)
+#     templateEnv = Environment(loader=templateLoader)
+#     template = templateEnv.get_template("email_payment-data_fiat.html")
 
-    email_text = template.render(investments_limit_min=investments_limit_min)
+#     email_text = template.render(investments_limit_min=investments_limit_min)
 
-    email_subject = 'Your Jibrel Network Token Application'
-    email_files = _format_email_files(
-        attachments_inline=[("jibrel_logo.png",
-                             Path(EMAIL_NOTIFICATIONS__TEMPLATES_PATH, "jibrel_logo.png"))],
-        attachments=[("Declaration of Identity of the Beneficial Owner.docx",
-                      Path(EMAIL_NOTIFICATIONS__TEMPLATES_PATH,
-                           "Declaration of Identity of the Beneficial Owner.docx"))])
-    success, message_id = _send_email(config.EMAIL_NOTIFICATIONS__SENDER,
-                          proposal.email,
-                          email_subject,
-                          email_text,
-                          proposal.proposal_id,
-                          files=email_files)
+#     email_subject = 'Your Jibrel Network Token Application'
+#     email_files = _format_email_files(
+#         attachments_inline=[("jibrel_logo.png",
+#                              Path(EMAIL_NOTIFICATIONS__TEMPLATES_PATH, "jibrel_logo.png"))],
+#         attachments=[("Declaration of Identity of the Beneficial Owner.docx",
+#                       Path(EMAIL_NOTIFICATIONS__TEMPLATES_PATH,
+#                            "Declaration of Identity of the Beneficial Owner.docx"))])
+#     success, message_id = _send_email(config.EMAIL_NOTIFICATIONS__SENDER,
+#                           proposal.email,
+#                           email_subject,
+#                           email_text,
+#                           proposal.proposal_id,
+#                           files=email_files)
 
-    logging.getLogger(__name__).info('Finished to send payment data: {}'.format(proposal))
+#     logging.getLogger(__name__).info('Finished to send payment data: {}'.format(proposal))
 
-    return success, message_id
+#     return success, message_id
 
 
 def send_email_investment_received_1(transaction: Transaction) -> Tuple[bool, Optional[str]]:

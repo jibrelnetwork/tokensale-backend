@@ -5,7 +5,7 @@ import logging
 from hashlib import *
 from base58 import *
 
-
+from django.test import TestCase
 import requests
 from sqlalchemy.types import Boolean
 from sqlalchemy.sql.expression import not_, or_
@@ -20,7 +20,7 @@ from jco.appprocessor.commands import (
     generate_btc_addresses,
     fetch_tickers_price,
     fetch_ticker_price,
-    add_proposal,
+    # add_proposal,
     get_ticker_price,
     send_email_payment_data,
     transaction_processing,
@@ -38,15 +38,15 @@ from jco.appprocessor.commands import (
 )
 
 
-class TestCommands(unittest.TestCase):
+class TestCommands(TestCase):
     def clear_all_tables(selfself):
         session.query(JNT).delete()
         session.query(Transaction).delete()
         session.query(Price).delete()
         session.query(Address).delete()
-        session.query(Proposal).delete()
         session.query(Account).delete()
         session.commit()
+        pass
 
     @initialize_app
     def setUp(self):
@@ -60,7 +60,7 @@ class TestCommands(unittest.TestCase):
         address_num = 10
         generate_eth_addresses(self.mnemonic, address_num)
         addresses = session.query(Address) \
-            .filter(Address.proposal_id.is_(None)) \
+            .filter(Address.user_id.is_(None)) \
             .filter(Address.type == CurrencyType.eth) \
             .filter(Address.address != "") \
             .order_by(Address.id) \
@@ -95,7 +95,7 @@ class TestCommands(unittest.TestCase):
         address_num = 10
         generate_btc_addresses(self.mnemonic, address_num)
         addresses = session.query(Address) \
-            .filter(Address.proposal_id.is_(None)) \
+            .filter(Address.user_id.is_(None)) \
             .filter(Address.type == CurrencyType.btc) \
             .filter(Address.address != "") \
             .order_by(Address.id) \
@@ -146,55 +146,6 @@ class TestCommands(unittest.TestCase):
             .all()  # type: List[Price]
         self.assertEqual(len(prices), 0, "wrong tickers should not be allowed")
 
-    def test_add_proposal(self):
-        fullname = "John Doe"
-        email = "aleksey.selikhov@gmail.com"
-        country = "USA"
-        citizenship = "USA"
-        currency = CurrencyType.eth
-        amount = 100000
-
-        success, message = add_proposal(fullname, email, country, citizenship, currency, amount, None)
-        self.assertEqual(success, False, "should have failed")
-
-        proposals = session.query(Proposal) \
-            .filter(Proposal.fullname == fullname) \
-            .filter(Proposal.email == email) \
-            .filter(Proposal.country == country) \
-            .filter(Proposal.citizenship == citizenship) \
-            .filter(Proposal.currency == currency) \
-            .filter(Proposal.amount == amount) \
-            .filter(Proposal.created.isnot(None)) \
-            .filter(or_(not_(Proposal.meta.has_key(Proposal.meta_key_notified)),
-                        Proposal.meta[Proposal.meta_key_notified].astext.cast(Boolean) == False)) \
-            .all()  # type: List[Proposal]
-        self.assertEqual(len(proposals), 1)
-
-        fullname = "Freeman A"
-        generate_eth_addresses(self.mnemonic, 1)
-
-        success, address_str = add_proposal(fullname, email, country, citizenship, currency, amount, None)
-        self.assertEqual(success, True, "should have succeeded")
-        self.assertTrue(address_str != "", "address can not be an empty")
-
-        proposals = session.query(Proposal) \
-            .filter(Proposal.fullname == fullname) \
-            .filter(Proposal.email == email) \
-            .filter(Proposal.country == country) \
-            .filter(Proposal.citizenship == citizenship) \
-            .filter(Proposal.currency == currency) \
-            .filter(Proposal.amount == amount) \
-            .filter(Proposal.created.isnot(None)) \
-            .filter(or_(not_(Proposal.meta.has_key(Proposal.meta_key_notified)),
-                        Proposal.meta[Proposal.meta_key_notified].astext.cast(Boolean) == False)) \
-            .all()  # type: List[Proposal]
-        self.assertEqual(len(proposals), 1)
-
-        addresses = session.query(Address) \
-            .filter(Address.proposal_id == proposals[0].id) \
-            .all()  # type: List[Address]
-        self.assertEqual(len(addresses), 1)
-        self.assertEqual(addresses[0].address, address_str)
 
     def test_get_ticker_price(self):
         fetch_tickers_price()
@@ -209,36 +160,35 @@ class TestCommands(unittest.TestCase):
         price = get_ticker_price("eur", CurrencyType.usd, current_time)
         self.assertTrue(price is None, "wrong currencies should not be allowed")
 
-    def test_send_email_payment_data(self):
-        fullname = "John Doe"
-        email = "aleksey.selikhov@gmail.com"
-        country = "USA"
-        citizenship = "USA"
-        currency = CurrencyType.eth
-        amount = 100000
+    # def test_send_email_payment_data(self):
+    #     fullname = "John Doe"
+    #     email = "aleksey.selikhov@gmail.com"
+    #     country = "USA"
+    #     citizenship = "USA"
+    #     currency = CurrencyType.eth
+    #     amount = 100000
 
-        generate_eth_addresses(self.mnemonic, 1)
-        add_proposal(fullname, email, country, citizenship, currency, amount, None)
+    #     generate_eth_addresses(self.mnemonic, 1)
+    #     add_proposal(fullname, email, country, citizenship, currency, amount, None)
 
-        send_email_payment_data()
+    #     send_email_payment_data()
 
-        proposals = session.query(Proposal) \
-            .filter(Proposal.fullname == fullname) \
-            .filter(Proposal.email == email) \
-            .filter(Proposal.country == country) \
-            .filter(Proposal.citizenship == citizenship) \
-            .filter(Proposal.currency == currency) \
-            .filter(Proposal.amount == amount) \
-            .filter(Proposal.created.isnot(None)) \
-            .all()  # type: List[Proposal]
-        # .filter(Proposal.meta[Proposal.meta_key_notified].astext.cast(Boolean) == True) \
+    #     proposals = session.query(Proposal) \
+    #         .filter(Proposal.fullname == fullname) \
+    #         .filter(Proposal.email == email) \
+    #         .filter(Proposal.country == country) \
+    #         .filter(Proposal.citizenship == citizenship) \
+    #         .filter(Proposal.currency == currency) \
+    #         .filter(Proposal.amount == amount) \
+    #         .filter(Proposal.created.isnot(None)) \
+    #         .all()  # type: List[Proposal]
+    #     # .filter(Proposal.meta[Proposal.meta_key_notified].astext.cast(Boolean) == True) \
 
-        self.assertEqual(len(proposals), 1, "should have notified")
-        self.assertIsNotNone(proposals[0].get_mailgun_message_id())
+    #     self.assertEqual(len(proposals), 1, "should have notified")
+    #     self.assertIsNotNone(proposals[0].get_mailgun_message_id())
 
     def test_proxies_work(self):
         proxies = get_proxies()
-        print('PPP', proxies)
         our_ip_request = requests.get("http://checkip.amazonaws.com/")
         our_ip_request.raise_for_status()
         our_ip = our_ip_request.text.strip()
@@ -411,58 +361,58 @@ class TestCommands(unittest.TestCase):
         self.assertEqual(transaction.get_notified(), True, "should have notified")
         self.assertIsNotNone(transaction.get_mailgun_message_id())
 
-    def test_fill_address_from_proposal(self):
+    # def test_fill_address_from_proposal(self):
 
-        generate_eth_addresses(self.mnemonic, 4)
+    #     generate_eth_addresses(self.mnemonic, 4)
 
-        address_1 = "test1@test.com"
-        address_2 = "test2@test.com"
-        address_3 = "test3@test.com"
-        address_4 = "test4@test.com"
-        address_5 = "test5@test.com"
+    #     address_1 = "test1@test.com"
+    #     address_2 = "test2@test.com"
+    #     address_3 = "test3@test.com"
+    #     address_4 = "test4@test.com"
+    #     address_5 = "test5@test.com"
 
-        fullname = "John Doe"
-        country = "USA"
-        citizenship = "USA"
+    #     fullname = "John Doe"
+    #     country = "USA"
+    #     citizenship = "USA"
 
-        add_proposal(fullname, address_1, country, citizenship, CurrencyType.eth, 100000, None)
-        add_proposal(fullname, address_2, country, citizenship, CurrencyType.eth, 100000, None)
+    #     add_proposal(fullname, address_1, country, citizenship, CurrencyType.eth, 100000, None)
+    #     add_proposal(fullname, address_2, country, citizenship, CurrencyType.eth, 100000, None)
 
-        proposal_3 = Proposal(fullname=fullname, email=address_3, country=country, citizenship=citizenship,
-                              currency=CurrencyType.eth, amount=100000, proposal_id='JNT-PRESALE-REQUEST-1')
+    #     proposal_3 = Proposal(fullname=fullname, email=address_3, country=country, citizenship=citizenship,
+    #                           currency=CurrencyType.eth, amount=100000, proposal_id='JNT-PRESALE-REQUEST-1')
 
-        proposal_4 = Proposal(fullname=fullname, email=address_4, country=country, citizenship=citizenship,
-                              currency=CurrencyType.eth, amount=100000, proposal_id='JNT-PRESALE-REQUEST-2')
+    #     proposal_4 = Proposal(fullname=fullname, email=address_4, country=country, citizenship=citizenship,
+    #                           currency=CurrencyType.eth, amount=100000, proposal_id='JNT-PRESALE-REQUEST-2')
 
-        proposal_5 = Proposal(fullname=fullname, email=address_5, country=country, citizenship=citizenship,
-                              currency=CurrencyType.eth, amount=100000, proposal_id='JNT-PRESALE-REQUEST-3')
+    #     proposal_5 = Proposal(fullname=fullname, email=address_5, country=country, citizenship=citizenship,
+    #                           currency=CurrencyType.eth, amount=100000, proposal_id='JNT-PRESALE-REQUEST-3')
 
-        proposal_6 = Proposal(fullname=fullname, email=address_5, country="GB", citizenship="GB",
-                              currency=CurrencyType.eth, amount=100000, proposal_id='JNT-PRESALE-REQUEST-4')
+    #     proposal_6 = Proposal(fullname=fullname, email=address_5, country="GB", citizenship="GB",
+    #                           currency=CurrencyType.eth, amount=100000, proposal_id='JNT-PRESALE-REQUEST-4')
 
-        session.add(proposal_3)
-        session.add(proposal_4)
-        session.add(proposal_5)
-        session.add(proposal_6)
-        session.commit()
+    #     session.add(proposal_3)
+    #     session.add(proposal_4)
+    #     session.add(proposal_5)
+    #     session.add(proposal_6)
+    #     session.commit()
 
-        proposals = session.query(Proposal).all()
-        self.assertEqual(len(proposals), 6)
+    #     proposals = session.query(Proposal).all()
+    #     self.assertEqual(len(proposals), 6)
 
-        account_1 = Account(fullname=fullname, email=address_3, country=country, citizenship=citizenship)
-        account_2 = Account(fullname=fullname, email=address_4, country=country, citizenship=citizenship)
+    #     account_1 = Account(fullname=fullname, email=address_3, country=country, citizenship=citizenship)
+    #     account_2 = Account(fullname=fullname, email=address_4, country=country, citizenship=citizenship)
 
-        session.add(account_1)
-        session.add(account_2)
-        session.commit()
+    #     session.add(account_1)
+    #     session.add(account_2)
+    #     session.commit()
 
-        accounts = session.query(Account).all()
-        self.assertEqual(len(accounts), 4)
+    #     accounts = session.query(Account).all()
+    #     self.assertEqual(len(accounts), 4)
 
-        fill_address_from_proposal()
+    #     fill_address_from_proposal()
 
-        accounts = session.query(Account).all()
-        self.assertEqual(len(accounts), 5)
+    #     accounts = session.query(Account).all()
+    #     self.assertEqual(len(accounts), 5)
 
     def test_scan_addresses(self):
         nonusable_address = Address(address='0xC28142C80cFFE11086A334402ecFF4517898DCec',
@@ -623,32 +573,32 @@ class TestCommands(unittest.TestCase):
 
         self.assertTrue(success, "some keys not present in account")
 
-    def test_get_all_proposals(self):
-        generate_eth_addresses(self.mnemonic, 3)
-        add_proposal("Test1", "test1@test", "USA", "USA", CurrencyType.eth, 100000, None)
-        add_proposal("Test2", "test2@test", "USA", "USA", CurrencyType.eth, 100000, None)
-        add_proposal("Test3", "test3@test", "USA", "USA", CurrencyType.eth, 100000, None)
+    # def test_get_all_proposals(self):
+    #     generate_eth_addresses(self.mnemonic, 3)
+    #     add_proposal("Test1", "test1@test", "USA", "USA", CurrencyType.eth, 100000, None)
+    #     add_proposal("Test2", "test2@test", "USA", "USA", CurrencyType.eth, 100000, None)
+    #     add_proposal("Test3", "test3@test", "USA", "USA", CurrencyType.eth, 100000, None)
 
-        proposals = session.query(Proposal) \
-            .all()  # type: List[Proposal]
+    #     proposals = session.query(Proposal) \
+    #         .all()  # type: List[Proposal]
 
-        self.assertTrue(len(proposals) == 3)
+    #     self.assertTrue(len(proposals) == 3)
 
-        proposal_list = get_all_proposals()
-        self.assertTrue(len(proposal_list) == 3)
+    #     proposal_list = get_all_proposals()
+    #     self.assertTrue(len(proposal_list) == 3)
 
-        success = True
+    #     success = True
 
-        key_list = ['id', 'fullname', 'email', 'country', 'citizenship', 'currency',
-                    'amount', 'proposal_id', 'created', 'address',
-                    'mailgun_message_id', 'mailgun_delivered']
+    #     key_list = ['id', 'fullname', 'email', 'country', 'citizenship', 'currency',
+    #                 'amount', 'proposal_id', 'created', 'address',
+    #                 'mailgun_message_id', 'mailgun_delivered']
 
-        for prposal in proposal_list:
-            if not all(_key in key_list for _key in prposal.keys()):
-                success = False
-                break
+    #     for prposal in proposal_list:
+    #         if not all(_key in key_list for _key in prposal.keys()):
+    #             success = False
+    #             break
 
-        self.assertTrue(success, "some keys not present in proposal")
+    #     self.assertTrue(success, "some keys not present in proposal")
 
     def test_get_all_transactions(self):
         # fetch last prices BTC and ETH

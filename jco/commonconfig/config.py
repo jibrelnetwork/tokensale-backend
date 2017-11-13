@@ -5,12 +5,19 @@
 # from typing import Dict, List
 
 # from .mailgun_handler import MailgunHandler
-
+import sys
 from jco.settings import *
 from jco.settings_local import *
 
 
 SQLALCHEMY_DATABASE_URI = JCO_DATABASE_URI
+if 'pytest' in ' '.join(sys.argv):
+    db_name = SQLALCHEMY_DATABASE_URI.split('/')[-1]
+    SQLALCHEMY_DATABASE_URI = '/'.join(SQLALCHEMY_DATABASE_URI.split('/')[:-1] + ['test_' + db_name])
+
+
+print('SQLA DB URI', SQLALCHEMY_DATABASE_URI)
+
 
 def getLoggingConfig(path):
     return LOGGING
