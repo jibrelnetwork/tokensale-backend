@@ -323,6 +323,6 @@ LOGGING = {
 
 
 try:
-    from settings_local import *
+    from jco.settings_local import *
 except ImportError:
     pass 

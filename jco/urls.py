@@ -18,9 +18,14 @@ from django.conf.urls import url, include
 from django.contrib import admin
 
 from allauth.account.views import ConfirmEmailView
+from rest_framework.documentation import include_docs_urls
+from rest_framework.permissions import AllowAny
+
 
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
+
+    url(r'^docs/', include_docs_urls(title='JCO API', permission_classes=[AllowAny])),
 
     url(r'^auth/registration/account-confirm-email/(?P<key>[-:\w]+)/$', ConfirmEmailView.as_view(),
     name='account_confirm_email'),
