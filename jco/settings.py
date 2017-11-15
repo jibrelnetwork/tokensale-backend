@@ -61,7 +61,8 @@ INSTALLED_APPS = [
     'allauth.account',
     'rest_auth.registration',
     'rest_auth',
-   
+    'corsheaders',
+
     # jco apps
     'jco.api',
 ]
@@ -69,6 +70,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -162,6 +164,10 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated',
     )
 }
+
+CORS_ORIGIN_ALLOW_ALL = True
+
+ONFIDO_API_KEY = os.environ['ONFIDO_API_KEY']
 
 #######################################################################
 #
