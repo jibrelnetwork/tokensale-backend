@@ -16,6 +16,8 @@ Including another URLconf
 from django.conf import settings
 from django.conf.urls import url, include
 from django.contrib import admin
+from django.views.generic import TemplateView, RedirectView
+
 
 from allauth.account.views import ConfirmEmailView
 from rest_framework.documentation import include_docs_urls
@@ -32,6 +34,13 @@ urlpatterns = [
     url(r'^auth/', include('rest_auth.urls')),
     url(r'^auth/registration/', include('rest_auth.registration.urls')),
     url(r'^api/', include('jco.api.urls')),
+
+    url(r'^password-reset/confirm/$',
+        TemplateView.as_view(template_name="registration/password_reset_confirm.html"),
+        name='password-reset-confirm'),
+    url(r'^password-reset/confirm/(?P<uidb64>[0-9A-Za-z_\-]+)/(?P<token>[0-9A-Za-z]{1,13}-[0-9A-Za-z]{1,20})/$',
+        TemplateView.as_view(template_name="registration/password_reset_confirm.html"),
+        name='password_reset_confirm'),
 ]
 
 

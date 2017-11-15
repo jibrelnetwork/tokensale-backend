@@ -64,7 +64,6 @@ class Account(db.Model):
     # Fields
     id = db.Column(db.Integer, primary_key=True)
     fullname = db.Column(db.String(120), nullable=False)
-    email = db.Column(db.String(120), nullable=False, unique=True)
     country = db.Column(db.String(120), nullable=False)
     citizenship = db.Column(db.String(120), nullable=False)
     created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)

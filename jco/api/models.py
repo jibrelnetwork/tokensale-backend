@@ -7,7 +7,6 @@ class Account(models.Model):
     first_name = models.CharField(max_length=120, null=False, blank=True)
     last_name = models.CharField(max_length=120, null=False, blank=True)
     fullname = models.CharField(max_length=120, null=False, blank=True)
-    email = models.CharField(unique=True, max_length=120, null=False, blank=True)
     country = models.CharField(max_length=120, null=False, blank=True)
     citizenship = models.CharField(max_length=120, null=False, blank=True)
     date_of_birth = models.DateField(null=True, blank=True)
@@ -17,6 +16,10 @@ class Account(models.Model):
     docs_received = models.BooleanField(default=False)
     created = models.DateTimeField(auto_now_add=True)
     notified = models.BooleanField(default=False)
+
+    onfido_applicant_id = models.CharField(max_length=200, null=False, blank=True)
+    onfido_check_id = models.CharField(max_length=200, null=False, blank=True)
+    document_url = models.URLField(max_length=200, null=False, blank=True)
 
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
 
