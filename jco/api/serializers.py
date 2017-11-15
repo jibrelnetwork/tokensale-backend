@@ -47,7 +47,7 @@ class RegisterSerializer(serializers.Serializer):
                     _("A user is already registered with this e-mail address."))
         return email
 
-    def validate_password1(self, password):
+    def validate_password(self, password):
         return get_adapter().clean_password(password)
 
     def validate(self, data):
