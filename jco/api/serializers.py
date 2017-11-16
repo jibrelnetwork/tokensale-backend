@@ -21,7 +21,9 @@ RECAPTCA_API_URL = 'https://www.google.com/recaptcha/api/siteverify'
 class AccountSerializer(serializers.ModelSerializer):
     class Meta:
         model = Account
-        exclude = ('id', 'user', 'created')
+        fields = ('first_name', 'last_name',  'date_of_birth', 'country', 
+                  'town', 'street', 'postcode', 'terms_confirmed', 'document_url',
+                  'is_identity_verified')
 
 
 class AddressSerializer(serializers.ModelSerializer):
@@ -88,7 +90,7 @@ class RegisterSerializer(serializers.Serializer):
                 if 'missing-input-secret' in json_response['error-codes'] or \
                         'invalid-input-secret' in json_response['error-codes']:
 
-                    logger.exception('Invalid reCaptcha secret key detected')
+                    logger.error('Invalid reCaptcha secret key detected')
                     raise serializers.ValidationError(
                         _('Connection to reCaptcha server failed')
                     )
@@ -97,7 +99,7 @@ class RegisterSerializer(serializers.Serializer):
                         _('reCaptcha invalid or expired, try again')
                     )
             else:
-                logger.exception('No error-codes received from Google reCaptcha server')
+                logger.error('No error-codes received from Google reCaptcha server')
                 raise serializers.ValidationError(
                     _('reCaptcha response from Google not valid, try again')
                 )

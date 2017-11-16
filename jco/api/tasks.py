@@ -10,11 +10,16 @@ from jco.commonutils import person_verify
 logger = logging.getLogger(__name__)
 
 
+
 def verify_user(user_id):
     """
     Create OnFido check to verify user document
     """
     user = get_user_model().objects.get(pk=user_id)
+
+    if user.account.onfido_check_status == person_verify.STATUS_COMPLETE:
+        logger.warn('Verification completed')
+        return
 
     logger.info('Start verifying process for user %s <%s>', user.pk, user.email)
     if not user.account.onfido_applicant_id:
@@ -46,11 +51,16 @@ def check_user_verification_status(user_id):
     """
     user = get_user_model().objects.get(pk=user_id)
     logger.info('Checking verification status for user %s <%s>', user.pk, user.email)
+    if user.account.onfido_check_status == person_verify.STATUS_COMPLETE:
+        logger.warn('Verification completed')
+        return
     api = person_verify.get_client()
     
     check = api.find_check(user.account.onfido_applicant_id, user.account.onfido_check_id)
 
     user.account.onfido_check_status = check.status
     user.account.onfido_check_result = check.result
+    if check.result == person_verify.RESULT_CLEAR:
+        user.account.is_identity_verified = True
     user.account.save()
     logger.info('Verification status is: %s, result: %s', check.status, check.result)

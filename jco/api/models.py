@@ -20,11 +20,13 @@ class Account(models.Model):
     docs_received = models.BooleanField(default=False)
     created = models.DateTimeField(auto_now_add=True)
     notified = models.BooleanField(default=False)
+    is_identity_verified = models.BooleanField(default=False)
 
     document_url = models.URLField(max_length=200, null=False, blank=True)
-    onfido_applicant_id = models.CharField(max_length=200, null=False, blank=True)
-    onfido_document_id = models.CharField(max_length=200, null=False, blank=True)
-    onfido_check_id = models.CharField(max_length=200, null=False, blank=True)
+    
+    onfido_applicant_id = models.CharField(max_length=200, null=True, blank=True)
+    onfido_document_id = models.CharField(max_length=200, null=True, blank=True)
+    onfido_check_id = models.CharField(max_length=200, null=True, blank=True)
     onfido_check_status = models.CharField(max_length=200, null=True, blank=True)
     onfido_check_result = models.CharField(max_length=200, null=True, blank=True)
     onfido_check_created = models.DateTimeField(null=True, blank=True)
@@ -33,6 +35,15 @@ class Account(models.Model):
 
     class Meta:
         db_table = 'account'
+
+    def reset_verification_state(self):
+        self.onfido_applicant_id = None
+        self.onfido_document_id = None
+        self.onfido_check_id = None
+        self.onfido_check_status = None
+        self.onfido_check_result = None
+        self.onfido_check_created = None
+        self.save()
 
 
 class Address(models.Model):
