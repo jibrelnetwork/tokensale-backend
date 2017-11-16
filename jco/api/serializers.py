@@ -1,3 +1,4 @@
+import logging 
 
 from django.conf import settings
 from django.contrib.auth import get_user_model, authenticate
@@ -7,8 +8,14 @@ from allauth.utils import email_address_exists
 from allauth.account.adapter import get_adapter
 from allauth.account.utils import setup_user_email
 from rest_framework import serializers, exceptions
+import requests
 
 from jco.api.models import Transaction, Address, Account
+
+
+logger = logging.getLogger(__name__)
+
+RECAPTCA_API_URL = 'https://www.google.com/recaptcha/api/siteverify'
 
 
 class AccountSerializer(serializers.ModelSerializer):
@@ -34,6 +41,7 @@ class RegisterSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
     password = serializers.CharField(required=True, write_only=True)
     password_confirm = serializers.CharField(required=True, write_only=True)
+    captcha = serializers.CharField(required=True, write_only=True)
 
     def validate_username(self, username):
         username = get_adapter().clean_username(username)
@@ -54,6 +62,45 @@ class RegisterSerializer(serializers.Serializer):
         if data['password'] != data['password_confirm']:
             raise serializers.ValidationError(_("The two password fields didn't match."))
         return data
+
+    def validate_captcha(self, captcha_token):
+        try:
+            r = requests.post(
+                RECAPTCA_API_URL,
+                {
+                    'secret': settings.RECAPTCHA_PRIVATE_KEY,
+                    'response': captcha_token
+                },
+                timeout=5
+            )
+            r.raise_for_status()
+        except requests.RequestException as e:
+            raise serializers.ValidationError(
+                _('Connection to reCaptcha server failed. Please try again')
+            )
+
+        json_response = r.json()
+
+        if bool(json_response['success']):
+            return True
+        else:
+            if 'error-codes' in json_response:
+                if 'missing-input-secret' in json_response['error-codes'] or \
+                        'invalid-input-secret' in json_response['error-codes']:
+
+                    logger.exception('Invalid reCaptcha secret key detected')
+                    raise serializers.ValidationError(
+                        _('Connection to reCaptcha server failed')
+                    )
+                else:
+                    raise serializers.ValidationError(
+                        _('reCaptcha invalid or expired, try again')
+                    )
+            else:
+                logger.exception('No error-codes received from Google reCaptcha server')
+                raise serializers.ValidationError(
+                    _('reCaptcha response from Google not valid, try again')
+                )
 
     def custom_signup(self, request, user):
         pass

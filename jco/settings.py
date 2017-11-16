@@ -179,6 +179,7 @@ REST_AUTH_REGISTER_SERIALIZERS = {
 CORS_ORIGIN_ALLOW_ALL = True
 
 ONFIDO_API_KEY = os.environ['ONFIDO_API_KEY']
+RECAPTCHA_PRIVATE_KEY = os.environ['RECAPTCHA_PRIVATE_KEY']
 
 #######################################################################
 #
