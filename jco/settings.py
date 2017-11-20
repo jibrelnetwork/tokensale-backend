@@ -186,6 +186,9 @@ ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
 ACCOUNT_EMAIL_CONFIRMATION_AUTHENTICATED_REDIRECT_URL = '/email-verified/'
 
+ACCOUNT_ADAPTER = 'jco.api.utils.AccountAdapter'
+ACCOUNT_EMAIL_CONFIRMATION_COOLDOWN = 20
+
 #######################################################################
 #
 #             LEGACY SETTINGS
