@@ -156,7 +156,7 @@ def create_celery_app(_flask_app):
     return _celery_app
 
 
-flask_app = create_flask_app('commonconfig.config')
+flask_app = create_flask_app('jco.commonconfig.config')
 if FLASK_CORS_ENABLED:
     CORS(flask_app)
 
