@@ -1,6 +1,8 @@
-from django.db import models
+from django.db import models, transaction
 from django.conf import settings
 from django.contrib.postgres.fields import JSONField
+
+from jco.appdb.models import CurrencyType
 
 
 class Account(models.Model):
@@ -56,6 +58,20 @@ class Address(models.Model):
 
     class Meta:
         db_table = 'address'
+
+    @classmethod
+    def assign_pair_to_user(cls, user):
+        with transaction.atomic():
+            eth_addr = (cls.objects.select_for_update()
+                        .filter(type=CurrencyType.eth, user=None).first())
+            eth_addr.user = user
+            eth_addr.save()
+
+            btc_addr = (cls.objects.select_for_update()
+                        .filter(type=CurrencyType.btc, user=None).first())
+            btc_addr.user = user
+            btc_addr.save()
+
 
 
 class Transaction(models.Model):

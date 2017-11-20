@@ -46,6 +46,7 @@ SITE_ID = 1
 # Application definition
 
 INSTALLED_APPS = [
+    'jco.api',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -64,7 +65,6 @@ INSTALLED_APPS = [
     'corsheaders',
 
     # jco apps
-    'jco.api',
 ]
 
 MIDDLEWARE = [
@@ -180,6 +180,11 @@ CORS_ORIGIN_ALLOW_ALL = True
 
 ONFIDO_API_KEY = os.environ['ONFIDO_API_KEY']
 RECAPTCHA_PRIVATE_KEY = os.environ['RECAPTCHA_PRIVATE_KEY']
+RECAPTCHA_ENABLED = True
+
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
+ACCOUNT_EMAIL_CONFIRMATION_AUTHENTICATED_REDIRECT_URL = '/email-verified/'
 
 #######################################################################
 #
@@ -251,6 +256,8 @@ INVESTMENTS__USD__MAX_LIMIT = 850000
 # recaptcha settings
 RECAPTCHA__VERIFY__ENABLED = False
 RECAPTCHA__SECRET__KEY = ""
+
+LOGIN_REDIRECT_URL = '/'
 
 # Blockchain explorers
 ETHERSCAN_API_KEY = ""

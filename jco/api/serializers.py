@@ -24,6 +24,7 @@ class AccountSerializer(serializers.ModelSerializer):
         fields = ('first_name', 'last_name',  'date_of_birth', 'country', 
                   'town', 'street', 'postcode', 'terms_confirmed', 'document_url',
                   'is_identity_verified')
+        read_only_fields = ('is_identity_verified',)
 
 
 class AddressSerializer(serializers.ModelSerializer):
@@ -66,6 +67,8 @@ class RegisterSerializer(serializers.Serializer):
         return data
 
     def validate_captcha(self, captcha_token):
+        if settings.RECAPTCHA_ENABLED is not True:
+            return True
         try:
             r = requests.post(
                 RECAPTCA_API_URL,
