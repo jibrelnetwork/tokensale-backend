@@ -29,7 +29,7 @@ urlpatterns = [
 
     url(r'^docs/', include_docs_urls(title='JCO API', permission_classes=[AllowAny])),
 
-    url(r'^auth/registration/account-confirm-email/(?P<key>[-:\w]+)/$', ConfirmEmailView.as_view(),
+    url(r'^account-confirm-email/(?P<key>[-:\w]+)/$', ConfirmEmailView.as_view(),
     name='account_confirm_email'),
     url(r'^auth/', include('rest_auth.urls')),
     url(r'^auth/registration/', include('rest_auth.registration.urls')),
