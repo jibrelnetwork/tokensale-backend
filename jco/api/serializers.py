@@ -222,3 +222,7 @@ class LoginSerializer(serializers.Serializer):
 
         attrs['user'] = user
         return attrs
+
+
+class ResendEmailConfirmationSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True, allow_blank=False)

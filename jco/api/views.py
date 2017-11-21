@@ -4,10 +4,21 @@ from rest_framework.response import Response
 from rest_framework import authentication, permissions
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
+from django.utils.translation import ugettext_lazy as _
+from rest_framework_extensions.cache.decorators import (
+    cache_response
+)
 
 
+from allauth.account.models import EmailAddress
+from allauth.account.utils import send_email_confirmation
 from jco.api.models import Transaction, Address, Account
-from jco.api.serializers import TransactionSerializer, AddressSerializer, AccountSerializer
+from jco.api.serializers import (
+    AccountSerializer,
+    AddressSerializer,
+    ResendEmailConfirmationSerializer,
+    TransactionSerializer,
+)
 
 
 class TransactionsListView(APIView):
@@ -59,4 +70,26 @@ class AccountView(GenericAPIView):
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
+        return Response(serializer.errors, status=400)
+
+
+class ResendEmailConfirmationView(GenericAPIView):
+    """
+    Re-send email confirmation email
+    """
+
+    permission_classes = (permissions.AllowAny,)
+    serializer_class = ResendEmailConfirmationSerializer
+
+    @cache_response(20)
+    def post(self, request):
+        serializer = ResendEmailConfirmationSerializer(data=request.data)
+        if serializer.is_valid():
+            try:
+                user = User.objects.get(username=serializer.data['email'])
+            except User.DoesNotExist:
+                return Response({'email':  [_('No such user')]}, status=400)
+            else:
+                send_email_confirmation(request, user)
+                return Response({'details': _('Verification e-mail re-sent.')})
         return Response(serializer.errors, status=400)

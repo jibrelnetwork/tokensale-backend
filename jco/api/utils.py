@@ -1,4 +1,4 @@
-from allauth.account.adapter import DefaultAccountAdapter
+from allauth.account.adapter import DefaultAccountAdapter, build_absolute_uri
 
 
 class AccountAdapter(DefaultAccountAdapter):
@@ -9,4 +9,4 @@ class AccountAdapter(DefaultAccountAdapter):
         confirmations are sent outside of the request context `request`
         can be `None` here.
         """
-        return super().get_email_confirmation_url(None, emailconfirmation)
+        return build_absolute_uri(None, '/') + '#/welcome/email/pending/' + emailconfirmation.key

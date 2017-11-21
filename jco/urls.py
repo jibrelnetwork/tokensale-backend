@@ -22,6 +22,7 @@ from django.views.generic import TemplateView, RedirectView
 from allauth.account.views import ConfirmEmailView
 from rest_framework.documentation import include_docs_urls
 from rest_framework.permissions import AllowAny
+from jco.api.views import ResendEmailConfirmationView
 
 
 urlpatterns = [
@@ -29,10 +30,9 @@ urlpatterns = [
 
     url(r'^docs/', include_docs_urls(title='JCO API', permission_classes=[AllowAny])),
 
-    url(r'^account-confirm-email/(?P<key>[-:\w]+)/$', ConfirmEmailView.as_view(),
-    name='account_confirm_email'),
     url(r'^auth/', include('rest_auth.urls')),
     url(r'^auth/registration/', include('rest_auth.registration.urls')),
+    url(r'^auth/registration/confirm-email-resend/', ResendEmailConfirmationView.as_view()),
     url(r'^api/', include('jco.api.urls')),
 
     url(r'^password-reset/confirm/$',
@@ -44,6 +44,9 @@ urlpatterns = [
     url(r'^account_email_verification_sent/$',
         TemplateView.as_view(template_name="registration/password_reset_confirm.html"),
         name='account_email_verification_sent'),
+
+    # url('^#/welcome/email/pending/(?P<key>[-:\w]+)/$', ConfirmEmailView.as_view(),
+    # name='account_confirm_email'),
 ]
 
 
