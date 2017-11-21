@@ -5,6 +5,8 @@ from django.test import TestCase
 
 from rest_framework.test import RequestsClient
 from django.contrib.auth.models import User 
+from allauth.account.models import EmailAddress 
+from allauth.account.utils import setup_user_email 
 
 from jco.api import models 
 from jco.appdb import models as sa_models 
@@ -21,7 +23,7 @@ class ApiClient(RequestsClient):
 
     def authenticate(self, username, password):
         resp = self.post('/auth/login/',
-                         {'username': username, 'password': password})
+                         {'email': username, 'password': password})
         token = resp.json()['key']
         self.headers = {'Authorization': 'Token ' + token}
 
@@ -34,11 +36,17 @@ def client(live_server):
 
 @pytest.fixture
 def users():
-    return [
-        User.objects.create_user('user1', 'user1@main.com', 'password1'),
-        User.objects.create_user('user2', 'user2@main.com', 'password2'),
-        User.objects.create_user('user3', 'user3@main.com', 'password3'),
+    users = [
+        User.objects.create_user('user1@main.com', 'user1@main.com', 'password1'),
+        User.objects.create_user('user2@main.com', 'user2@main.com', 'password2'),
+        User.objects.create_user('user3@main.com', 'user3@main.com', 'password3'),
     ]
+    for user in users:
+        EmailAddress.objects.create(user=user,
+                            email=user.username,
+                            primary=True,
+                            verified=True)
+    return users
 
 
 @pytest.fixture
@@ -89,14 +97,14 @@ def transactions(addresses):
 
 
 def test_transactions_empty(client, users):
-    client.authenticate('user1', 'password1')
+    client.authenticate('user1@main.com', 'password1')
     resp = client.get('/api/transactions/')
     assert resp.status_code == 200
     assert resp.json() == []
 
 
 def test_transactions(client, users, addresses, transactions):
-    client.authenticate('user1', 'password1')
+    client.authenticate('user1@main.com', 'password1')
     resp = client.get('/api/transactions/')
     assert resp.status_code == 200
     assert len(resp.json()) == 2
@@ -118,37 +126,80 @@ def test_transactions_anon(client):
 
 
 def test_get_account_empty(client, users):
-    client.authenticate('user1', 'password1')
+    client.authenticate('user1@main.com', 'password1')
     resp = client.get('/api/account/')
     assert resp.status_code == 200
-    assert resp.json() == {'citizenship': '',
-                           'country': '',
+    assert resp.json() == {'country': '',
                            'date_of_birth': None,
-                           'docs_received': False,
-                           'email': '',
                            'first_name': '',
-                           'fullname': '',
                            'last_name': '',
-                           'notified': False,
-                           'residency': '',
-                           'terms_confirmed': False}
+                           'terms_confirmed': False,
+                           'document_url': '',
+                           'is_identity_verified': False,
+                           'identity_verification_status': None,
+                           'postcode': '',
+                           'street': '',
+                           'town': '',
+                           'jnt_balance': 0}
 
 
-def test_update_account_empty(client, users):
-    client.authenticate('user1', 'password1')
+def test_update_account(client, users, transactions):
+    models.Jnt.objects.create(
+        purchase_id='1',
+        jnt_value=1.5,
+        currency_to_usd_rate=1.0,
+        usd_value=1.0,
+        jnt_to_usd_rate=1.0,
+        active=True,
+        created=datetime.now(),
+        transaction=transactions[0])
+    client.authenticate('user1@main.com', 'password1')
     resp = client.put('/api/account/', {'first_name': 'John', 'terms_confirmed': True})
     assert resp.status_code == 200
-    assert resp.json() == {'citizenship': '',
-                           'country': '',
+    assert resp.json() == {'country': '',
                            'date_of_birth': None,
-                           'docs_received': False,
-                           'email': '',
                            'first_name': 'John',
-                           'fullname': '',
                            'last_name': '',
-                           'notified': False,
-                           'residency': '',
-                           'terms_confirmed': True}
+                           'terms_confirmed': True,
+                           'document_url': '',
+                           'is_identity_verified': False,
+                           'identity_verification_status': None,
+                           'postcode': '',
+                           'street': '',
+                           'town': '',
+                           'jnt_balance': 1.5}
+
+
+def test_get_raised_tokens_empty(client, users):
+    resp = client.get('/api/raised-tokens/')
+    assert resp.status_code == 200
+    assert resp.json() == {'raised_tokens': 0}
+
+
+def test_get_raised_tokens(client, transactions):
+    models.Jnt.objects.create(
+        purchase_id='1',
+        jnt_value=1.5,
+        currency_to_usd_rate=1.0,
+        usd_value=1.0,
+        jnt_to_usd_rate=1.0,
+        active=True,
+        created=datetime.now(),
+        transaction=transactions[0])
+    models.Jnt.objects.create(
+        purchase_id='2',
+        jnt_value=0.75,
+        currency_to_usd_rate=1.0,
+        usd_value=1.0,
+        jnt_to_usd_rate=1.0,
+        active=True,
+        created=datetime.now(),
+        transaction=transactions[1])
+    resp = client.get('/api/raised-tokens/')
+    assert resp.status_code == 200
+    assert resp.json() == {'raised_tokens': 2.25}
+
+    
 
     
 

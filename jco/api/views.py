@@ -12,7 +12,7 @@ from rest_framework_extensions.cache.decorators import (
 
 from allauth.account.models import EmailAddress
 from allauth.account.utils import send_email_confirmation
-from jco.api.models import Transaction, Address, Account
+from jco.api.models import Transaction, Address, Account, get_raised_tokens
 from jco.api.serializers import (
     AccountSerializer,
     AddressSerializer,
@@ -93,3 +93,16 @@ class ResendEmailConfirmationView(GenericAPIView):
                 send_email_confirmation(request, user)
                 return Response({'details': _('Verification e-mail re-sent.')})
         return Response(serializer.errors, status=400)
+
+
+class RaisedTokensView(GenericAPIView):
+    """
+    Get raised JNT tokens amount
+    """
+
+    permission_classes = (permissions.AllowAny,)
+
+    @cache_response(20)
+    def get(self, request):
+        data = {'raised_tokens': get_raised_tokens()}
+        return Response(data)

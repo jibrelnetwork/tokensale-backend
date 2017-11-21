@@ -1,5 +1,6 @@
 import logging 
 
+from django.db.models import Sum
 from django.conf import settings
 from django.contrib.auth import get_user_model, authenticate
 from django.utils.translation import ugettext_lazy as _
@@ -10,7 +11,8 @@ from allauth.account.utils import setup_user_email
 from rest_framework import serializers, exceptions
 import requests
 
-from jco.api.models import Transaction, Address, Account
+from jco.api.models import Transaction, Address, Account, Jnt
+from jco.commonutils import person_verify
 
 
 logger = logging.getLogger(__name__)
@@ -19,12 +21,26 @@ RECAPTCA_API_URL = 'https://www.google.com/recaptcha/api/siteverify'
 
 
 class AccountSerializer(serializers.ModelSerializer):
+    jnt_balance = serializers.SerializerMethodField()
+    identity_verification_status = serializers.SerializerMethodField()
     class Meta:
         model = Account
         fields = ('first_name', 'last_name',  'date_of_birth', 'country', 
                   'town', 'street', 'postcode', 'terms_confirmed', 'document_url',
-                  'is_identity_verified')
-        read_only_fields = ('is_identity_verified',)
+                  'is_identity_verified', 'jnt_balance', 'identity_verification_status')
+        read_only_fields = ('is_identity_verified', 'jnt_balance')
+
+    def get_jnt_balance(self, obj):
+        return (Jnt.objects.filter(transaction__address__user=obj.user)
+                .aggregate(Sum('jnt_value')))['jnt_value__sum'] or 0
+
+    def get_identity_verification_status(self, obj):
+        if obj.is_identity_verified is True:
+            return 'Approved'
+        if obj.onfido_check_status == person_verify.STATUS_IN_PROGRESS:
+            return 'Pending'
+        if obj.onfido_check_status == person_verify.STATUS_COMPLETE and obj.onfido_check_result == person_verify.RESULT_CONSIDER:
+            return 'Declined'
 
 
 class AddressSerializer(serializers.ModelSerializer):

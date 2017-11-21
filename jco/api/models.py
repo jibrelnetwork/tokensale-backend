@@ -110,3 +110,10 @@ class Jnt(models.Model):
 
     class Meta:
         db_table = 'JNT'
+
+
+def get_raised_tokens():
+    """
+    Get raised tokens amount
+    """
+    return Jnt.objects.all().aggregate(models.Sum('jnt_value'))['jnt_value__sum'] or 0
