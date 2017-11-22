@@ -85,14 +85,55 @@ def transactions(addresses):
     return [
         models.Transaction.objects.create(transaction_id='1000',
                                         value=0.5,
-                                        mined=datetime(2017, 11, 11, 12),
+                                        mined=datetime(2017, 11, 14),
                                         block_height=100,
+                                        status='success',
                                         address=addresses[0]),
         models.Transaction.objects.create(transaction_id='2000',
                                         value=2.5,
-                                        mined=datetime(2017, 11, 12),
+                                        mined=datetime(2017, 11, 12, 12),
                                         block_height=200,
+                                        status='success',
                                         address=addresses[3]),
+        models.Transaction.objects.create(transaction_id='3000',
+                                        value=2.5,
+                                        mined=datetime(2017, 11, 13),
+                                        block_height=300,
+                                        status='success',
+                                        address=addresses[2]),
+    ]
+
+
+@pytest.fixture
+def jnt(transactions):
+    return[
+        models.Jnt.objects.create(
+            purchase_id='1',
+            jnt_value=10,
+            currency_to_usd_rate=1.0,
+            usd_value=1.0,
+            jnt_to_usd_rate=1.0,
+            active=True,
+            created=datetime(2017, 10, 22, 10),
+            transaction=transactions[0]),
+        models.Jnt.objects.create(
+            purchase_id='2',
+            jnt_value=20,
+            currency_to_usd_rate=1.0,
+            usd_value=2.0,
+            jnt_to_usd_rate=1.0,
+            active=True,
+            created=datetime(2017, 10, 22, 11),
+            transaction=transactions[1]),
+        models.Jnt.objects.create(
+            purchase_id='3',
+            jnt_value=30,
+            currency_to_usd_rate=1.0,
+            usd_value=3.0,
+            jnt_to_usd_rate=1.0,
+            active=True,
+            created=datetime(2017, 10, 22, 12),
+            transaction=transactions[2]),
     ]
 
 
@@ -103,20 +144,29 @@ def test_transactions_empty(client, users):
     assert resp.json() == []
 
 
-def test_transactions(client, users, addresses, transactions):
+def test_transactions(client, users, addresses, transactions, jnt):
     client.authenticate('user1@main.com', 'password1')
     resp = client.get('/api/transactions/')
     assert resp.status_code == 200
     assert len(resp.json()) == 2
     assert resp.json() == [
-        {'transaction_id': '2000',
-         'value': 2.5,
-         'mined': '2017-11-12T00:00:00Z',
-         'address': addresses[3].id},
-        {'transaction_id': '1000',
-         'value': 0.5,
-         'mined': '2017-11-11T12:00:00Z',
-         'address': addresses[0].id},
+        {'jnt': 20,
+         'type': 'incoming',
+         'date': '12:00 11/12/2017',
+         'TXtype': 'BTC',
+         'TXhash': '2000',
+         'status': 'complete',
+         'amount_usd': 2,
+         'amount_cryptocurrency': 2.5},
+
+        {'jnt': 10,
+         'type': 'incoming',
+         'date': '00:00 11/14/2017',
+         'TXtype': 'ETH',
+         'TXhash': '1000',
+         'status': 'complete',
+         'amount_usd': 1,
+         'amount_cryptocurrency': 0.5},
     ]
 
 

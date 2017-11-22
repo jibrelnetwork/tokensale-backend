@@ -117,7 +117,8 @@ class Jnt(models.Model):
     jnt_value = models.FloatField()
     active = models.BooleanField()
     created = models.DateTimeField()
-    transaction = models.ForeignKey('Transaction', models.DO_NOTHING, unique=True)
+    transaction = models.OneToOneField('Transaction', models.DO_NOTHING,
+                                    unique=True, related_name='jnt')
     meta = JSONField(default={})  # This field type is a guess.
 
     class Meta:

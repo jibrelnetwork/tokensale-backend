@@ -1,4 +1,5 @@
 import logging 
+from datetime import datetime 
 
 from django.db.models import Sum
 from django.conf import settings
@@ -13,6 +14,7 @@ import requests
 
 from jco.api.models import Transaction, Address, Account, Jnt
 from jco.commonutils import person_verify
+from jco.appdb.models import TransactionStatus
 
 
 logger = logging.getLogger(__name__)
@@ -57,9 +59,56 @@ class AddressSerializer(serializers.ModelSerializer):
 
 
 class TransactionSerializer(serializers.ModelSerializer):
+    """
+    {
+        jnt: 10000,
+        type: 'outgoing',
+        date: '13:30 10/22/2017',
+        TXtype: 'BTC',
+        TXhash: '0x00360d2b7d240ec0643b6d819ba81a09e40e5bc2',
+        status: 'complete',
+        amount: '10 BTC / 72 000 USD',
+    }
+    """
+
+    type = serializers.SerializerMethodField()
+    jnt = serializers.SerializerMethodField()
+    status = serializers.SerializerMethodField()
+    TXtype = serializers.SerializerMethodField()
+    date = serializers.SerializerMethodField()
+    TXhash = serializers.CharField(source='transaction_id')
+    amount_usd = serializers.SerializerMethodField()
+    amount_cryptocurrency = serializers.SerializerMethodField()
+
     class Meta:
         model = Transaction
-        fields = ('transaction_id', 'value', 'address', 'mined')
+        fields = ('jnt', 'status', 'TXtype', 'date', 'type',
+                  'TXhash', 'amount_usd', 'amount_cryptocurrency')
+
+    def get_type(self, obj):
+        return 'incoming'
+
+    def get_jnt(self, obj):
+        return obj.jnt.jnt_value
+
+    def get_status(self, obj):
+        return {
+            TransactionStatus.pending: 'waiting',
+            TransactionStatus.success: 'complete',
+            TransactionStatus.fail: 'failed',
+        }.get(obj.status)
+
+    def get_TXtype(self, obj):
+        return obj.address.type.upper()
+
+    def get_date(self, obj):
+        return datetime.strftime(obj.mined, '%H:%M %m/%d/%Y')
+
+    def get_amount_usd(self, obj):
+        return obj.jnt.usd_value
+
+    def get_amount_cryptocurrency(self, obj):
+        return obj.value
 
 
 class RegisterSerializer(serializers.Serializer):
