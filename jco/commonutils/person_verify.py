@@ -28,19 +28,19 @@ def get_client(api_key=None):
 def create_applicant(user_id):
     user = get_user_model().objects.get(pk=user_id)
     
-    address = onfido.Address(
-        country=user.account.country,
-        town=user.account.town,
-        street=user.account.street,
-        postcode=user.account.postcode,
-    )
+    # address = onfido.Address(
+    #     country=user.account.country,
+    #     town=user.account.town,
+    #     street=user.account.street,
+    #     postcode=user.account.postcode,
+    # )
     
     details = {
         'first_name': user.account.first_name,
         'last_name': user.account.last_name,
         'email': user.email,
         'dob': user.account.date_of_birth,
-        'addresses': [address]
+        # 'addresses': []
     }
     applicant = onfido.Applicant(**details)
 

@@ -23,11 +23,14 @@ RECAPTCA_API_URL = 'https://www.google.com/recaptcha/api/siteverify'
 class AccountSerializer(serializers.ModelSerializer):
     jnt_balance = serializers.SerializerMethodField()
     identity_verification_status = serializers.SerializerMethodField()
+    addresses = serializers.SerializerMethodField()
+    
     class Meta:
         model = Account
-        fields = ('first_name', 'last_name',  'date_of_birth', 'country', 
-                  'town', 'street', 'postcode', 'terms_confirmed', 'document_url',
-                  'is_identity_verified', 'jnt_balance', 'identity_verification_status')
+        fields = ('first_name', 'last_name',  'date_of_birth', 'country',
+                  'citizenship', 'residency', 'terms_confirmed', 'document_url',
+                  'is_identity_verified', 'jnt_balance', 'identity_verification_status',
+                  'addresses')
         read_only_fields = ('is_identity_verified', 'jnt_balance')
 
     def get_jnt_balance(self, obj):
@@ -41,6 +44,10 @@ class AccountSerializer(serializers.ModelSerializer):
             return 'Pending'
         if obj.onfido_check_status == person_verify.STATUS_COMPLETE and obj.onfido_check_result == person_verify.RESULT_CONSIDER:
             return 'Declined'
+
+    def get_addresses(self, obj):
+        addresses = Address.objects.filter(user=obj.user).all()
+        return {a.type: a.address for a in addresses}
 
 
 class AddressSerializer(serializers.ModelSerializer):

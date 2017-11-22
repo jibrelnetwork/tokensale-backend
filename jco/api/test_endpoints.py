@@ -137,9 +137,9 @@ def test_get_account_empty(client, users):
                            'document_url': '',
                            'is_identity_verified': False,
                            'identity_verification_status': None,
-                           'postcode': '',
-                           'street': '',
-                           'town': '',
+                           'citizenship': '',
+                           'residency': '',
+                           'addresses': {},
                            'jnt_balance': 0}
 
 
@@ -164,9 +164,9 @@ def test_update_account(client, users, transactions):
                            'document_url': '',
                            'is_identity_verified': False,
                            'identity_verification_status': None,
-                           'postcode': '',
-                           'street': '',
-                           'town': '',
+                           'citizenship': '',
+                           'residency': '',
+                           'addresses': {'BTC': 'aba', 'ETH': 'aaa'},
                            'jnt_balance': 1.5}
 
 

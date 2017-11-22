@@ -47,6 +47,9 @@ class Account(models.Model):
         self.onfido_check_created = None
         self.save()
 
+    def __str__(self):
+        return '{} {}'.format(self.first_name, self.last_name)
+
 
 class Address(models.Model):
     address = models.CharField(unique=True, max_length=255)
@@ -58,6 +61,9 @@ class Address(models.Model):
 
     class Meta:
         db_table = 'address'
+
+    def __str__(self):
+        return '{}: {}'.format(self.type, self.address)
 
     @classmethod
     def assign_pair_to_user(cls, user):
@@ -85,6 +91,9 @@ class Transaction(models.Model):
     class Meta:
         db_table = 'transaction'
 
+    def __str__(self):
+        return '{} [{}]'.format(self.transaction_id, self.value)
+
 
 class Price(models.Model):
     fixed_currency = models.CharField(max_length=10)
@@ -110,6 +119,9 @@ class Jnt(models.Model):
 
     class Meta:
         db_table = 'JNT'
+
+    def __str__(self):
+        return '{} [{}]'.format(self.purchase_id, self.jnt_value)
 
 
 def get_raised_tokens():

@@ -1,11 +1,12 @@
 from django.contrib import admin
 
-from jco.api.models import Account, Transaction, Jnt
+from jco.api.models import Address, Account, Transaction, Jnt
 
 
 @admin.register(Account)
 class AccountAdmin(admin.ModelAdmin):
-    list_display = ['id', 'username', 'first_name', 'last_name']
+    list_display = ['id', 'username', 'first_name', 'last_name',
+                    'is_identity_verified', 'onfido_check_id', 'onfido_check_created']
     # readonly_fields = ['status']
 
     # def get_urls(self):
@@ -36,6 +37,13 @@ class TransactionAdmin(admin.ModelAdmin):
     list_display = ['transaction_id', 'value', 'mined', 'address']
 
 
-# @admin.register(Jnt)
-# class TransactionAdmin(admin.ModelAdmin):
-#     list_display = ['transaction_id', 'value', 'mined', 'address']
+@admin.register(Address)
+class AddressAdmin(admin.ModelAdmin):
+    list_display = ['address', 'type', 'is_usable', 'user']
+
+
+@admin.register(Jnt)
+class JntAdmin(admin.ModelAdmin):
+    list_display = ['purchase_id', 'currency_to_usd_rate', 'usd_value',
+                    'jnt_to_usd_rate', 'jnt_value', 'active', 'created']
+
