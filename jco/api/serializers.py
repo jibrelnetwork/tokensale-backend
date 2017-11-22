@@ -249,3 +249,7 @@ class LoginSerializer(serializers.Serializer):
 
 class ResendEmailConfirmationSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True, allow_blank=False)
+
+
+class EthAddressSerializer(serializers.Serializer):
+    address = serializers.CharField(required=True, allow_blank=False)

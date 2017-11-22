@@ -16,6 +16,7 @@ from jco.api.models import Transaction, Address, Account, get_raised_tokens
 from jco.api.serializers import (
     AccountSerializer,
     AddressSerializer,
+    EthAddressSerializer,
     ResendEmailConfirmationSerializer,
     TransactionSerializer,
 )
@@ -106,3 +107,33 @@ class RaisedTokensView(GenericAPIView):
     def get(self, request):
         data = {'raised_tokens': get_raised_tokens()}
         return Response(data)
+
+
+class EthAddressView(GenericAPIView):
+    """
+    Get/set etherium address for account
+    """
+
+    authentication_classes = (authentication.TokenAuthentication,)
+    serializer_class = EthAddressSerializer
+
+    def ensure_account(self, request):
+        try:
+            account = request.user.account
+        except ObjectDoesNotExist:
+            account = Account.objects.create(user=request.user)
+        return account
+
+    def get(self, request):
+        account = self.ensure_account(request)
+        data = {'address': account.etherium_address}
+        return Response(data)
+
+    def put(self, request):
+        account = self.ensure_account(request)
+        serializer = EthAddressSerializer(data=request.data)
+        if serializer.is_valid():
+            account.etherium_address = serializer.data['address']
+            account.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=400)

@@ -15,4 +15,5 @@ urlpatterns = [
     url(r'^transactions/', views.TransactionsListView.as_view()),
     url(r'^account/', views.AccountView.as_view()),
     url(r'^raised-tokens/', views.RaisedTokensView.as_view()),
+    url(r'^withdraw-address/', views.EthAddressView.as_view()),
 ]

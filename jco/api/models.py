@@ -35,6 +35,7 @@ class Account(models.Model):
     onfido_check_created = models.DateTimeField(null=True, blank=True)
 
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    etherium_address = models.CharField(max_length=255, null=True, blank=True)
 
     class Meta:
         db_table = 'account'
