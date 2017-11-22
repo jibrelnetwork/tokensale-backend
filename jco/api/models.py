@@ -19,6 +19,8 @@ class Account(models.Model):
     town = models.CharField(max_length=120, null=False, blank=True)
     postcode = models.CharField(max_length=120, null=False, blank=True)
 
+    etherium_address = models.CharField(max_length=255, null=False, blank=True)
+
     terms_confirmed = models.BooleanField(default=False)
     docs_received = models.BooleanField(default=False)
     created = models.DateTimeField(auto_now_add=True)
@@ -122,12 +124,12 @@ def get_raised_tokens():
 
 
 class Withdraw(models.Model):
-    transaction_id = models.CharField(unique=True, max_length=120)
-    to = models.CharField(unique=True, max_length=255)
+    transaction_id = models.CharField(max_length=120)
+    to = models.CharField(max_length=255)
     value = models.FloatField()
     created = models.DateTimeField()
-    mined = models.DateTimeField()
-    block_height = models.IntegerField()
+    mined = models.DateTimeField(null=True)
+    block_height = models.IntegerField(blank=True, null=True)
     address = models.ForeignKey(Address, models.DO_NOTHING)
     status = models.CharField(max_length=10, default=TransactionStatus.pending)
     meta = JSONField(default=dict)  # This field type is a guess.

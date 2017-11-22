@@ -69,12 +69,26 @@ class User(db.Model):
 class Account(db.Model):
     # Fields
     id = db.Column(db.Integer, primary_key=True)
+    first_name = db.Column(db.String(120), nullable=False, default='')
+    last_name = db.Column(db.String(120), nullable=False, default='')
     fullname = db.Column(db.String(120), nullable=False)
     country = db.Column(db.String(120), nullable=False)
+    street = db.Column(db.String(120), nullable=False, default='')
+    town = db.Column(db.String(120), nullable=False, default='')
+    postcode = db.Column(db.String(120), nullable=False, default='')
     citizenship = db.Column(db.String(120), nullable=False)
+    residency = db.Column(db.String(120), nullable=False)
     created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    terms_confirmed = db.Column(db.Boolean, nullable=False, default=False)
     docs_received = db.Column(db.Boolean, nullable=False, default=False)
     notified = db.Column(db.Boolean, nullable=False, default=False)
+    is_identity_verified = db.Column(db.Boolean, nullable=False, default=False)
+
+    user_id = db.Column(db.Integer, db.ForeignKey('auth_user.id'), unique=True)
+    etherium_address = db.Column(db.String(255), nullable=False, default='')
+
+    document_url = db.Column(db.String(00), nullable=False, default='')
+    #user = db.relationship(User, back_populates="accountes")  # type: User
 
     # Methods
     def __repr__(self):
@@ -95,7 +109,6 @@ class Account(db.Model):
         return {
             'id': self.id,
             'fullname': self.fullname,
-            'email': self.email,
             'country': self.country,
             'citizenship': self.citizenship,
             'created': self.created,
@@ -326,18 +339,18 @@ class Price(db.Model):
 class Withdraw(db.Model):
     # Fields
     id = db.Column(db.Integer, primary_key=True)
-    transaction_id = db.Column(db.String(120), unique=True, nullable=False)
-    to = db.Column(db.String(255), nullable=False)
+    transaction_id = db.Column(db.String(120), unique=False)
+    to = db.Column(db.String(255), nullable=False, unique=False)
     value = db.Column(db.Float, nullable=False)
     created = db.Column(db.Float, nullable=False, default=datetime.utcnow)
-    mined = db.Column(db.DateTime)
-    block_height = db.Column(db.Integer)
+    mined = db.Column(db.DateTime, nullable=True)
+    block_height = db.Column(db.Integer, nullable=True)
     address_id = db.Column(db.Integer, db.ForeignKey('address.id'), nullable=False)
     status = db.Column(db.String(10), nullable=False, default=TransactionStatus.pending)
     meta = db.Column(JSONB, nullable=False, default=lambda: {})
 
     # Relationships
-    address = db.relationship(Address, back_populates="withdraws")  # type: Address
+    #address = db.relationship(Address, back_populates="withdraws")  # type: Address
 
     # Methods
     def __repr__(self):
