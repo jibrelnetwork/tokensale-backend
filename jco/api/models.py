@@ -17,7 +17,7 @@ class Account(models.Model):
     street = models.CharField(max_length=120, null=False, blank=True)
     town = models.CharField(max_length=120, null=False, blank=True)
     postcode = models.CharField(max_length=120, null=False, blank=True)
-    
+
     terms_confirmed = models.BooleanField(default=False)
     docs_received = models.BooleanField(default=False)
     created = models.DateTimeField(auto_now_add=True)
@@ -80,6 +80,7 @@ class Transaction(models.Model):
     mined = models.DateTimeField()
     block_height = models.IntegerField()
     address = models.ForeignKey(Address, models.DO_NOTHING)
+    status = models.CharField(max_length=10)
     meta = JSONField(default=dict)  # This field type is a guess.
 
     class Meta:
@@ -117,3 +118,18 @@ def get_raised_tokens():
     Get raised tokens amount
     """
     return Jnt.objects.all().aggregate(models.Sum('jnt_value'))['jnt_value__sum'] or 0
+
+
+class Withdraw(models.Model):
+    transaction_id = models.CharField(unique=True, max_length=120)
+    to = models.CharField(unique=True, max_length=255)
+    value = models.FloatField()
+    created = models.DateTimeField()
+    mined = models.DateTimeField()
+    block_height = models.IntegerField()
+    address = models.ForeignKey(Address, models.DO_NOTHING)
+    status = models.CharField(max_length=10)
+    meta = JSONField(default=dict)  # This field type is a guess.
+
+    class Meta:
+        db_table = 'withdraw'
