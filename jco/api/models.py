@@ -3,6 +3,7 @@ from django.conf import settings
 from django.contrib.postgres.fields import JSONField
 
 from jco.appdb.models import CurrencyType
+from jco.appdb.models import TransactionStatus
 
 
 class Account(models.Model):
@@ -25,7 +26,7 @@ class Account(models.Model):
     is_identity_verified = models.BooleanField(default=False)
 
     document_url = models.URLField(max_length=200, null=False, blank=True)
-    
+
     onfido_applicant_id = models.CharField(max_length=200, null=True, blank=True)
     onfido_document_id = models.CharField(max_length=200, null=True, blank=True)
     onfido_check_id = models.CharField(max_length=200, null=True, blank=True)
