@@ -81,7 +81,7 @@ class Transaction(models.Model):
     mined = models.DateTimeField()
     block_height = models.IntegerField()
     address = models.ForeignKey(Address, models.DO_NOTHING)
-    status = models.CharField(max_length=10)
+    status = models.CharField(max_length=10, default=TransactionStatus.pending)
     meta = JSONField(default=dict)  # This field type is a guess.
 
     class Meta:
@@ -129,7 +129,7 @@ class Withdraw(models.Model):
     mined = models.DateTimeField()
     block_height = models.IntegerField()
     address = models.ForeignKey(Address, models.DO_NOTHING)
-    status = models.CharField(max_length=10)
+    status = models.CharField(max_length=10, default=TransactionStatus.pending)
     meta = JSONField(default=dict)  # This field type is a guess.
 
     class Meta:
