@@ -9,6 +9,7 @@ registration_01 = "email subject"
 registration_02 = "email subject"
 
 transactions_01 = "email subject"
-transactions_02 = "email subject"
+transactions_02_01 = "email subject"
+transactions_02_02 = "email subject"
 transactions_03 = "email subject"
 transactions_04 = "email subject"
