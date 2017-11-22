@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from jco.api.models import Address, Account, Transaction, Jnt
+from jco.api.models import Address, Account, Transaction, Jnt, Withdraw
 
 
 @admin.register(Account)
@@ -34,6 +34,11 @@ class AccountAdmin(admin.ModelAdmin):
 
 @admin.register(Transaction)
 class TransactionAdmin(admin.ModelAdmin):
+    list_display = ['transaction_id', 'value', 'mined', 'address']
+
+
+@admin.register(Withdraw)
+class WithdrawAdmin(admin.ModelAdmin):
     list_display = ['transaction_id', 'value', 'mined', 'address']
 
 
