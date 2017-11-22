@@ -33,7 +33,8 @@ def verify_user(user_id):
         logger.info('Applicant already exists: %s', user.account.onfido_applicant_id)
 
     if not user.account.onfido_document_id:
-        document_id = person_verify.upload_document(user.account.onfido_applicant_id, user.account.document_url)
+        document_id = person_verify.upload_document(
+            user.account.onfido_applicant_id, user.account.document_url)
         user.account.onfido_document_id = document_id
         user.account.save()
         logger.info('Document uploaded: %s', user.account.onfido_document_id)

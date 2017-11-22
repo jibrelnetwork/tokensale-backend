@@ -145,20 +145,29 @@ def test_transactions_empty(client, users):
 
 
 def test_transactions(client, users, addresses, transactions, jnt):
+    models.Withdraw.objects.create(
+        transaction_id='3000',
+        value=30000,
+        mined=datetime(2017, 11, 15),
+        created=datetime(2017, 11, 15),
+        block_height=200,
+        status='success',
+        address=addresses[0]
+    )
     client.authenticate('user1@main.com', 'password1')
     resp = client.get('/api/transactions/')
     assert resp.status_code == 200
-    assert len(resp.json()) == 2
+    assert len(resp.json()) == 3
+    print("DDD", resp.json())
     assert resp.json() == [
-        {'jnt': 20,
-         'type': 'incoming',
-         'date': '12:00 11/12/2017',
-         'TXtype': 'BTC',
-         'TXhash': '2000',
+        {'jnt': 30000,
+         'type': 'outgoing',
+         'date': '00:00 11/15/2017',
+         'TXtype': 'ETH',
+         'TXhash': '3000',
          'status': 'complete',
-         'amount_usd': 2,
-         'amount_cryptocurrency': 2.5},
-
+         'amount_usd': None,
+         'amount_cryptocurrency': None},
         {'jnt': 10,
          'type': 'incoming',
          'date': '00:00 11/14/2017',
@@ -167,6 +176,14 @@ def test_transactions(client, users, addresses, transactions, jnt):
          'status': 'complete',
          'amount_usd': 1,
          'amount_cryptocurrency': 0.5},
+        {'jnt': 20,
+         'type': 'incoming',
+         'date': '12:00 11/12/2017',
+         'TXtype': 'BTC',
+         'TXhash': '2000',
+         'status': 'complete',
+         'amount_usd': 2,
+         'amount_cryptocurrency': 2.5},
     ]
 
 

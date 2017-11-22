@@ -12,7 +12,7 @@ from allauth.account.utils import setup_user_email
 from rest_framework import serializers, exceptions
 import requests
 
-from jco.api.models import Transaction, Address, Account, Jnt
+from jco.api.models import Transaction, Address, Account, Jnt, Withdraw
 from jco.commonutils import person_verify
 from jco.appdb.models import TransactionStatus
 
@@ -79,10 +79,11 @@ class TransactionSerializer(serializers.ModelSerializer):
     TXhash = serializers.CharField(source='transaction_id')
     amount_usd = serializers.SerializerMethodField()
     amount_cryptocurrency = serializers.SerializerMethodField()
+    _date = serializers.DateTimeField(source='mined')
 
     class Meta:
         model = Transaction
-        fields = ('jnt', 'status', 'TXtype', 'date', 'type',
+        fields = ('jnt', 'status', 'TXtype', 'date', 'type', '_date',
                   'TXhash', 'amount_usd', 'amount_cryptocurrency')
 
     def get_type(self, obj):
@@ -109,6 +110,31 @@ class TransactionSerializer(serializers.ModelSerializer):
 
     def get_amount_cryptocurrency(self, obj):
         return obj.value
+
+
+class WithdrawSerializer(TransactionSerializer):
+    class Meta:
+        model = Withdraw
+        fields = ('jnt', 'status', 'TXtype', 'date', 'type',  '_date',
+                  'TXhash', 'amount_usd', 'amount_cryptocurrency')
+
+    def get_type(self, obj):
+        return 'outgoing'
+
+    def get_jnt(self, obj):
+        return obj.value
+
+    def get_TXtype(self, obj):
+        return 'ETH'
+
+    def get_date(self, obj):
+        return datetime.strftime(obj.mined, '%H:%M %m/%d/%Y')
+
+    def get_amount_usd(self, obj):
+        return None
+
+    def get_amount_cryptocurrency(self, obj):
+        return None
 
 
 class RegisterSerializer(serializers.Serializer):
