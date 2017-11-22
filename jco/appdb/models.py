@@ -121,6 +121,12 @@ class Address(db.Model):
                                    passive_deletes=True,
                                    order_by='Transaction.id')  # type: List[Transaction]
 
+    withdraws = db.relationship('Withdraw',
+                                back_populates="address",
+                                cascade="all, delete-orphan",
+                                passive_deletes=True,
+                                order_by='Withdraw.id')  # type: List[Withdraw]
+
     # Meta keys
     meta_key_force_scanning = 'force_scanning'
 
