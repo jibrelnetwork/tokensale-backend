@@ -47,6 +47,7 @@ class Account(models.Model):
         self.onfido_check_status = None
         self.onfido_check_result = None
         self.onfido_check_created = None
+        self.is_identity_verified = False
         self.save()
 
     def __str__(self):

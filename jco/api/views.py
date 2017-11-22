@@ -20,6 +20,7 @@ from jco.api.serializers import (
     ResendEmailConfirmationSerializer,
     TransactionSerializer,
 )
+from jco.api import tasks
 
 
 class TransactionsListView(APIView):
@@ -70,8 +71,13 @@ class AccountView(GenericAPIView):
         serializer = AccountSerializer(account, data=request.data)
         if serializer.is_valid():
             serializer.save()
+            self.maybe_start_identity_verification(account)
             return Response(serializer.data)
         return Response(serializer.errors, status=400)
+
+    def maybe_start_identity_verification(self, account):
+        if account.document_url and not account.onfido_applicant_id:
+            tasks.verify_user.delay(account.user.pk)
 
 
 class ResendEmailConfirmationView(GenericAPIView):
