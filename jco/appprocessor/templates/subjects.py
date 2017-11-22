@@ -1,4 +1,5 @@
-account_01 = "email subject"
+account_01_01 = "email subject"
+account_01_02 = "email subject"
 account_02 = "email subject"
 
 kyc_01 = "email subject"
