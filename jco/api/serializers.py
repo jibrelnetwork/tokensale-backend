@@ -1,4 +1,5 @@
 import logging 
+from datetime import datetime 
 
 from django.db.models import Sum
 from django.conf import settings
@@ -11,8 +12,9 @@ from allauth.account.utils import setup_user_email
 from rest_framework import serializers, exceptions
 import requests
 
-from jco.api.models import Transaction, Address, Account, Jnt
+from jco.api.models import Transaction, Address, Account, Jnt, Withdraw
 from jco.commonutils import person_verify
+from jco.appdb.models import TransactionStatus
 
 
 logger = logging.getLogger(__name__)
@@ -23,11 +25,14 @@ RECAPTCA_API_URL = 'https://www.google.com/recaptcha/api/siteverify'
 class AccountSerializer(serializers.ModelSerializer):
     jnt_balance = serializers.SerializerMethodField()
     identity_verification_status = serializers.SerializerMethodField()
+    addresses = serializers.SerializerMethodField()
+    
     class Meta:
         model = Account
-        fields = ('first_name', 'last_name',  'date_of_birth', 'country', 
-                  'town', 'street', 'postcode', 'terms_confirmed', 'document_url',
-                  'is_identity_verified', 'jnt_balance', 'identity_verification_status')
+        fields = ('first_name', 'last_name',  'date_of_birth', 'country',
+                  'citizenship', 'residency', 'terms_confirmed', 'document_url',
+                  'is_identity_verified', 'jnt_balance', 'identity_verification_status',
+                  'addresses')
         read_only_fields = ('is_identity_verified', 'jnt_balance')
 
     def get_jnt_balance(self, obj):
@@ -42,6 +47,10 @@ class AccountSerializer(serializers.ModelSerializer):
         if obj.onfido_check_status == person_verify.STATUS_COMPLETE and obj.onfido_check_result == person_verify.RESULT_CONSIDER:
             return 'Declined'
 
+    def get_addresses(self, obj):
+        addresses = Address.objects.filter(user=obj.user).all()
+        return {a.type: a.address for a in addresses}
+
 
 class AddressSerializer(serializers.ModelSerializer):
     class Meta:
@@ -50,9 +59,82 @@ class AddressSerializer(serializers.ModelSerializer):
 
 
 class TransactionSerializer(serializers.ModelSerializer):
+    """
+    {
+        jnt: 10000,
+        type: 'outgoing',
+        date: '13:30 10/22/2017',
+        TXtype: 'BTC',
+        TXhash: '0x00360d2b7d240ec0643b6d819ba81a09e40e5bc2',
+        status: 'complete',
+        amount: '10 BTC / 72 000 USD',
+    }
+    """
+
+    type = serializers.SerializerMethodField()
+    jnt = serializers.SerializerMethodField()
+    status = serializers.SerializerMethodField()
+    TXtype = serializers.SerializerMethodField()
+    date = serializers.SerializerMethodField()
+    TXhash = serializers.CharField(source='transaction_id')
+    amount_usd = serializers.SerializerMethodField()
+    amount_cryptocurrency = serializers.SerializerMethodField()
+    _date = serializers.DateTimeField(source='mined')
+
     class Meta:
         model = Transaction
-        fields = ('transaction_id', 'value', 'address', 'mined')
+        fields = ('jnt', 'status', 'TXtype', 'date', 'type', '_date',
+                  'TXhash', 'amount_usd', 'amount_cryptocurrency')
+
+    def get_type(self, obj):
+        return 'incoming'
+
+    def get_jnt(self, obj):
+        return obj.jnt.jnt_value
+
+    def get_status(self, obj):
+        return {
+            TransactionStatus.pending: 'waiting',
+            TransactionStatus.success: 'complete',
+            TransactionStatus.fail: 'failed',
+        }.get(obj.status)
+
+    def get_TXtype(self, obj):
+        return obj.address.type.upper()
+
+    def get_date(self, obj):
+        return datetime.strftime(obj.mined, '%H:%M %m/%d/%Y')
+
+    def get_amount_usd(self, obj):
+        return obj.jnt.usd_value
+
+    def get_amount_cryptocurrency(self, obj):
+        return obj.value
+
+
+class WithdrawSerializer(TransactionSerializer):
+    class Meta:
+        model = Withdraw
+        fields = ('jnt', 'status', 'TXtype', 'date', 'type',  '_date',
+                  'TXhash', 'amount_usd', 'amount_cryptocurrency')
+
+    def get_type(self, obj):
+        return 'outgoing'
+
+    def get_jnt(self, obj):
+        return obj.value
+
+    def get_TXtype(self, obj):
+        return 'ETH'
+
+    def get_date(self, obj):
+        return datetime.strftime(obj.mined, '%H:%M %m/%d/%Y')
+
+    def get_amount_usd(self, obj):
+        return None
+
+    def get_amount_cryptocurrency(self, obj):
+        return None
 
 
 class RegisterSerializer(serializers.Serializer):
@@ -242,3 +324,7 @@ class LoginSerializer(serializers.Serializer):
 
 class ResendEmailConfirmationSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True, allow_blank=False)
+
+
+class EthAddressSerializer(serializers.Serializer):
+    address = serializers.CharField(required=True, allow_blank=False)

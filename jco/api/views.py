@@ -1,3 +1,6 @@
+from itertools import chain
+from operator import itemgetter
+
 from rest_framework.views import APIView
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
@@ -5,20 +8,20 @@ from rest_framework import authentication, permissions
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
-from rest_framework_extensions.cache.decorators import (
-    cache_response
-)
-
+from rest_framework_extensions.cache.decorators import cache_response
 
 from allauth.account.models import EmailAddress
 from allauth.account.utils import send_email_confirmation
-from jco.api.models import Transaction, Address, Account, get_raised_tokens
+from jco.api.models import Transaction, Address, Account, get_raised_tokens, Withdraw
 from jco.api.serializers import (
     AccountSerializer,
     AddressSerializer,
+    EthAddressSerializer,
     ResendEmailConfirmationSerializer,
     TransactionSerializer,
+    WithdrawSerializer,
 )
+from jco.api import tasks
 
 
 class TransactionsListView(APIView):
@@ -31,9 +34,17 @@ class TransactionsListView(APIView):
     authentication_classes = (authentication.TokenAuthentication,)
 
     def get(self, request):
-        txs = Transaction.objects.filter(address__user=request.user)
-        serializer = TransactionSerializer(txs, many=True)
-        return Response(serializer.data)
+        txs_qs = Transaction.objects.filter(address__user=request.user)
+        withdrawals_qs = Withdraw.objects.filter(address__user=request.user)
+
+        txs = TransactionSerializer(txs_qs, many=True).data
+        withdrawals = WithdrawSerializer(withdrawals_qs, many=True).data
+
+        result_list = sorted(
+            chain(txs, withdrawals),
+            key=lambda t: t.pop('_date'),
+            reverse=True)
+        return Response(result_list)
 
 
 class AccountView(GenericAPIView):
@@ -69,8 +80,13 @@ class AccountView(GenericAPIView):
         serializer = AccountSerializer(account, data=request.data)
         if serializer.is_valid():
             serializer.save()
+            self.maybe_start_identity_verification(account)
             return Response(serializer.data)
         return Response(serializer.errors, status=400)
+
+    def maybe_start_identity_verification(self, account):
+        if account.document_url and not account.onfido_applicant_id:
+            tasks.verify_user.delay(account.user.pk)
 
 
 class ResendEmailConfirmationView(GenericAPIView):
@@ -106,3 +122,33 @@ class RaisedTokensView(GenericAPIView):
     def get(self, request):
         data = {'raised_tokens': get_raised_tokens()}
         return Response(data)
+
+
+class EthAddressView(GenericAPIView):
+    """
+    Get/set etherium address for account
+    """
+
+    authentication_classes = (authentication.TokenAuthentication,)
+    serializer_class = EthAddressSerializer
+
+    def ensure_account(self, request):
+        try:
+            account = request.user.account
+        except ObjectDoesNotExist:
+            account = Account.objects.create(user=request.user)
+        return account
+
+    def get(self, request):
+        account = self.ensure_account(request)
+        data = {'address': account.etherium_address}
+        return Response(data)
+
+    def put(self, request):
+        account = self.ensure_account(request)
+        serializer = EthAddressSerializer(data=request.data)
+        if serializer.is_valid():
+            account.etherium_address = serializer.data['address']
+            account.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=400)

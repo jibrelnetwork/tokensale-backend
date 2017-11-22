@@ -37,6 +37,7 @@ class Account(models.Model):
     onfido_check_created = models.DateTimeField(null=True, blank=True)
 
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    etherium_address = models.CharField(max_length=255, null=True, blank=True)
 
     class Meta:
         db_table = 'account'
@@ -48,7 +49,11 @@ class Account(models.Model):
         self.onfido_check_status = None
         self.onfido_check_result = None
         self.onfido_check_created = None
+        self.is_identity_verified = False
         self.save()
+
+    def __str__(self):
+        return '{} {}'.format(self.first_name, self.last_name)
 
 
 class Address(models.Model):
@@ -61,6 +66,9 @@ class Address(models.Model):
 
     class Meta:
         db_table = 'address'
+
+    def __str__(self):
+        return '{}: {}'.format(self.type, self.address)
 
     @classmethod
     def assign_pair_to_user(cls, user):
@@ -89,6 +97,9 @@ class Transaction(models.Model):
     class Meta:
         db_table = 'transaction'
 
+    def __str__(self):
+        return '{} [{}]'.format(self.transaction_id, self.value)
+
 
 class Price(models.Model):
     fixed_currency = models.CharField(max_length=10)
@@ -109,11 +120,15 @@ class Jnt(models.Model):
     jnt_value = models.FloatField()
     active = models.BooleanField()
     created = models.DateTimeField()
-    transaction = models.ForeignKey('Transaction', models.DO_NOTHING, unique=True)
+    transaction = models.OneToOneField('Transaction', models.DO_NOTHING,
+                                    unique=True, related_name='jnt')
     meta = JSONField(default={})  # This field type is a guess.
 
     class Meta:
         db_table = 'JNT'
+
+    def __str__(self):
+        return '{} [{}]'.format(self.purchase_id, self.jnt_value)
 
 
 def get_raised_tokens():

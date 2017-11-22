@@ -5,12 +5,14 @@ import logging
 from django.contrib.auth import get_user_model
 
 from jco.commonutils import person_verify
+from jco.appprocessor.app_create import celery_app
+from jco.api.models import Account
 
 
 logger = logging.getLogger(__name__)
 
 
-
+@celery_app.task()
 def verify_user(user_id):
     """
     Create OnFido check to verify user document
@@ -31,7 +33,8 @@ def verify_user(user_id):
         logger.info('Applicant already exists: %s', user.account.onfido_applicant_id)
 
     if not user.account.onfido_document_id:
-        document_id = person_verify.upload_document(user.account.onfido_applicant_id, user.account.document_url)
+        document_id = person_verify.upload_document(
+            user.account.onfido_applicant_id, user.account.document_url)
         user.account.onfido_document_id = document_id
         user.account.save()
         logger.info('Document uploaded: %s', user.account.onfido_document_id)
@@ -45,6 +48,7 @@ def verify_user(user_id):
     logger.info('Check created: %s', user.account.onfido_check_id)
 
 
+@celery_app.task()
 def check_user_verification_status(user_id):
     """
     Check and store OnFido check status and result 
@@ -64,3 +68,14 @@ def check_user_verification_status(user_id):
         user.account.is_identity_verified = True
     user.account.save()
     logger.info('Verification status is: %s, result: %s', check.status, check.result)
+
+
+@celery_app.task()
+def check_user_verification_status_runner():
+    accounts_to_check = Account.objects.filter(onfido_check_result=None).exclude(
+        onfido_check_id=None).all()
+    for account in accounts_to_check:
+        logger.info('Run check verification status for user %s <%s>',
+                    account.user.pk, account.user.email)
+        check_user_verification_status.delay(account.user.pk)
+

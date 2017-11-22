@@ -212,7 +212,7 @@ SQLALCHEMY_ECHO = True
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 # Celery configuration
-CELERY_NAME = "jibrelpresalecelery"
+CELERY_NAME = "jibrelsalecelery"
 CELERY_BROKER_URL = "pyamqp://guest:guest@localhost:5672//"
 
 # Email notifications
