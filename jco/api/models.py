@@ -19,8 +19,6 @@ class Account(models.Model):
     town = models.CharField(max_length=120, null=False, blank=True)
     postcode = models.CharField(max_length=120, null=False, blank=True)
 
-    etherium_address = models.CharField(max_length=255, null=False, blank=True)
-
     terms_confirmed = models.BooleanField(default=False)
     docs_received = models.BooleanField(default=False)
     created = models.DateTimeField(auto_now_add=True)
