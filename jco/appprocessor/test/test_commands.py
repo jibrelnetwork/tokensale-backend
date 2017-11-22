@@ -1,3 +1,5 @@
+import sys
+import traceback
 import unittest
 from datetime import datetime
 import time
@@ -5,14 +7,14 @@ import logging
 from hashlib import *
 from base58 import *
 
-from django.test import TestCase
 import requests
 from sqlalchemy.types import Boolean
+from sqlalchemy.sql import func
 from sqlalchemy.sql.expression import not_, or_
 
 from jco.commonconfig.config import INVESTMENTS__TOKEN_PRICE_IN_USD, FORCE_SCANNING_ADDRESS__ENABLED
-from jco.appdb.models import *
 from jco.appdb.db import session
+from jco.appdb.models import *
 from jco.commonutils.utils import *
 from jco.commonutils.app_init import initialize_app
 from jco.appprocessor.commands import (
@@ -34,17 +36,35 @@ from jco.appprocessor.commands import (
     check_mail_delivery,
     get_account_list,
     get_all_proposals,
-    get_all_transactions
+    get_all_transactions,
+    add_withdraw_jnt,
+    assign_addresses,
+    withdraw_processing
 )
 
+def create_user(user_name, email) -> User:
+    session.execute("INSERT INTO \"auth_user\" (\"password\", \"last_login\", \"is_superuser\", \"username\","
+                    "\"first_name\", \"last_name\", \"email\", \"is_staff\", \"is_active\", \"date_joined\")"
+                    "VALUES('pbkdf2_sha256$36000$1NtTEwXsBb7a$knKuZO2M5qhYAD9GVvKnWtUcMVUI2WZ+r1GnupGHRa4=', "
+                    "NULL, false, '{}', '', '', '{}', false, true, '2017-11-22T16:11:00');"
+                    .format(user_name, email))
+    session.commit()
+    user = session.query(User) \
+        .filter(User.username == user_name) \
+        .filter(User.email == email) \
+        .one()
+    return user
 
-class TestCommands(TestCase):
+
+class TestCommands(unittest.TestCase):
     def clear_all_tables(selfself):
+        session.query(Withdraw).delete()
         session.query(JNT).delete()
         session.query(Transaction).delete()
         session.query(Price).delete()
         session.query(Address).delete()
         session.query(Account).delete()
+        session.query(User).delete()
         session.commit()
         pass
 
@@ -473,105 +493,147 @@ class TestCommands(TestCase):
         self.assertTrue(len(addresses) == 2, "should have force_scanning")
 
     def test_notify_force_scanning_transactions(self):
-        usable_address_1 = Address(address='0x9af2351170ad84cc44549db629bf23c652450f30',
-                                   type=CurrencyType.eth,
-                                   is_usable=True)
+        usable_address_1 = Address.sa()
+        usable_address_1.address = '0x9af2351170ad84cc44549db629bf23c652450f30'
+        usable_address_1.type = CurrencyType.eth
+        usable_address_1.is_usable = True
+        usable_address_1.meta = '{}'
         session.add(usable_address_1)
+
+        usable_address_2 = Address.sa()
+        usable_address_2.address = '2FctpG14EZosqFCJCKivKUtFHT7eycRpk8'
+        usable_address_2.type = CurrencyType.btc
+        usable_address_2.is_usable = True
+        usable_address_2.meta = '{}'
+        session.add(usable_address_2)
+
         session.commit()
 
-        add_proposal("John Doe", "aleksey.selikhov@gmail.com", "USA", "USA", CurrencyType.eth, 100000, None)
+        user = User.objects.create_user('user1', 'user1@local', 'password')
+        assign_addresses(user.id)
 
-        nonusable_address_1 = Address(address='0xC28142C80cFFE11086A334402ecFF4517898DCec',
-                                      type=CurrencyType.eth,
-                                      is_usable=False)
-        nonusable_address_1.set_force_scanning(True)
+        nonusable_address_1 = Address.sa()
+        nonusable_address_1.address = '0xC28142C80cFFE11086A334402ecFF4517898DCec'
+        nonusable_address_1.type = CurrencyType.eth
+        nonusable_address_1.is_usable = False
+        nonusable_address_1.meta = str({'force_scanning': True})
         session.add(nonusable_address_1)
 
-        nonusable_address_2 = Address(address='1FctpG14EZosqFCJCKivKUtFHT7eycRpk7',
-                                      type=CurrencyType.btc,
-                                      is_usable=False)
+        addr_new = Address(address="sss",type=CurrencyType.btc,is_usable=True)
+        addr_new.set_force_scanning(True)
+        addr_new.save()
+
+
+        nonusable_address_2 = Address.sa()
+        nonusable_address_2.address = '1FctpG14EZosqFCJCKivKUtFHT7eycRpk7'
+        nonusable_address_2.type = CurrencyType.btc
+        nonusable_address_2.is_usable = False
+        nonusable_address_2.meta = '{}'
         session.add(nonusable_address_2)
+
+        addr_1 = oldAddress(address='',type=CurrencyType.btc,is_usable=False)
+        addr_1.set_force_scanning(True)
+        old_addresses = session.query(oldAddress).all()
+
         session.commit()
 
         scan_addresses()
 
         notify_force_scanning_transactions()
 
-        addresses = session.query(Transaction) \
-            .filter(Transaction.meta[Transaction.meta_key_notified].astext.cast(Boolean) == False) \
+        meta_key_notified = 'notified'
+
+        addresses = session.query(Transaction.sa) \
+            .filter(Transaction.sa.meta[meta_key_notified].astext.cast(Boolean) == False) \
             .all()
 
         self.assertTrue(len(addresses) == 0, "all transactions should have notified")
 
-    def test_chek_mail_delivery(self):
-
-        proposal_1 = Proposal(fullname="John Doe",
-                              email="aleksey.selikhov",
-                              country="USA",
-                              citizenship="USA",
-                              currency=CurrencyType.eth,
-                              amount=100000,
-                              proposal_id="JNT-PRESALE-REQUEST-1")
-        proposal_1.set_notified(True)
-        proposal_1.set_mailgun_message_id("20171018133300.65429.0E4C7AB4268AB64C@mailgun.jibrel.network")
-        session.add(proposal_1)
-        session.commit()
-
-        address_1 = Address(address="0xC28142C80cFFE11086A334402ecFF4517898DCec",
-                            type=CurrencyType.eth,
-                            is_usable=True,
-                            proposal_id=proposal_1.id)
-        session.add(address_1)
-        session.commit()
-
-        transaction_1 = Transaction(transaction_id="0xffaaaddcc",
-                                    value=1000,
-                                    address_id=address_1.id,
-                                    mined=datetime.utcnow(),
-                                    block_height=3)
-        transaction_1.set_notified(True)
-        transaction_1.set_mailgun_message_id("20171017185500.85006.5524BED71BE6AA6A@mailgun.jibrel.network")
-        session.add(transaction_1)
-        session.commit()
-
-        check_mail_delivery()
-
-        transactions = session.query(Transaction) \
-            .filter(Transaction.meta[Transaction.meta_key_mailgun_delivered].astext == "failed") \
-            .all()  # type: List[Transaction]
-
-        self.assertTrue(len(transactions) == 1)
-
-        proposals = session.query(Proposal) \
-            .filter(Transaction.meta[Transaction.meta_key_mailgun_delivered].astext == "failed") \
-            .all()  # type: List[Transaction]
-
-        self.assertTrue(len(proposals) == 1)
+    #def test_chek_mail_delivery(self):
+    #    proposal_1 = Proposal(fullname="John Doe",
+    #                          email="aleksey.selikhov",
+    #                          country="USA",
+    #                          citizenship="USA",
+    #                          currency=CurrencyType.eth,
+    #                          amount=100000,
+    #                          proposal_id="JNT-PRESALE-REQUEST-1")
+    #    proposal_1.set_notified(True)
+    #    proposal_1.set_mailgun_message_id("20171018133300.65429.0E4C7AB4268AB64C@mailgun.jibrel.network")
+    #    session.add(proposal_1)
+    #    session.commit()
+    #
+    #    address_1 = Address(address="0xC28142C80cFFE11086A334402ecFF4517898DCec",
+    #                        type=CurrencyType.eth,
+    #                        is_usable=True,
+    #                        proposal_id=proposal_1.id)
+    #    session.add(address_1)
+    #    session.commit()
+    #
+    #    transaction_1 = Transaction(transaction_id="0xffaaaddcc",
+    #                                value=1000,
+    #                                address_id=address_1.id,
+    #                                mined=datetime.utcnow(),
+    #                                block_height=3)
+    #    transaction_1.set_notified(True)
+    #    transaction_1.set_mailgun_message_id("20171017185500.85006.5524BED71BE6AA6A@mailgun.jibrel.network")
+    #    session.add(transaction_1)
+    #    session.commit()
+    #
+    #    check_mail_delivery()
+    #
+    #    transactions = session.query(Transaction) \
+    #        .filter(Transaction.meta[Transaction.meta_key_mailgun_delivered].astext == "failed") \
+    #        .all()  # type: List[Transaction]
+    #
+    #    self.assertTrue(len(transactions) == 1)
+    #
+    #    proposals = session.query(Proposal) \
+    #        .filter(Transaction.meta[Transaction.meta_key_mailgun_delivered].astext == "failed") \
+    #        .all()  # type: List[Transaction]
+    #
+    #    self.assertTrue(len(proposals) == 1)
 
     def test_get_account_list(self):
         generate_eth_addresses(self.mnemonic, 3)
-        add_proposal("Test1", "test1@test", "USA", "USA", CurrencyType.eth, 100000, None)
-        add_proposal("Test2", "test2@test", "USA", "USA", CurrencyType.eth, 100000, None)
-        add_proposal("Test3", "test3@test", "USA", "USA", CurrencyType.eth, 100000, None)
+        generate_btc_addresses(self.mnemonic, 3)
+
+        user1 = create_user("user1", "user1@local")
+        user2 = create_user("user2", "user2@local")
+        user3 = create_user("user3", "user3@local")
+
+        session.add(Account(fullname="user1", country="country", citizenship="US",
+                            residency="US", etherium_address="0x12345678", user_id=user1.id))
+        session.add(Account(fullname="user2", country="country", citizenship="US",
+                            residency="US", etherium_address="0x12345679", user_id=user2.id))
+        session.add(Account(fullname="user3", country="country", citizenship="US",
+                            residency="US", etherium_address="0x12345670", user_id=user3.id))
+        session.commit()
+
+        assign_addresses(user1.id)
+        assign_addresses(user2.id)
+        assign_addresses(user3.id)
 
         addresses = session.query(Address) \
+            .filter(or_(Address.user_id == user1.id,
+                        Address.user_id == user2.id,
+                        Address.user_id == user3.id)) \
             .all()  # type: List[Address]
 
-        self.assertTrue(len(addresses) == 3)
+        self.assertTrue(len(addresses) == 6)
 
         account_list = get_account_list()
         self.assertTrue(len(account_list) == 3)
 
-        success = True
-
-        key_list = ['id', 'fullname', 'email', 'country', 'citizenship', 'created', 'notified', 'docs_received']
-
-        for account in account_list:
-            if not all(_key in key_list for _key in account.keys()):
-                success = False
-                break
-
-        self.assertTrue(success, "some keys not present in account")
+        # success = True
+        #
+        # key_list = ['id', 'fullname', 'email', 'country', 'citizenship', 'created', 'notified', 'docs_received']
+        #
+        # for account in account_list:
+        #     if not all(_key in key_list for _key in account.keys()):
+        #         success = False
+        #         break
+        #
+        # self.assertTrue(success, "some keys not present in account")
 
     # def test_get_all_proposals(self):
     #     generate_eth_addresses(self.mnemonic, 3)
@@ -604,15 +666,30 @@ class TestCommands(TestCase):
         # fetch last prices BTC and ETH
         fetch_tickers_price()
 
+        generate_btc_addresses(self.mnemonic, 2)
         generate_eth_addresses(self.mnemonic, 2)
 
-        add_proposal("Test1", "test1@test", "USA", "USA", CurrencyType.eth, 100000, None)
-        add_proposal("Test2", "test2@test", "USA", "USA", CurrencyType.eth, 200000, None)
+        user1 = User.objects.create_user('user1', 'user1@local', 'password')
+        user2 = User.objects.create_user('user2', 'user2@local', 'password')
 
-        addresses = session.query(Address) \
-            .all()  # type: List[Address]
+        Account.objects.create(first_name="user1", last_name="last_name", fullname="fullname",
+                               citizenship="USA", date_of_birth="1970-01-01",
+                               residency="USA", country="USA", street="street",
+                               town="city", postcode="00000000", user=user1)
+        Account.objects.create(first_name="user2", last_name="last_name", fullname="fullname",
+                               citizenship="USA", date_of_birth="1970-01-01",
+                               residency="USA", country="USA", street="street",
+                               town="city", postcode="00000000", user=user2)
 
-        self.assertTrue(len(addresses) == 2)
+        assign_addresses(user1.id)
+        assign_addresses(user2.id)
+
+        addresses = session.query(Address.sa) \
+            .filter(or_(Address.sa.user_id == user1.id,
+                        Address.sa.user_id == user2.id)) \
+            .all()  # type: List[Address.sa]
+
+        self.assertTrue(len(addresses) == 4)
 
         transaction_id = "0xffaaaddcc"
         transaction_value = 20000000000000000000
@@ -620,43 +697,208 @@ class TestCommands(TestCase):
         eth_currency_rate = get_ticker_price(CurrencyType.eth, CurrencyType.usd, transaction_mined)
         jnt_usd_value = transaction_value * eth_currency_rate / (10 ** 18)
 
-        transaction_1 = Transaction(transaction_id=transaction_id,
-                                    value=transaction_value,
-                                    address_id=addresses[0].id,
-                                    mined=transaction_mined,
-                                    block_height=2)
+        transaction_1 = Transaction.sa()
+        transaction_1.transaction_id = transaction_id
+        transaction_1.value = transaction_value
+        transaction_1.address_id = addresses[0].id
+        transaction_1.mined = transaction_mined
+        transaction_1.block_height = 2
+        transaction_1.meta = '{}'
 
         transaction_id = "0xffaaaddcce"
 
-        transaction_2 = Transaction(transaction_id=transaction_id,
-                                    value=transaction_value,
-                                    address_id=addresses[1].id,
-                                    mined=transaction_mined,
-                                    block_height=2)
+        transaction_2 = Transaction.sa()
+        transaction_2.transaction_id = transaction_id
+        transaction_2.value = transaction_value
+        transaction_2.address_id = addresses[1].id
+        transaction_2.mined = transaction_mined
+        transaction_2.block_height = 2
+        transaction_2.meta = '{}'
 
         session.add(transaction_1)
         session.add(transaction_2)
         session.commit()
 
-        transactions = session.query(Transaction) \
-            .all()  # type: List[Transaction]
+        transactions = session.query(Transaction.sa) \
+            .all()  # type: List[Transaction.sa]
         self.assertTrue(len(transactions) == 2)
 
         transaction_list = get_all_transactions()
         self.assertTrue(len(transaction_list) == 2)
 
-        success = True
+        # success = True
+        #
+        # key_list = ['id', 'transaction_id', 'value', 'mined',
+        #            'block_height', 'address_id', 'address',
+        #            'proposal', 'mailgun_message_id', 'mailgun_delivered']
+        #
+        # for transaction in transaction_list:
+        #    if not all(_key in key_list for _key in transaction.keys()):
+        #        success = False
+        #        break
+        #
+        #self.assertTrue(success, "some keys not present in transaction")
 
-        key_list = ['id', 'transaction_id', 'value', 'mined',
-                    'block_height', 'address_id', 'address',
-                    'proposal', 'mailgun_message_id', 'mailgun_delivered']
 
-        for transaction in transaction_list:
-            if not all(_key in key_list for _key in transaction.keys()):
-                success = False
-                break
+    def test_add_withdraw_jnt(self):
+        # fetch last prices BTC and ETH
+        fetch_tickers_price()
 
-        self.assertTrue(success, "some keys not present in transaction")
+        generate_eth_addresses(self.mnemonic, 1)
+        generate_btc_addresses(self.mnemonic, 1)
+
+        user = create_user("user1", "user1@local")
+
+        account = Account(fullname="user1",
+                          country="country",
+                          citizenship="US",
+                          residency="US",
+                          etherium_address="0x00000000",
+                          user_id=user.id)
+
+        session.add(account)
+        session.commit()
+
+        assign_addresses(user.id)
+
+        address = session.query(Address) \
+            .filter(Address.user_id == user.id) \
+            .filter(Address.type == CurrencyType.eth) \
+            .one()
+
+        transaction_id = "0xffaaaddcc"
+        transaction_value = 20000 * (10 ** 18)
+        transaction_mined = datetime.utcnow()
+        eth_currency_rate = get_ticker_price(CurrencyType.eth, CurrencyType.usd, transaction_mined)
+
+        self.assertTrue(eth_currency_rate > 0, "eth_currency_rate must be greater than 0")
+
+        jnt_usd_value = transaction_value * eth_currency_rate / (10 ** 18)
+
+        self.assertTrue(jnt_usd_value > 0, "transaction_usd_value must be greater than 0")
+
+        transaction = Transaction(transaction_id=transaction_id,
+                                    value=transaction_value,
+                                    address_id=address.id,
+                                    mined=transaction_mined,
+                                    block_height=2)
+
+        jnt = JNT(currency_to_usd_rate=eth_currency_rate,
+                    jnt_value=jnt_usd_value / INVESTMENTS__TOKEN_PRICE_IN_USD,
+                    usd_value=jnt_usd_value,
+                    jnt_to_usd_rate=INVESTMENTS__TOKEN_PRICE_IN_USD,
+                    purchase_id=generate_request_id())
+
+        jnt.transaction = transaction
+        session.add(transaction)
+        session.add(jnt)
+        session.commit()
+
+        success = add_withdraw_jnt(user.id)
+        self.assertTrue(success, 'withdrawal should be successful')
+
+        success = add_withdraw_jnt(user.id)
+        self.assertFalse(success, 'withdrawal should fail')
+
+        withdraw_sum = session.query(func.sum(Withdraw.value)) \
+            .one()  # type: tuple[float]
+
+        self.assertTrue(withdraw_sum[0] > 0, 'should be non-negative and greater than zero')
+        self.assertEqual(withdraw_sum[0], jnt.jnt_value, 'sum of withdraws must be equal to sum of jnts')
+
+        transaction_id = "0xeeaaaddcc"
+        transaction_value = 10000 * (10 ** 18)
+        jnt_usd_value = transaction_value * eth_currency_rate / (10 ** 18)
+        transaction_mined = datetime.utcnow()
+
+        transaction = Transaction(transaction_id=transaction_id,
+                                  value=transaction_value,
+                                  address_id=address.id,
+                                  mined=transaction_mined,
+                                  block_height=2)
+
+        jnt = JNT(currency_to_usd_rate=eth_currency_rate,
+                  jnt_value=jnt_usd_value / INVESTMENTS__TOKEN_PRICE_IN_USD,
+                  usd_value=jnt_usd_value,
+                  jnt_to_usd_rate=INVESTMENTS__TOKEN_PRICE_IN_USD,
+                  purchase_id=generate_request_id())
+
+        jnt.transaction = transaction
+        session.add(transaction)
+        session.add(jnt)
+        session.commit()
+
+        success = add_withdraw_jnt(user.id)
+        self.assertTrue(success, 'withdrawal should be successfu')
+
+        withdraw_sum = session.query(func.sum(Withdraw.value)) \
+            .one()  # type: tuple[float]
+
+        jnt_sum = session.query(func.sum(JNT.jnt_value)) \
+            .one()  # type: tuple[float]
+
+        self.assertEqual(withdraw_sum[0], jnt_sum[0], 'sum of withdraws must be equal to sum of jnts')
+
+
+    def test_withdraw_processing(self):
+        # fetch last prices BTC and ETH
+        fetch_tickers_price()
+
+        generate_eth_addresses(self.mnemonic, 1)
+        generate_btc_addresses(self.mnemonic, 1)
+
+        user = create_user("user1", "user1@local")
+
+        account = Account(fullname="user1", country="country", citizenship="US",
+                          residency="US", etherium_address="0x12345678", user_id=user.id)
+
+        session.add(account)
+        session.commit()
+
+        assign_addresses(user.id)
+
+        address = session.query(Address) \
+            .filter(Address.user_id == user.id) \
+            .filter(Address.type == CurrencyType.eth) \
+            .one()
+
+        transaction_id = "0xffaaaddcc"
+        transaction_value = 20000 * (10 ** 18)
+        transaction_mined = datetime.utcnow()
+        eth_currency_rate = get_ticker_price(CurrencyType.eth, CurrencyType.usd, transaction_mined)
+
+        self.assertTrue(eth_currency_rate > 0, "eth_currency_rate must be greater than 0")
+
+        jnt_usd_value = transaction_value * eth_currency_rate / (10 ** 18)
+
+        self.assertTrue(jnt_usd_value > 0, "transaction_usd_value must be greater than 0")
+
+        transaction = Transaction(transaction_id=transaction_id,
+                                    value=transaction_value,
+                                    address_id=address.id,
+                                    mined=transaction_mined,
+                                    block_height=2)
+
+        jnt = JNT(currency_to_usd_rate=eth_currency_rate,
+                  jnt_value=jnt_usd_value / INVESTMENTS__TOKEN_PRICE_IN_USD,
+                  usd_value=jnt_usd_value,
+                  jnt_to_usd_rate=INVESTMENTS__TOKEN_PRICE_IN_USD,
+                  purchase_id=generate_request_id())
+
+        jnt.transaction = transaction
+        session.add(transaction)
+        session.add(jnt)
+        session.commit()
+
+        add_withdraw_jnt(user.id)
+
+        withdraw_processing()
+        withdraw = session.query(Withdraw) \
+            .filter(Withdraw.transaction_id != "") \
+            .filter(Withdraw.transaction_id.isnot(None)) \
+            .one()  # type: Withdraw
+
+        self.assertTrue(withdraw)
 
 
 if __name__ == '__main__':
