@@ -32,9 +32,13 @@ Filename: account_01_1.html
 Condition: user successfully changed password
 Filename: account_01_2.html
 
+## ETH address change request
+Condition: user changed his ETH address via dashboard
+Filename: account_02_01.html
+
 ## ETH address changed
 Condition: user changed his ETH address via dashboard
-Filename: account_02.html
+Filename: account_02_02.html
 
 
 # Transactions
