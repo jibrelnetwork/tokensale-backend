@@ -16,6 +16,7 @@ from sqlalchemy.types import Boolean, Integer
 from sqlalchemy.sql import func
 from sqlalchemy.orm.util import aliased
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.sql import func
 
 from jco.appdb.db import session
 from jco.appdb.models import CurrencyType, Address, Transaction, JNT, Price, Account
@@ -968,3 +969,140 @@ def check_mail_delivery():
             logging.getLogger(__name__).error(
                 "Failed to check mail delivery due to exception:\n{}".format(exception_str))
             session.rollback()
+
+
+#
+# Assign BTC/ETH addresses for a user
+#
+
+def assign_addresses(user_id: int) -> bool:
+    # noinspection PyBroadException
+    try:
+        logging.getLogger(__name__).info("Start assign addresses for a user with ID '{}'"
+                                         .format(user_id))
+
+        user = session.query(User) \
+            .filter(User.id == user_id) \
+            .one()  # type: User
+
+        if user is None:
+            return False
+
+        for currency in [CurrencyType.btc, CurrencyType.eth]:
+            addressIdSubquery = session.query(Address.id) \
+                .filter(Address.type == currency) \
+                .filter(Address.is_usable == True) \
+                .filter(Address.user_id.is_(None)) \
+                .order_by(Address.id) \
+                .limit(1) \
+                .subquery()
+            session.query(Address) \
+                .filter(Address.id.in_(addressIdSubquery)) \
+                .update({Address.user_id: user_id}, synchronize_session=False)
+
+        session.commit()
+
+        logging.getLogger(__name__).info("Addresses assigned for a user with ID '{}'"
+                                         .format(user_id))
+
+        return True
+
+    except Exception:
+        exception_str = ''.join(traceback.format_exception(*sys.exc_info()))
+        logging.getLogger(__name__).error("Failed assign addresses due to error:\n{}"
+                                          .format(exception_str))
+
+        session.rollback()
+
+        return False
+
+
+def withdraw_processing():
+    # noinspection PyBroadException
+    try:
+        logging.getLogger(__name__).info("Start to process new withdraws")
+
+        records = session.query(Withdraw, Address, Account) \
+            .join(Address, Address.id == Withdraw.address_id) \
+            .join(Account, Account.user_id == Address.user_id) \
+            .filter(Withdraw.status == TransactionStatus.pending) \
+            .filter(Withdraw.transaction_id == "") \
+            .order_by(Withdraw.id) \
+            .all()  # type: List[Tuple[Withdraw, Address, Account]]
+
+        for record in records:
+            try:
+                tx_id = withdraw_jnt(record[0])
+                if tx_id:
+                    record[0].transaction_id = tx_id
+                    session.commit()
+                    logging.getLogger(__name__).error(
+                            "Process withdraw. withdraw_id: {}".format(record[0].id))
+            except Exception:
+                exception_str = ''.join(traceback.format_exception(*sys.exc_info()))
+                logging.getLogger(__name__).error(
+                    "Failed to process withdraw due to exception:\n{}".format(exception_str))
+                session.rollback()
+
+        logging.getLogger(__name__).info("Finished to process new withdraws")
+    except Exception:
+        exception_str = ''.join(traceback.format_exception(*sys.exc_info()))
+        logging.getLogger(__name__).error("Failed to process withdraws due to exception:\n{}"
+                                          .format(exception_str))
+        session.rollback()
+
+
+#
+# Persist withdraw operation of JNT to the database
+#
+
+def add_withdraw_jnt(user_id: int) -> Boolean:
+    # noinspection PyBroadException
+    try:
+        logging.getLogger(__name__).info("Start persist withdraw operation of JNT to the database. account_id: {}"
+                                         .format(user_id))
+
+        account, address = session.query(Account, Address) \
+            .join(Address, Address.user_id == Account.user_id) \
+            .filter(Account.user_id == user_id) \
+            .filter(Address.user_id == user_id) \
+            .filter(Address.type == CurrencyType.eth) \
+            .one()  # type: tuple[Account, Address]
+
+        if not account or not address:
+            logging.getLogger(__name__).error(
+                "Invalid user_id: {}".format(user_id))
+            return False
+
+        total_jnt = session.query(func.coalesce(func.sum(JNT.jnt_value), 0)) \
+            .join(Transaction, Transaction.id == JNT.transaction_id) \
+            .filter(Transaction.address_id == address.id).as_scalar()
+
+        total_withdraw_jnt = session.query(func.coalesce(func.sum(Withdraw.value), 0)) \
+            .filter(Withdraw.address_id == address.id) \
+            .filter(Withdraw.status != TransactionStatus.fail).as_scalar()
+
+        withdrawable_balance = session.query(total_jnt - total_withdraw_jnt).one()
+        if withdrawable_balance[0] <= 0:
+            return False
+
+        insert_query = insert(Withdraw) \
+            .values(address_id=address.id,
+                    status=TransactionStatus.pending,
+                    to=account.etherium_address,
+                    value=total_jnt - total_withdraw_jnt,
+                    transaction_id='')
+
+        session.execute(insert_query)
+        session.commit()
+
+        logging.getLogger(__name__).info("Finished to persist withdraw operation of JNT to the database. account_id: {}"
+                                         .format(user_id))
+
+        return True
+    except Exception:
+        exception_str = ''.join(traceback.format_exception(*sys.exc_info()))
+        logging.getLogger(__name__).error(
+            "Failed to persist withdraw operation to the database due to exception:\n{}".format(exception_str))
+        session.rollback()
+        return False
