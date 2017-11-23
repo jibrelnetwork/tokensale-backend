@@ -156,3 +156,34 @@ sudo systemctl stop jco
 ```
 curl -H "Content-Type: application/json" -X POST -d '{"email":"test1@local","password":"password"}' http://localhost:8080/auth/login/
 ```
+
+# Launch celery tasks
+
+## Launch Django celery tasks in dev mode
+
+```
+mkdir -p ./celery-sys/
+mkdir -p ./celery-log/
+
+source venv/bin/activate
+
+celery -A jco worker \
+    --pidfile="./celery-sys/%n.pid" \
+    --logfile="./celery-log/%n-%i.log" \
+    --loglevel=INFO
+```
+
+## Launch SQLAlchemy celery tasks in dev mode
+
+```
+mkdir -p ./celery-sys/
+mkdir -p ./celery-log/
+
+source venv/bin/activate
+
+celery worker \
+  --app=jco.celery_tasks \
+  --pidfile="./celery-sys/%n.pid" \
+  --logfile="./celery-log/%n-%i.log" \
+  --loglevel=INFO
+```
