@@ -57,6 +57,7 @@ postgres=# \q
 ```
 cd /home/jibrelnetwork
 git clone https://github.com/jibrelnetwork/jco
+cd jco
 ```
 
 
@@ -72,32 +73,43 @@ source venv/bin/activate
 
 ```sh
 pip install -r requirements.txt
+pip install --editable ./
 ```
 
 
 ## Configure
 
-Fill in your db username, passwd, port, host etc
+Copy settings file:
+`cp ./jco/settings.py ./jco/settings_local.py`
+
+Fill in your settings:
+```
+DATABASE_HOST
+DATABASE_NAME
+DATABASE_USER
+DATABASE_PASS
+
+CRAWLER_PROXY__USER
+CRAWLER_PROXY__PASS
+CRAWLER_PROXY__URLS
+```
+
+```
+export JCO_DATABASE_URI="postgresql://jcouser:password@localhost:5432/jcodb"
+export ONFIDO_API_KEY="xxxxx"
+export RECAPTCHA_PRIVATE_KEY="xxxxx"
+```
 
 
 ## Init database
 
 ```sh
-python dj-manage.py migrate
-```
-
-
-## Set environment variables
-
-```sh
-export JCO_DATABASE_URI="postgresql://jibrelpresaleuser:password@localhost/jibrelpresaledb"
-export ONFIDO_API_KEY="{API_KEY}"
-export RECAPTCHA_PRIVATE_KEY="{PRIVATE_KEY}"
+python jco/dj-manage.py migrate
 ```
 
 
 ### Launching Django server
 
 ```sh
-python dj-manage.py runserver
+python jco/dj-manage.py runserver
 ```
