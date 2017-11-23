@@ -128,9 +128,6 @@ class WithdrawSerializer(TransactionSerializer):
     def get_TXtype(self, obj):
         return 'ETH'
 
-    def get_date(self, obj):
-        return datetime.strftime(obj.mined, '%H:%M %m/%d/%Y')
-
     def get_amount_usd(self, obj):
         return None
 
