@@ -85,7 +85,7 @@ class Account(db.Model):
     is_identity_verified = db.Column(db.Boolean, nullable=False, default=False)
 
     user_id = db.Column(db.Integer, db.ForeignKey('auth_user.id'), unique=True)
-    etherium_address = db.Column(db.String(255), nullable=False, default='')
+    withdraw_address = db.Column(db.String(255), nullable=False, default='')
 
     document_url = db.Column(db.String(00), nullable=False, default='')
     #user = db.relationship(User, back_populates="accountes")  # type: User

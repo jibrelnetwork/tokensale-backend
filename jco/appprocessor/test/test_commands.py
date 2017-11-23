@@ -603,11 +603,11 @@ class TestCommands(unittest.TestCase):
         user3 = create_user("user3", "user3@local")
 
         session.add(Account(fullname="user1", country="country", citizenship="US",
-                            residency="US", etherium_address="0x12345678", user_id=user1.id))
+                            residency="US", withdraw_address="0x12345678", user_id=user1.id))
         session.add(Account(fullname="user2", country="country", citizenship="US",
-                            residency="US", etherium_address="0x12345679", user_id=user2.id))
+                            residency="US", withdraw_address="0x12345679", user_id=user2.id))
         session.add(Account(fullname="user3", country="country", citizenship="US",
-                            residency="US", etherium_address="0x12345670", user_id=user3.id))
+                            residency="US", withdraw_address="0x12345670", user_id=user3.id))
         session.commit()
 
         assign_addresses(user1.id)
@@ -754,7 +754,7 @@ class TestCommands(unittest.TestCase):
                           country="country",
                           citizenship="US",
                           residency="US",
-                          etherium_address="0x00000000",
+                          withdraw_address="0x00000000",
                           user_id=user.id)
 
         session.add(account)
@@ -876,7 +876,7 @@ class TestCommands(unittest.TestCase):
         user = create_user("user1", "user1@local")
 
         account = Account(fullname="user1", country="country", citizenship="US",
-                          residency="US", etherium_address="0x12345678", user_id=user.id)
+                          residency="US", withdraw_address="0x12345678", user_id=user.id)
 
         session.add(account)
         session.commit()

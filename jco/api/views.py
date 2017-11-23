@@ -128,7 +128,7 @@ class RaisedTokensView(GenericAPIView):
 
 class EthAddressView(GenericAPIView):
     """
-    Get/set etherium address for account
+    Get/set withdraw address for account
     """
 
     authentication_classes = (authentication.TokenAuthentication,)
@@ -143,14 +143,14 @@ class EthAddressView(GenericAPIView):
 
     def get(self, request):
         account = self.ensure_account(request)
-        data = {'address': account.etherium_address}
+        data = {'address': account.withdraw_address}
         return Response(data)
 
     def put(self, request):
         account = self.ensure_account(request)
         serializer = EthAddressSerializer(data=request.data)
         if serializer.is_valid():
-            account.etherium_address = serializer.data['address']
+            account.withdraw_address = serializer.data['address']
             account.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=400)
@@ -161,8 +161,8 @@ class WithdrawView(APIView):
     Withdraw JNT tokens to user's eth address
     """
     def post(self, request):
-        if not request.user.account.etherium_address:
-            return Response({'detail': _('No Etherium address in your account data.')},
+        if not request.user.account.withdraw_address:
+            return Response({'detail': _('No Withdraw address in your account data.')},
                             status=400)
         result = commands.add_withdraw_jnt(request.user.pk)
         if result is True:

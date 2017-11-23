@@ -1084,7 +1084,7 @@ def add_withdraw_jnt(user_id: int) -> Boolean:
             .filter(Address.id.in_(addresses_ids)).as_scalar()
 
         total_withdraw_jnt = session.query(func.coalesce(func.sum(Withdraw.value), 0)) \
-            .filter(Withdraw.to == account.etherium_address) \
+            .filter(Withdraw.to == account.withdraw_address) \
             .filter(Withdraw.status != TransactionStatus.fail).as_scalar()
 
         withdrawable_balance = session.query(total_jnt - total_withdraw_jnt).one()
@@ -1095,7 +1095,7 @@ def add_withdraw_jnt(user_id: int) -> Boolean:
         insert_query = insert(Withdraw) \
             .values(address_id=None,
                     status=TransactionStatus.pending,
-                    to=account.etherium_address,
+                    to=account.withdraw_address,
                     value=total_jnt - total_withdraw_jnt,
                     transaction_id='')
 
