@@ -137,12 +137,12 @@ def get_raised_tokens():
 
 
 class Withdraw(models.Model):
-    transaction_id = models.CharField(unique=True, max_length=120)
-    to = models.CharField(unique=True, max_length=255)
+    transaction_id = models.CharField(max_length=120)
+    to = models.CharField(max_length=255)
     value = models.FloatField()
     created = models.DateTimeField()
-    mined = models.DateTimeField()
-    block_height = models.IntegerField()
+    mined = models.DateTimeField(null=True)
+    block_height = models.IntegerField(blank=True, null=True)
     address = models.ForeignKey(Address, models.DO_NOTHING)
     status = models.CharField(max_length=10, default=TransactionStatus.pending)
     meta = JSONField(default=dict)  # This field type is a guess.
