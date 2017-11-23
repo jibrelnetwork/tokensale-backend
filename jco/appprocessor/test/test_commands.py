@@ -830,7 +830,7 @@ class TestCommands(unittest.TestCase):
             .one()  # type: tuple[float]
 
         self.assertTrue(withdraw_sum[0] > 0, 'should be non-negative and greater than zero')
-        self.assertEqual(withdraw_sum[0], jnt.jnt_value, 'sum of withdraws must be equal to sum of jnts')
+        self.assertAlmostEqual(withdraw_sum[0], jnt.jnt_value + jnt2.jnt_value, places=5, msg='sum of withdraws must be equal to sum of jnts')
 
         transaction_id = "0xeeaaaddcc"
         transaction_value = 10000 * (10 ** 18)
@@ -839,7 +839,7 @@ class TestCommands(unittest.TestCase):
 
         transaction = Transaction(transaction_id=transaction_id,
                                   value=transaction_value,
-                                  address_id=address.id,
+                                  address_id=address_eth.id,
                                   mined=transaction_mined,
                                   block_height=2)
 
@@ -863,7 +863,7 @@ class TestCommands(unittest.TestCase):
         jnt_sum = session.query(func.sum(JNT.jnt_value)) \
             .one()  # type: tuple[float]
 
-        self.assertEqual(withdraw_sum[0], jnt_sum[0], 'sum of withdraws must be equal to sum of jnts')
+        self.assertAlmostEqual(withdraw_sum[0], jnt_sum[0], places=5, msg='sum of withdraws must be equal to sum of jnts')
 
 
     def test_withdraw_processing(self):
