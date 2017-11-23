@@ -188,6 +188,7 @@ ACCOUNT_EMAIL_CONFIRMATION_AUTHENTICATED_REDIRECT_URL = '/email-verified/'
 
 ACCOUNT_ADAPTER = 'jco.api.utils.AccountAdapter'
 ACCOUNT_EMAIL_CONFIRMATION_COOLDOWN = 20
+OLD_PASSWORD_FIELD_ENABLED = True
 
 #######################################################################
 #
