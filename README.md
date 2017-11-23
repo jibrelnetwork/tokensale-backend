@@ -71,14 +71,13 @@ source venv/bin/activate
 ## Install packages
 
 ```sh
-pip install -r requiremets.txt
+pip install -r requirements.txt
 ```
 
 
 ## Configure
 
 Fill in your db username, passwd, port, host etc
-```
 
 
 ## Init database
