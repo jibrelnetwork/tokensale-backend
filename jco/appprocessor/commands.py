@@ -1061,12 +1061,9 @@ def add_withdraw_jnt(user_id: int) -> Boolean:
     try:
         logging.getLogger(__name__).info("Start persist withdraw operation of JNT to the database. account_id: {}"
                                          .format(user_id))
-        account, address = session.query(Account, Address) \
-            .join(Address, Address.user_id == Account.user_id) \
+        account = session.query(Account) \
             .filter(Account.user_id == user_id) \
-            .filter(Address.user_id == user_id) \
-            .filter(Address.type == CurrencyType.eth) \
-            .one()  # type: tuple[Account, Address]
+            .one()  # type: Account
 
         addresses = session.query(Address) \
             .filter(Address.user_id == user_id).all()
@@ -1093,7 +1090,7 @@ def add_withdraw_jnt(user_id: int) -> Boolean:
             return False
 
         insert_query = insert(Withdraw) \
-            .values(address_id=None,
+            .values(user_id=user_id,
                     status=TransactionStatus.pending,
                     to=account.withdraw_address,
                     value=total_jnt - total_withdraw_jnt,

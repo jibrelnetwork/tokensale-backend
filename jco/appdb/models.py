@@ -37,6 +37,10 @@ class User(db.Model):
                                 back_populates="user",
                                 cascade="all, delete-orphan",
                                 passive_deletes=True)  # type: Address
+    withdraws = db.relationship('Withdraw',
+                                back_populates="user",
+                                cascade="all, delete-orphan",
+                                passive_deletes=True)  # type: Withdraw
 
     # Methods
     def __repr__(self):
@@ -124,7 +128,7 @@ class Address(db.Model):
     type = db.Column(db.String(10), nullable=False)
     is_usable = db.Column(db.Boolean, nullable=False, default=True)
     meta = db.Column(JSONB, nullable=False, default=lambda: {})
-    user_id = db.Column(db.Integer, db.ForeignKey('auth_user.id'), unique=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('auth_user.id'), unique=False)
     user = db.relationship(User, back_populates="addresses")  # type: User
 
     # Relationships
@@ -133,12 +137,6 @@ class Address(db.Model):
                                    cascade="all, delete-orphan",
                                    passive_deletes=True,
                                    order_by='Transaction.id')  # type: List[Transaction]
-
-    withdraws = db.relationship('Withdraw',
-                                back_populates="address",
-                                cascade="all, delete-orphan",
-                                passive_deletes=True,
-                                order_by='Withdraw.id')  # type: List[Withdraw]
 
     # Meta keys
     meta_key_force_scanning = 'force_scanning'
@@ -351,12 +349,12 @@ class Withdraw(db.Model):
     created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     mined = db.Column(db.DateTime, nullable=True)
     block_height = db.Column(db.Integer, nullable=True)
-    address_id = db.Column(db.Integer, db.ForeignKey('address.id'), nullable=False)
     status = db.Column(db.String(10), nullable=False, default=TransactionStatus.pending)
     meta = db.Column(JSONB, nullable=False, default=lambda: {})
+    user_id = db.Column(db.Integer, db.ForeignKey('auth_user.id'), unique=False)
 
     # Relationships
-    address = db.relationship(Address, back_populates="withdraws")  # type: Address
+    user = db.relationship(User, back_populates="withdraws")  # type: User
 
     # Methods
     def __repr__(self):
