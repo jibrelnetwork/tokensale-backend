@@ -1067,30 +1067,24 @@ def add_withdraw_jnt(user_id: int) -> Boolean:
             .filter(Address.user_id == user_id) \
             .filter(Address.type == CurrencyType.eth) \
             .one()  # type: tuple[Account, Address]
-        logging.getLogger(__name__).info('1')
         if not account or not address:
             logging.getLogger(__name__).error(
                 "Invalid user_id: {}".format(user_id))
             return False
 
-        logging.getLogger(__name__).info('2')
         total_jnt = session.query(func.coalesce(func.sum(JNT.jnt_value), 0)) \
             .join(Transaction, Transaction.id == JNT.transaction_id) \
             .filter(Transaction.address_id == address.id).as_scalar()
 
-        logging.getLogger(__name__).info('3')
         total_withdraw_jnt = session.query(func.coalesce(func.sum(Withdraw.value), 0)) \
             .filter(Withdraw.address_id == address.id) \
             .filter(Withdraw.status != TransactionStatus.fail).as_scalar()
 
-        logging.getLogger(__name__).info('4')
         withdrawable_balance = session.query(total_jnt - total_withdraw_jnt).one()
         if withdrawable_balance[0] <= 0:
-            logging.getLogger(__name__).info('5 ' + str( withdrawable_balance[0]))
             session.rollback()
             return False
 
-        logging.getLogger(__name__).info('6')
         insert_query = insert(Withdraw) \
             .values(address_id=address.id,
                     status=TransactionStatus.pending,
@@ -1098,17 +1092,14 @@ def add_withdraw_jnt(user_id: int) -> Boolean:
                     value=total_jnt - total_withdraw_jnt,
                     transaction_id='')
 
-        logging.getLogger(__name__).info('7')
         session.execute(insert_query)
         session.commit()
 
         logging.getLogger(__name__).info("Finished to persist withdraw operation of JNT to the database. account_id: {}"
                                          .format(user_id))
 
-        logging.getLogger(__name__).info('8')
         return True
     except Exception:
-        logging.getLogger(__name__).info('9')
         exception_str = ''.join(traceback.format_exception(*sys.exc_info()))
         logging.getLogger(__name__).error(
             "Failed to persist withdraw operation to the database due to exception:\n{}".format(exception_str))
