@@ -348,7 +348,7 @@ class Withdraw(db.Model):
     transaction_id = db.Column(db.String(120), unique=False)
     to = db.Column(db.String(255), nullable=False, unique=False)
     value = db.Column(db.Float, nullable=False)
-    created = db.Column(db.Float, nullable=False, default=datetime.utcnow)
+    created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     mined = db.Column(db.DateTime, nullable=True)
     block_height = db.Column(db.Integer, nullable=True)
     address_id = db.Column(db.Integer, db.ForeignKey('address.id'), nullable=False)
