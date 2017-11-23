@@ -273,9 +273,9 @@ BITFINEX__TIMEOUT = 1
 
 # Proxies
 CRAWLER_PROXY__ENABLED = True
-# CRAWLER_PROXY__USER = ""
-# CRAWLER_PROXY__PASS = ""
-# CRAWLER_PROXY__URLS = []  # type: List[str]
+CRAWLER_PROXY__USER = ""
+CRAWLER_PROXY__PASS = ""
+CRAWLER_PROXY__URLS = ['']  # type: List[str]
 
 # Flask config
 FLASK_CORS_ENABLED = False
@@ -354,4 +354,4 @@ LOGGING = {
 try:
     from jco.settings_local import *
 except ImportError:
-    pass 
+    pass
