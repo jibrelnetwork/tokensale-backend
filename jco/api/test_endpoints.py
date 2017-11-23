@@ -101,6 +101,12 @@ def transactions(addresses):
                                         block_height=300,
                                         status='success',
                                         address=addresses[2]),
+        models.Transaction.objects.create(transaction_id='1500',
+                                        value=0.5,
+                                        mined=datetime(2017, 11, 13),
+                                        block_height=110,
+                                        status='pending',
+                                        address=addresses[0]),
     ]
 
 
@@ -134,6 +140,15 @@ def jnt(transactions):
             active=True,
             created=datetime(2017, 10, 22, 12),
             transaction=transactions[2]),
+        models.Jnt.objects.create(
+            purchase_id='4',
+            jnt_value=30,
+            currency_to_usd_rate=1.0,
+            usd_value=3.0,
+            jnt_to_usd_rate=1.0,
+            active=True,
+            created=datetime(2017, 10, 22, 12),
+            transaction=transactions[3]),
     ]
 
 
@@ -157,8 +172,7 @@ def test_transactions(client, users, addresses, transactions, jnt):
     client.authenticate('user1@main.com', 'password1')
     resp = client.get('/api/transactions/')
     assert resp.status_code == 200
-    assert len(resp.json()) == 3
-    print("DDD", resp.json())
+    assert len(resp.json()) == 4
     assert resp.json() == [
         {'jnt': 30000,
          'type': 'outgoing',
@@ -175,6 +189,14 @@ def test_transactions(client, users, addresses, transactions, jnt):
          'TXhash': '1000',
          'status': 'complete',
          'amount_usd': 1,
+         'amount_cryptocurrency': 0.5},
+        {'jnt': 30,
+         'type': 'incoming',
+         'date': '00:00 11/13/2017',
+         'TXtype': 'ETH',
+         'TXhash': '1500',
+         'status': 'waiting',
+         'amount_usd': 3,
          'amount_cryptocurrency': 0.5},
         {'jnt': 20,
          'type': 'incoming',
