@@ -103,7 +103,8 @@ class TransactionSerializer(serializers.ModelSerializer):
         return obj.address.type.upper()
 
     def get_date(self, obj):
-        return datetime.strftime(obj.mined, '%H:%M %m/%d/%Y')
+        if obj.mined is not None:
+            return datetime.strftime(obj.mined, '%H:%M %m/%d/%Y')
 
     def get_amount_usd(self, obj):
         return obj.jnt.usd_value
