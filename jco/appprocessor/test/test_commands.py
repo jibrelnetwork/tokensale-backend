@@ -1,4 +1,4 @@
-import sys
+import os,sys
 import traceback
 import unittest
 from datetime import datetime
@@ -12,6 +12,7 @@ from sqlalchemy.types import Boolean
 from sqlalchemy.sql import func
 from sqlalchemy.sql.expression import not_, or_
 
+sys.path.append(os.getcwd())
 from jco.commonconfig.config import INVESTMENTS__TOKEN_PRICE_IN_USD, FORCE_SCANNING_ADDRESS__ENABLED
 from jco.appdb.db import session
 from jco.appdb.models import *
