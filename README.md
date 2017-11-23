@@ -96,8 +96,51 @@ export RECAPTCHA_PRIVATE_KEY="{PRIVATE_KEY}"
 ```
 
 
-### Launching Django server
+## Launching Django server in dev mode
 
 ```sh
 python dj-manage.py runserver
+```
+
+## Deploying (Gunicorn)
+
+### Testing Gunicorn's Ability to Serve the Project
+
+```sh
+cd ~/jco
+source venv/bin/activate
+gunicorn --bind 0.0.0.0:8000 -w 4 jco.wsgi
+```
+
+### Create a Gunicorn systemd Service File
+
+```sh
+sudo nano /etc/systemd/system/jco.service
+```
+
+```
+[Unit]
+Description=jco daemon
+After=network.target
+
+[Service]
+User=jibrelnetwork
+Group=www-data
+WorkingDirectory=/home/jibrelnetwork/jco/
+ExecStart=/home/jibrelnetwork/jco/venv/bin/gunicorn --access-logfile - --workers 4 --bind unix:/home/jibrelnetwork/jco/jco.sock jco.wsgi:application
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Commands
+
+sudo systemctl start jco
+sudo systemctl restart jco
+sudo systemctl stop jco
+
+### Check response of web server
+
+```
+curl -H "Content-Type: application/json" -X POST -d '{"email":"test1@local","password":"password"}' http://localhost:8080/auth/login/
 ```
