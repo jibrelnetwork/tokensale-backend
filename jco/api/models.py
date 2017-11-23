@@ -70,16 +70,19 @@ class Address(models.Model):
 
     @classmethod
     def assign_pair_to_user(cls, user):
+        if cls.objects.filter(user=user).count() > 0:
+            return False
         with transaction.atomic():
             eth_addr = (cls.objects.select_for_update()
-                        .filter(type=CurrencyType.eth, user=None).first())
+                        .filter(type=CurrencyType.eth, user=None, is_usable=True).first())
             eth_addr.user = user
             eth_addr.save()
 
             btc_addr = (cls.objects.select_for_update()
-                        .filter(type=CurrencyType.btc, user=None).first())
+                        .filter(type=CurrencyType.btc, user=None, is_usable=True).first())
             btc_addr.user = user
             btc_addr.save()
+        return True
 
 
 
@@ -143,7 +146,7 @@ class Withdraw(models.Model):
     created = models.DateTimeField()
     mined = models.DateTimeField(null=True)
     block_height = models.IntegerField(blank=True, null=True)
-    address = models.ForeignKey(Address, models.DO_NOTHING)
+    address = models.ForeignKey(Address, models.DO_NOTHING, null=True)
     status = models.CharField(max_length=10, default=TransactionStatus.pending)
     meta = JSONField(default=dict)  # This field type is a guess.
 

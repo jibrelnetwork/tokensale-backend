@@ -762,15 +762,21 @@ class TestCommands(unittest.TestCase):
 
         assign_addresses(user.id)
 
-        address = session.query(Address) \
+        address_eth = session.query(Address) \
             .filter(Address.user_id == user.id) \
             .filter(Address.type == CurrencyType.eth) \
+            .one()
+
+        address_btc = session.query(Address) \
+            .filter(Address.user_id == user.id) \
+            .filter(Address.type == CurrencyType.btc) \
             .one()
 
         transaction_id = "0xffaaaddcc"
         transaction_value = 20000 * (10 ** 18)
         transaction_mined = datetime.utcnow()
         eth_currency_rate = get_ticker_price(CurrencyType.eth, CurrencyType.usd, transaction_mined)
+        btc_currency_rate = get_ticker_price(CurrencyType.btc, CurrencyType.usd, transaction_mined)
 
         self.assertTrue(eth_currency_rate > 0, "eth_currency_rate must be greater than 0")
 
@@ -778,11 +784,17 @@ class TestCommands(unittest.TestCase):
 
         self.assertTrue(jnt_usd_value > 0, "transaction_usd_value must be greater than 0")
 
-        transaction = Transaction(transaction_id=transaction_id,
-                                    value=transaction_value,
-                                    address_id=address.id,
-                                    mined=transaction_mined,
-                                    block_height=2)
+        transaction_eth = Transaction(transaction_id=transaction_id,
+                                      value=transaction_value,
+                                      address_id=address_eth.id,
+                                      mined=transaction_mined,
+                                      block_height=2)
+
+        transaction_btc = Transaction(transaction_id='123asd',
+                                      value=transaction_value,
+                                      address_id=address_btc.id,
+                                      mined=transaction_mined,
+                                      block_height=32)
 
         jnt = JNT(currency_to_usd_rate=eth_currency_rate,
                     jnt_value=jnt_usd_value / INVESTMENTS__TOKEN_PRICE_IN_USD,
@@ -790,9 +802,22 @@ class TestCommands(unittest.TestCase):
                     jnt_to_usd_rate=INVESTMENTS__TOKEN_PRICE_IN_USD,
                     purchase_id=generate_request_id())
 
-        jnt.transaction = transaction
-        session.add(transaction)
+        jnt.transaction = transaction_eth
+        session.add(transaction_eth)
         session.add(jnt)
+
+        jnt_usd_value2 = transaction_value * btc_currency_rate / (10 ** 18)
+        jnt2 = JNT(currency_to_usd_rate=btc_currency_rate,
+                    jnt_value=jnt_usd_value2 / INVESTMENTS__TOKEN_PRICE_IN_USD,
+                    usd_value=jnt_usd_value2,
+                    jnt_to_usd_rate=INVESTMENTS__TOKEN_PRICE_IN_USD,
+                    purchase_id=generate_request_id())
+
+        jnt2.transaction = transaction_btc
+        session.add(transaction_btc)
+        session.add(jnt2)
+
+
         session.commit()
 
         success = add_withdraw_jnt(user.id)
@@ -805,7 +830,7 @@ class TestCommands(unittest.TestCase):
             .one()  # type: tuple[float]
 
         self.assertTrue(withdraw_sum[0] > 0, 'should be non-negative and greater than zero')
-        self.assertEqual(withdraw_sum[0], jnt.jnt_value, 'sum of withdraws must be equal to sum of jnts')
+        self.assertAlmostEqual(withdraw_sum[0], jnt.jnt_value + jnt2.jnt_value, places=5, msg='sum of withdraws must be equal to sum of jnts')
 
         transaction_id = "0xeeaaaddcc"
         transaction_value = 10000 * (10 ** 18)
@@ -814,7 +839,7 @@ class TestCommands(unittest.TestCase):
 
         transaction = Transaction(transaction_id=transaction_id,
                                   value=transaction_value,
-                                  address_id=address.id,
+                                  address_id=address_eth.id,
                                   mined=transaction_mined,
                                   block_height=2)
 
@@ -838,7 +863,7 @@ class TestCommands(unittest.TestCase):
         jnt_sum = session.query(func.sum(JNT.jnt_value)) \
             .one()  # type: tuple[float]
 
-        self.assertEqual(withdraw_sum[0], jnt_sum[0], 'sum of withdraws must be equal to sum of jnts')
+        self.assertAlmostEqual(withdraw_sum[0], jnt_sum[0], places=5, msg='sum of withdraws must be equal to sum of jnts')
 
 
     def test_withdraw_processing(self):

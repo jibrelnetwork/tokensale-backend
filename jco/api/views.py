@@ -87,6 +87,7 @@ class AccountView(GenericAPIView):
 
     def maybe_start_identity_verification(self, account):
         if account.document_url and not account.onfido_applicant_id:
+            Address.assign_pair_to_user(account.user)
             tasks.verify_user.delay(account.user.pk)
 
 
