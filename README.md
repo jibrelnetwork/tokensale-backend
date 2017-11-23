@@ -95,8 +95,8 @@ CRAWLER_PROXY__URLS
 ```
 
 ```
-export JCO_DATABASE_URI="postgresql://jcouser:password@localhost:5432/jcodb"
-export ONFIDO_API_KEY="xxxxx"
+export JCO_DATABASE_URI="postgresql://jcouser:MweVD4wdDPUCC@localhost:5432/jcodb"
+export ONFIDO_API_KEY="live_C9F2UxgGpMvfdbQML8hp0AhiKWa6BO1x"
 export RECAPTCHA_PRIVATE_KEY="xxxxx"
 ```
 
@@ -113,6 +113,7 @@ python jco/dj-manage.py migrate
 ```sh
 python jco/dj-manage.py runserver
 ```
+
 
 ## Deploying (Gunicorn)
 
@@ -147,9 +148,11 @@ WantedBy=multi-user.target
 
 Commands
 
+```
 sudo systemctl start jco
 sudo systemctl restart jco
 sudo systemctl stop jco
+```
 
 ### Check response of web server
 
