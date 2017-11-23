@@ -114,6 +114,9 @@ class TransactionSerializer(serializers.ModelSerializer):
 
 
 class WithdrawSerializer(TransactionSerializer):
+
+    _date = serializers.DateTimeField(source='created')
+    
     class Meta:
         model = Withdraw
         fields = ('jnt', 'status', 'TXtype', 'date', 'type',  '_date',
