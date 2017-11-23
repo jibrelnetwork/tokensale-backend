@@ -87,6 +87,15 @@ python dj-manage.py migrate
 ```
 
 
+## Set environment variables
+
+```sh
+export JCO_DATABASE_URI="postgresql://jibrelpresaleuser:password@localhost/jibrelpresaledb"
+export ONFIDO_API_KEY="{API_KEY}"
+export RECAPTCHA_PRIVATE_KEY="{PRIVATE_KEY}"
+```
+
+
 ### Launching Django server
 
 ```sh
