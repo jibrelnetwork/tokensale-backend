@@ -79,26 +79,7 @@ pip install --editable ./
 
 ## Configure
 
-Copy settings file:
-`cp ./jco/settings.py ./jco/settings_local.py`
-
-Fill in your settings:
-```
-DATABASE_HOST
-DATABASE_NAME
-DATABASE_USER
-DATABASE_PASS
-
-CRAWLER_PROXY__USER
-CRAWLER_PROXY__PASS
-CRAWLER_PROXY__URLS
-```
-
-```
-export JCO_DATABASE_URI="postgresql://jcouser:MweVD4wdDPUCC@localhost:5432/jcodb"
-export ONFIDO_API_KEY="live_C9F2UxgGpMvfdbQML8hp0AhiKWa6BO1x"
-export RECAPTCHA_PRIVATE_KEY="xxxxx"
-```
+Check settings `./jco/settings.py`
 
 
 ## Init database
