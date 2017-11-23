@@ -1067,17 +1067,24 @@ def add_withdraw_jnt(user_id: int) -> Boolean:
             .filter(Address.user_id == user_id) \
             .filter(Address.type == CurrencyType.eth) \
             .one()  # type: tuple[Account, Address]
-        if not account or not address:
+
+        addresses = session.query(Address) \
+            .filter(Address.user_id == user_id).all()
+        assert len(addresses) == 2, 'User has {} addresses, not 2'.format(len(addresses))
+        addresses_ids = [a.id for a in addresses]
+
+        if not account or not addresses:
             logging.getLogger(__name__).error(
                 "Invalid user_id: {}".format(user_id))
             return False
 
         total_jnt = session.query(func.coalesce(func.sum(JNT.jnt_value), 0)) \
             .join(Transaction, Transaction.id == JNT.transaction_id) \
-            .filter(Transaction.address_id == address.id).as_scalar()
+            .join(Address, Address.id == Transaction.address_id) \
+            .filter(Address.id.in_(addresses_ids)).as_scalar()
 
         total_withdraw_jnt = session.query(func.coalesce(func.sum(Withdraw.value), 0)) \
-            .filter(Withdraw.address_id == address.id) \
+            .filter(Withdraw.to == account.etherium_address) \
             .filter(Withdraw.status != TransactionStatus.fail).as_scalar()
 
         withdrawable_balance = session.query(total_jnt - total_withdraw_jnt).one()
@@ -1086,7 +1093,7 @@ def add_withdraw_jnt(user_id: int) -> Boolean:
             return False
 
         insert_query = insert(Withdraw) \
-            .values(address_id=address.id,
+            .values(address_id=None,
                     status=TransactionStatus.pending,
                     to=account.etherium_address,
                     value=total_jnt - total_withdraw_jnt,

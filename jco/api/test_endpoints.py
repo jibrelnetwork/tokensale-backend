@@ -310,3 +310,7 @@ def test_withdraw_jnt(client, users, addresses, jnt):
     resp = client.post('/api/withdraw-jnt/')
     assert resp.status_code == 200
     assert resp.json() == {'detail': 'JNT withdrawal is scheduled.'}
+
+    withdrawals = models.Withdraw.objects.filter(to='aaaxxx').all()
+    assert len(withdrawals) == 1
+    assert withdrawals[0].value == 60
