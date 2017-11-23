@@ -147,6 +147,8 @@ class Withdraw(models.Model):
     mined = models.DateTimeField(null=True)
     block_height = models.IntegerField(blank=True, null=True)
     address = models.ForeignKey(Address, models.DO_NOTHING, null=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, models.DO_NOTHING, blank=True, null=True,
+                             related_name='withdraws')
     status = models.CharField(max_length=10, default=TransactionStatus.pending)
     meta = JSONField(default=dict)  # This field type is a guess.
 
