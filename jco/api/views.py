@@ -155,11 +155,10 @@ class EthAddressView(GenericAPIView):
         return Response(serializer.errors, status=400)
 
 
-class WithdrawView(GenericAPIView):
+class WithdrawView(APIView):
     """
     Withdraw JNT tokens to user's eth address
     """
-
     def post(self, request):
         if not request.user.account.etherium_address:
             return Response({'detail': _('No Etherium address in your account data.')},
