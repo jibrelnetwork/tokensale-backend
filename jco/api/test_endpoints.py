@@ -282,4 +282,9 @@ def test_get_etherium_address(client, users):
     assert resp.json() == {'address': 'aaaxxx'}
 
     
-
+def test_withdraw_jnt(client, users, addresses, jnt):
+    client.authenticate('user1@main.com', 'password1')
+    models.Account.objects.create(etherium_address='aaaxxx', user=users[0])
+    resp = client.post('/api/withdraw-jnt/')
+    assert resp.status_code == 200
+    assert resp.json() == {'detail': 'JNT withdrawal is scheduled.'}

@@ -356,7 +356,7 @@ class Withdraw(db.Model):
     meta = db.Column(JSONB, nullable=False, default=lambda: {})
 
     # Relationships
-    #address = db.relationship(Address, back_populates="withdraws")  # type: Address
+    address = db.relationship(Address, back_populates="withdraws")  # type: Address
 
     # Methods
     def __repr__(self):

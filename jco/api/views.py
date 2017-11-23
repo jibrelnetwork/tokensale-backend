@@ -22,6 +22,7 @@ from jco.api.serializers import (
     WithdrawSerializer,
 )
 from jco.api import tasks
+from jco.appprocessor import commands
 
 
 class TransactionsListView(APIView):
@@ -152,3 +153,18 @@ class EthAddressView(GenericAPIView):
             account.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=400)
+
+
+class WithdrawView(GenericAPIView):
+    """
+    Withdraw JNT tokens to user's eth address
+    """
+
+    def post(self, request):
+        if not request.user.account.etherium_address:
+            return Response({'detail': _('No Etherium address in your account data.')},
+                            status=400)
+        result = commands.add_withdraw_jnt(request.user.pk)
+        if result is True:
+            return Response({'detail': _('JNT withdrawal is scheduled.')})
+        return Response({'detail': _('JNT withdrawal is failed.')}, status=500)
