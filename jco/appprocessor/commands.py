@@ -1079,6 +1079,7 @@ def add_withdraw_jnt(user_id: int) -> Boolean:
         if not account or not addresses:
             logging.getLogger(__name__).error(
                 "Invalid user_id: {}".format(user_id))
+            session.rollback()
             return False
 
         total_jnt = session.query(func.coalesce(func.sum(JNT.jnt_value), 0)) \
@@ -1113,5 +1114,41 @@ def add_withdraw_jnt(user_id: int) -> Boolean:
         exception_str = ''.join(traceback.format_exception(*sys.exc_info()))
         logging.getLogger(__name__).error(
             "Failed to persist withdraw operation to the database due to exception:\n{}".format(exception_str))
+        session.rollback()
+        return False
+
+
+#
+# Persist notification to the database
+#
+
+def add_notification(email: str, type: str, user_id: Optional[int] = None, data: Optional[dict] = None) -> Boolean:
+    # noinspection PyBroadException
+    try:
+        logging.getLogger(__name__).info("Start persist notification to the database. email: {}, user_id: {}"
+                                         .format(email, user_id))
+
+        if user_id:
+            user = session.query(User) \
+                .filter(User.id == user_id) \
+                .all()  # type: User
+            assert len(user) == 1, 'Invalid user_id: {}'.format(user_id)
+
+        notification = Notification(user_id=user_id if user_id else None,
+                                    type=type,
+                                    email=email,
+                                    meta=data if data else {})
+
+        session.add(notification)
+        session.commit()
+
+        logging.getLogger(__name__).info("Finished to persist notification to the database. email: {}, account_id: {}"
+                                         .format(email, user_id))
+
+        return True
+    except Exception:
+        exception_str = ''.join(traceback.format_exception(*sys.exc_info()))
+        logging.getLogger(__name__).error(
+            "Failed to persist notification to the database due to exception:\n{}".format(exception_str))
         session.rollback()
         return False

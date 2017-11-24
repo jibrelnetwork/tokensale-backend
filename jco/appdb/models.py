@@ -123,6 +123,8 @@ class Account(db.Model):
     document_url = db.Column(db.String(00), nullable=False, default='')
     user = db.relationship(User, back_populates="account")  # type: User
 
+    tracking = db.Column(JSONB, nullable=False, default=lambda: {})
+
     # Methods
     def __repr__(self):
         fieldsToPrint = (('id', self.id),
@@ -158,7 +160,6 @@ class Address(db.Model):
     is_usable = db.Column(db.Boolean, nullable=False, default=True)
     meta = db.Column(JSONB, nullable=False, default=lambda: {})
     user_id = db.Column(db.Integer, db.ForeignKey('auth_user.id'), unique=False)
-    user = db.relationship(User, back_populates="addresses")  # type: User
 
     # Relationships
     transactions = db.relationship('Transaction',
@@ -166,6 +167,8 @@ class Address(db.Model):
                                    cascade="all, delete-orphan",
                                    passive_deletes=True,
                                    order_by='Transaction.id')  # type: List[Transaction]
+
+    user = db.relationship(User, back_populates="addresses")  # type: User
 
     # Meta keys
     meta_key_force_scanning = 'force_scanning'
@@ -406,7 +409,7 @@ class Withdraw(db.Model):
 class Notification(db.Model):
     # Fields
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('auth_user.id'), unique=False, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('auth_user.id'), unique=False, nullable=True)
     type = db.Column(db.String(10), nullable=False)
     email = db.Column(db.String(120), nullable=False)
     created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)

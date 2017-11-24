@@ -161,7 +161,8 @@ class Withdraw(models.Model):
 
 class Notification(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, models.DO_NOTHING,
-                             null=False, related_name='notifications')
+                             blank=True, null=True, related_name='notifications')
+
     type = models.CharField(max_length=100)
     email = models.CharField(max_length=120, null=False)
     created = models.DateTimeField()
