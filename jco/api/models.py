@@ -35,7 +35,7 @@ class Account(models.Model):
     onfido_check_created = models.DateTimeField(null=True, blank=True)
 
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    etherium_address = models.CharField(max_length=255, null=True, blank=True)
+    withdraw_address = models.CharField(max_length=255, null=True, blank=True)
 
     tracking = JSONField(blank=True, default=dict)
 
@@ -150,6 +150,8 @@ class Withdraw(models.Model):
     mined = models.DateTimeField(null=True)
     block_height = models.IntegerField(blank=True, null=True)
     address = models.ForeignKey(Address, models.DO_NOTHING, null=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, models.DO_NOTHING, blank=True, null=True,
+                             related_name='withdraws')
     status = models.CharField(max_length=10, default=TransactionStatus.pending)
     meta = JSONField(default=dict)  # This field type is a guess.
 

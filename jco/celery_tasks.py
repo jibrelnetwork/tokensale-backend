@@ -59,6 +59,13 @@ def celery_scan_docs_received():
 
 @celery_app.task()
 @initialize_app
+@locked_task()
+def celery_withdraw_processing():
+    return  commands.withdraw_processing()
+
+
+@celery_app.task()
+@initialize_app
 def celery_get_account_list():
     return  commands.get_account_list()
 
@@ -91,6 +98,12 @@ def celery_get_proposal_transactions(*args, **kwargs):
 @initialize_app
 def celery_set_docs_received(*args, **kwargs):
     return commands.set_docs_received(*args, **kwargs)
+
+
+@celery_app.task()
+@initialize_app
+def celery_add_withdraw_jnt(*args, **kwargs):
+    return commands.add_withdraw_jnt(*args, **kwargs)
 
 
 @celery_app.on_after_finalize.connect

@@ -234,13 +234,13 @@ def scan_addresses():
 
         if FORCE_SCANNING_ADDRESS__ENABLED:
             addresses = session.query(Address) \
-                .filter(or_(Address.proposal_id.isnot(None),
+                .filter(or_(Address.user_id.isnot(None),
                             and_(Address.meta.has_key(Address.meta_key_force_scanning),
                                  Address.meta[Address.meta_key_force_scanning].astext.cast(Boolean) == True))) \
                 .all()  # type: List[Address]
         else:
             addresses = session.query(Address) \
-                .filter(Address.proposal_id.isnot(None)) \
+                .filter(Address.user_id.isnot(None)) \
                 .all()  # type: List[Address]
 
         error_addresses = []  # type: list[Address]
@@ -759,11 +759,11 @@ def get_account_proposals(email: str) -> Tuple[Dict, List[Dict]]:
 
 
 def get_all_transactions() -> List[Dict]:
-    records = session.query(Transaction, Address, Proposal) \
+    records = session.query(Transaction, Address, User) \
         .join(Address, Address.id == Transaction.address_id) \
-        .join(Proposal, Proposal.id == Address.proposal_id) \
+        .join(User, User.id == Address.user_id) \
         .order_by(Transaction.mined.desc()) \
-        .all()  # type: List[Tuple[Proposal]]
+        .all()  # type: List[Tuple[Transaction, Address, User]]
 
     result = []
     for record in records:
@@ -1017,27 +1017,33 @@ def assign_addresses(user_id: int) -> bool:
         return False
 
 
+def withdraw_jnt(withdraw: Withdraw) -> Optional[str]:
+    #  todo: under the test
+    return None
+
+
 def withdraw_processing():
     # noinspection PyBroadException
     try:
         logging.getLogger(__name__).info("Start to process new withdraws")
 
-        records = session.query(Withdraw, Address, Account) \
-            .join(Address, Address.id == Withdraw.address_id) \
-            .join(Account, Account.user_id == Address.user_id) \
+        withdraws = session.query(Withdraw) \
             .filter(Withdraw.status == TransactionStatus.pending) \
             .filter(Withdraw.transaction_id == "") \
             .order_by(Withdraw.id) \
-            .all()  # type: List[Tuple[Withdraw, Address, Account]]
+            .all()  # type: List[Withdraw]
 
-        for record in records:
+        for withdraw in withdraws:
             try:
-                tx_id = withdraw_jnt(record[0])
+                tx_id = withdraw_jnt(withdraw)
                 if tx_id:
-                    record[0].transaction_id = tx_id
+                    withdraw.transaction_id = tx_id
                     session.commit()
+                    logging.getLogger(__name__).info(
+                            "Process withdraw. withdraw_id: {}".format(withdraw.id))
+                else:
                     logging.getLogger(__name__).error(
-                            "Process withdraw. withdraw_id: {}".format(record[0].id))
+                        "Process withdraw failed. withdraw_id: {}".format(withdraw.id))
             except Exception:
                 exception_str = ''.join(traceback.format_exception(*sys.exc_info()))
                 logging.getLogger(__name__).error(
@@ -1061,12 +1067,9 @@ def add_withdraw_jnt(user_id: int) -> Boolean:
     try:
         logging.getLogger(__name__).info("Start persist withdraw operation of JNT to the database. account_id: {}"
                                          .format(user_id))
-        account, address = session.query(Account, Address) \
-            .join(Address, Address.user_id == Account.user_id) \
+        account = session.query(Account) \
             .filter(Account.user_id == user_id) \
-            .filter(Address.user_id == user_id) \
-            .filter(Address.type == CurrencyType.eth) \
-            .one()  # type: tuple[Account, Address]
+            .one()  # type: Account
 
         addresses = session.query(Address) \
             .filter(Address.user_id == user_id).all()
@@ -1084,7 +1087,7 @@ def add_withdraw_jnt(user_id: int) -> Boolean:
             .filter(Address.id.in_(addresses_ids)).as_scalar()
 
         total_withdraw_jnt = session.query(func.coalesce(func.sum(Withdraw.value), 0)) \
-            .filter(Withdraw.to == account.etherium_address) \
+            .filter(Withdraw.to == account.withdraw_address) \
             .filter(Withdraw.status != TransactionStatus.fail).as_scalar()
 
         withdrawable_balance = session.query(total_jnt - total_withdraw_jnt).one()
@@ -1093,9 +1096,9 @@ def add_withdraw_jnt(user_id: int) -> Boolean:
             return False
 
         insert_query = insert(Withdraw) \
-            .values(address_id=None,
+            .values(user_id=user_id,
                     status=TransactionStatus.pending,
-                    to=account.etherium_address,
+                    to=account.withdraw_address,
                     value=total_jnt - total_withdraw_jnt,
                     transaction_id='')
 

@@ -1,4 +1,4 @@
-from datetime import datetime 
+from datetime import datetime
 
 import pytest
 from django.test import TestCase
@@ -8,8 +8,8 @@ from django.contrib.auth.models import User
 from allauth.account.models import EmailAddress 
 from allauth.account.utils import setup_user_email 
 
-from jco.api import models 
-from jco.appdb import models as sa_models 
+from jco.api import models
+from jco.appdb import models as sa_models
 
 
 class ApiClient(RequestsClient):
@@ -289,15 +289,15 @@ def test_get_raised_tokens(client, transactions):
     assert resp.json() == {'raised_tokens': 2.25}
 
 
-def test_get_etherium_address_empty(client, users):
+def test_get_withdraw_address_empty(client, users):
     client.authenticate('user1@main.com', 'password1')
     resp = client.get('/api/withdraw-address/')
     assert resp.status_code == 200
     assert resp.json() == {'address': None}
 
 
-def test_get_etherium_address(client, users):
-    models.Account.objects.create(etherium_address='aaaxxx', user=users[0])
+def test_get_withdraw_address(client, users):
+    models.Account.objects.create(withdraw_address='aaaxxx', user=users[0])
     client.authenticate('user1@main.com', 'password1')
     resp = client.get('/api/withdraw-address/')
     assert resp.status_code == 200
@@ -306,7 +306,7 @@ def test_get_etherium_address(client, users):
     
 def test_withdraw_jnt(client, users, addresses, jnt):
     client.authenticate('user1@main.com', 'password1')
-    models.Account.objects.create(etherium_address='aaaxxx', user=users[0])
+    models.Account.objects.create(withdraw_address='aaaxxx', user=users[0])
     resp = client.post('/api/withdraw-jnt/')
     assert resp.status_code == 200
     assert resp.json() == {'detail': 'JNT withdrawal is scheduled.'}

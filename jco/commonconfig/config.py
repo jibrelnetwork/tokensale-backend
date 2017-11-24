@@ -5,9 +5,13 @@
 # from typing import Dict, List
 
 # from .mailgun_handler import MailgunHandler
-import sys
+
 from jco.settings import *
-from jco.settings_local import *
+
+try:
+    from jco.settings_local import *
+except ImportError:
+    pass
 
 
 SQLALCHEMY_DATABASE_URI = JCO_DATABASE_URI
