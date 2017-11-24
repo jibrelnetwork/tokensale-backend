@@ -33,7 +33,8 @@ from jco.commonconfig.config import (INVESTMENTS__TOKEN_PRICE_IN_USD,
                                      CRAWLER_PROXY__URLS,
                                      FORCE_SCANNING_ADDRESS__ENABLED,
                                      CHECK_MAIL_DELIVERY__ENABLED,
-                                     CHECK_MAIL_DELIVERY__DAYS_DEPTH)
+                                     CHECK_MAIL_DELIVERY__DAYS_DEPTH,
+                                     RAISED_TOKENS_SHIFT)
 from jco.commonconfig.config import ETHERSCAN_API_KEY, ETHERSCAN_TIMEOUT, BLOCKCHAININFO_TIMEOUT
 from jco.appprocessor.notify import *
 from jco.commonutils.utils import *
@@ -501,6 +502,15 @@ def get_eth_investments(address_str: str) -> List[Transaction]:
 
 
 #
+# Get total JNT tokens
+#
+def get_total_jnt_amount() -> float:
+    jnt_sum = session.query(func.sum(JNT.jnt_value)) \
+        .one()  # type: tuple[float]
+    return jnt_sum[0]
+
+
+#
 # Create JNT records and notify about new transactions
 #
 
@@ -550,6 +560,10 @@ def calculate_jnt_purchases():
 
                 send_email_transaction_received(tx.address.user.email, tx.address.user_id,
                                                 tx.as_dict(), jnt.as_dict())
+
+                ga_integration.on_transaction_received(tx.address.user.account,
+                                                       tx,
+                                                       jnt)
 
                 logging.getLogger(__name__).info("New JNT purchase persisted: {}".format(jnt))
             except Exception:

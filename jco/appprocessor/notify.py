@@ -23,7 +23,7 @@ from jinja2 import FileSystemLoader, Environment
 from jco.commonconfig import config
 from jco.appdb.models import *
 from jco.commonutils.utils import *
-from .commands import add_notification
+from jco.appprocessor.commands import *
 
 EMAIL_NOTIFICATIONS__TEMPLATES_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'templates')
 

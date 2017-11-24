@@ -297,7 +297,7 @@ class Transaction(db.Model):
             'address': self.address.as_dict(),
             'mailgun_message_id': self.get_mailgun_message_id(),
             'mailgun_delivered': self.get_mailgun_delivered(),
-            'currency': self.address.type(),
+            'currency': self.address.type,
         }
 
     def get_notified(self) -> Optional[bool]:
@@ -495,6 +495,10 @@ class Notification(db.Model):
     # Relationships
     user = db.relationship(User, back_populates="notifications")  # type: User
 
+    meta_key_mailgun_message_id = 'mailgun_message_id'
+    meta_key_mailgun_delivered = 'mailgun_delivered'
+    meta_key_failed_notifications = 'failed_notifications'
+
     # Methods
     def __repr__(self):
         fieldsToPrint = (('id', self.id),
@@ -509,3 +513,36 @@ class Notification(db.Model):
         argsString = ', '.join(['{}={}'.format(f[0], '"' + f[1] + '"' if (type(f[1]) == str) else f[1])
                                 for f in fieldsToPrint])
         return '<{}({})>'.format(self.__class__.__name__, argsString)
+
+    def get_failed_notifications(self) -> Optional[int]:
+        if self.meta_key_failed_notifications not in self.meta:
+            return None
+        return self.meta[self.meta_key_failed_notifications]
+
+    def set_failed_notifications(self, value: int):
+        if self.meta is None:
+            self.meta = {}
+        self.meta[self.meta_key_failed_notifications] = value
+        flag_modified(self, "meta")
+
+    def get_mailgun_message_id(self) -> Optional[str]:
+        if self.meta_key_mailgun_message_id not in self.meta:
+            return None
+        return self.meta[self.meta_key_mailgun_message_id]
+
+    def set_mailgun_message_id(self, value: int):
+        if self.meta is None:
+            self.meta = {}
+        self.meta[self.meta_key_mailgun_message_id] = value
+        flag_modified(self, "meta")
+
+    def get_mailgun_delivered(self) -> Optional[str]:
+        if self.meta_key_mailgun_delivered not in self.meta:
+            return None
+        return self.meta[self.meta_key_mailgun_delivered]
+
+    def set_mailgun_delivered(self, value: int):
+        if self.meta is None:
+            self.meta = {}
+        self.meta[self.meta_key_mailgun_delivered] = value
+        flag_modified(self, "meta")
