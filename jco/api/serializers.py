@@ -14,6 +14,7 @@ import requests
 
 from jco.api.models import Transaction, Address, Account, Jnt, Withdraw
 from jco.commonutils import person_verify
+from jco.commonutils import ga_integration
 from jco.appdb.models import TransactionStatus
 
 
@@ -230,7 +231,8 @@ class RegisterSerializer(serializers.Serializer):
         self.custom_signup(request, user)
         setup_user_email(request, user, [])
         tracking = self.validated_data.get('tracking', {})
-        Account.objects.create(user=user, tracking=tracking)
+        account = Account.objects.create(user=user, tracking=tracking)
+        ga_integration.on_status_new(account)
         return user
 
 

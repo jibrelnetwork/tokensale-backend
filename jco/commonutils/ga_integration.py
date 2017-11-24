@@ -16,7 +16,7 @@ class GAClient:
         self.account = account
         self.cid = account.tracking.get('ga_id')
 
-    def send_event(self, status):
+    def send_status(self, status):
         """
         v=1&t=event&tid=UA-103798122-1&cid=1734424917.1494941541&ec=TokensRequest&ea=Status&el=Verified
         &cn=campaign&cs=source&cm=medium&ck=keyword&cc=content
@@ -101,3 +101,28 @@ class GAClient:
 def get_ga_client(account):
     client = GAClient(settings.GA_ID, account)
     return client
+
+
+def on_status_new(account):
+    get_ga_client(account).send_status('New')
+
+
+def on_status_registration_complete(account):
+    get_ga_client(account).send_status('RegistrationComplete')
+
+
+def on_status_verified(account):
+    get_ga_client(account).send_status('Verified')
+
+
+def on_status_not_verified(account):
+    get_ga_client(account).send_status('NotVerified')
+
+
+def on_transaction_received(account, tx, jnt):
+    get_ga_client(account).send_status('SuccessBuy')
+    transaction_id = tx.transaction_id
+    summ = jnt.usd_value
+    quantity = jnt.jnt_value
+    item_price = jnt.jnt_to_usd_rate
+    get_ga_client(account).send_tx_with_item(transaction_id, summ, quantity, item_price)

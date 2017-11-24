@@ -23,6 +23,7 @@ from jco.api.serializers import (
 )
 from jco.api import tasks
 from jco.appprocessor import commands
+from jco.commonutils import ga_integration
 
 
 class TransactionsListView(APIView):
@@ -88,6 +89,7 @@ class AccountView(GenericAPIView):
     def maybe_start_identity_verification(self, account):
         if account.document_url and not account.onfido_applicant_id:
             Address.assign_pair_to_user(account.user)
+            ga_integration.on_status_registration_complete(account)
             tasks.verify_user.delay(account.user.pk)
 
 
