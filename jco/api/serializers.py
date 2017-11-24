@@ -9,6 +9,7 @@ from allauth.account import app_settings as allauth_settings
 from allauth.utils import email_address_exists
 from allauth.account.adapter import get_adapter
 from allauth.account.utils import setup_user_email
+from rest_auth.serializers import PasswordResetSerializer
 from rest_framework import serializers, exceptions
 import requests
 

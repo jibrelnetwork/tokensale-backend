@@ -182,6 +182,7 @@ REST_FRAMEWORK = {
 
 REST_AUTH_SERIALIZERS = {
     'LOGIN_SERIALIZER': 'jco.api.serializers.LoginSerializer',
+    'PASSWORD_RESET_SERIALIZER': 'jco.api.serializers.CustomPasswordResetSerializer',
 }
 
 REST_AUTH_REGISTER_SERIALIZERS = {
@@ -236,7 +237,7 @@ CELERY_BROKER_URL = "pyamqp://guest:guest@localhost:5672//"
 
 # Email notifications
 EMAIL_NOTIFICATIONS__ENABLED = True
-EMAIL_NOTIFICATIONS__SENDER = 'Jibrel Presale <donotreply@mailgun.jibrel.network>'
+EMAIL_NOTIFICATIONS__SENDER = 'Jibrel Network <donotreply@mailgun.jibrel.network>'
 EMAIL_NOTIFICATIONS__BACKUP_ENABLED = False
 EMAIL_NOTIFICATIONS__BACKUP_SENDER = 'Jibrel Backup <backup@mailgun.jibrel.network>'
 EMAIL_NOTIFICATIONS__BACKUP_ADDRESS = 'salebackup@jibrel.network'
@@ -264,7 +265,7 @@ LOGGING__SQLALCHEMY_ECHO = False
 LOGGING__MAILGUN__ENABLED = True
 LOGGING__MAILGUN__SENDER = 'Jibrel Error <error@mailgun.jibrel.network>'
 LOGGING__MAILGUN__RECIPIENTS = ['victor@jibrel.network', 'aleksey@jibrel.network']
-LOGGING__MAILGUN__SUBJECT = 'Jibrel Presale error !!!'
+LOGGING__MAILGUN__SUBJECT = 'Jibrel Sale error !!!'
 
 # investments settings
 INVESTMENTS__PRESALE__START_DATE = datetime(year=2017, month=9, day=25, hour=12)

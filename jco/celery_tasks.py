@@ -129,7 +129,7 @@ def setup_periodic_tasks(sender, **kwargs):
                              api_tasks.check_user_verification_status_runner,
                              expires=1 * 60,
                              name='check_user_verification_status_runner')
-    sender.add_periodic_task(60,
+    sender.add_periodic_task(20,
                              process_all_notifications,
                              expires=1 * 60,
                              name='process_all_notifications')
