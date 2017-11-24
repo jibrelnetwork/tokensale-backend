@@ -19,7 +19,9 @@ class ApiClient(RequestsClient):
         self.base_url = base_url
 
     def request(self, method, url, *args, **kwargs):
-        return super().request(method, self.base_url + url, *args, **kwargs)
+        resp = super().request(method, self.base_url + url, *args, **kwargs)
+        print('RESPONSE', resp.content)
+        return resp
 
     def authenticate(self, username, password):
         resp = self.post('/auth/login/',
@@ -314,3 +316,33 @@ def test_withdraw_jnt(client, users, addresses, jnt):
     withdrawals = models.Withdraw.objects.filter(to='aaaxxx').all()
     assert len(withdrawals) == 1
     assert withdrawals[0].value == 60
+
+
+def test_registration(client):
+    user_data = {
+        'email': 'aa@aa.aa',
+        'password': '123qwerty',
+        'password_confirm': '123qwerty',
+        'captcha': 'zxc',
+        'tracking': {'ga_id': '123.456.7890', 'utm_campaign': 'Cmp1', 'utm_source': 'src'},
+    }
+    resp = client.post('/auth/registration/', json=user_data)
+    assert resp.status_code == 201
+    account = models.Account.objects.get(user__username=user_data['email'])
+    assert account.tracking == user_data['tracking']
+
+
+def test_registration_emplty_tracking(client):
+    user_data = {
+        'email': 'aa@aa.aa',
+        'password': '123qwerty',
+        'password_confirm': '123qwerty',
+        'captcha': 'zxc',
+        # 'tracking': {'ga_id': '123.456.7890', 'utm_campaign': 'Cmp1', 'utm_source': 'src'},
+    }
+    resp = client.post('/auth/registration/', json=user_data)
+    assert resp.status_code == 201
+    account = models.Account.objects.get(user__username=user_data['email'])
+    assert account.tracking == {}
+
+
