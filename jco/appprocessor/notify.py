@@ -591,3 +591,42 @@ def send_email_reset_password(email, activate_url, user_id=None):
         'activate_url': activate_url,
     }
     add_notification(email, user_id=user_id, type=NotificationType.password_change_request, data=ctx)
+
+
+def send_email_transaction_received(email: str, user_id: int, transaction: dict,
+                                    jnt: dict, type: Optional[str] = NotificationType.transaction_received) -> bool:
+    ctx = {
+        'jnt_id': jnt['id'],
+        'transaction_id': transaction['id'],
+        'jnt_amount': jnt['jnt_value'],
+        'usd_amount': jnt['usd_value'],
+        'currency_amount': transaction['value'],
+        'currency_name': transaction['currency'],
+        'currency_conversion_rate': jnt['currency_to_usd_rate'],
+    }
+
+    return add_notification(email, user_id=user_id, type=type, data=ctx)
+
+
+def send_email_withdrawal_request(email: str, user_id: int, withdraw: dict,
+                                  type: Optional[str] = NotificationType.withdrawal_request) -> bool:
+    ctx = {
+        'withdraw_id': withdraw['id'],
+        'withdraw_address': withdraw['to'],
+    }
+    return add_notification(email, user_id=user_id, type=type, data=ctx)
+
+
+def send_email_transaction_received_sold_out(email: str, user_id: int, transaction: dict, jnt: dict) -> bool:
+    return send_email_transaction_received(email=email, user_id=user_id, transaction=transaction,
+                                           jnt=jnt, type=NotificationType.transaction_received_sold_out)
+
+
+def send_email_transaction_received_sold_out(email: str, user_id: int, transaction: dict, jnt: dict) -> bool:
+    return send_email_transaction_received(email=email, user_id=user_id, transaction=transaction,
+                                           jnt=jnt, type=NotificationType.transaction_received_sold_out)
+
+
+def send_email_withdrawal_request(email: str, user_id: int, withdraw: dict) -> bool:
+    return send_email_transaction_received(email=email, user_id=user_id, withdraw=withdraw,
+                                           type=NotificationType.withdrawal_succeeded)

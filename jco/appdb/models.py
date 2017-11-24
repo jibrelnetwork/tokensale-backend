@@ -39,6 +39,7 @@ class NotificationType:
 
     # Transactions
     transaction_received    = 'transaction_received'
+    transaction_received_sold_out = 'transaction_received_sold_out'
     withdrawal_request      = 'withdrawal_request'
     withdrawal_succeeded    = 'withdrawal_succeeded'
 
@@ -295,7 +296,8 @@ class Transaction(db.Model):
             'address_id': self.address_id,
             'address': self.address.as_dict(),
             'mailgun_message_id': self.get_mailgun_message_id(),
-            'mailgun_delivered': self.get_mailgun_delivered()
+            'mailgun_delivered': self.get_mailgun_delivered(),
+            'currency': self.address.type(),
         }
 
     def get_notified(self) -> Optional[bool]:
@@ -385,6 +387,16 @@ class JNT(db.Model):
     transaction = db.relationship(Transaction, back_populates="jnt_purchase")  # type: Transaction
 
     # Methods
+    def as_dict(self):
+        return {
+            'id': self.id,
+            'usd_value': self.usd_value,
+            'jnt_value': self.jnt_value,
+            'jnt_to_usd_rate': self.jnt_to_usd_rate,
+            'currency_to_usd_rate': self.currency_to_usd_rate,
+            'created': self.created,
+        }
+
     def __repr__(self):
         fieldsToPrint = (('id', self.id),
                          ('purchase_id', self.purchase_id),
@@ -442,6 +454,16 @@ class Withdraw(db.Model):
     user = db.relationship(User, back_populates="withdraws")  # type: User
 
     # Methods
+    def as_dict(self):
+        return {
+            'id': self.id,
+            'transaction_id': self.transaction_id,
+            'to': self.to,
+            'value': self.value,
+            'created': self.created,
+            'mined': self.mined,
+        }
+
     def __repr__(self):
         fieldsToPrint = (('id', self.id),
                          ('transaction_id', self.transaction_id),
