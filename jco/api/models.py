@@ -37,6 +37,8 @@ class Account(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     withdraw_address = models.CharField(max_length=255, null=True, blank=True)
 
+    tracking = JSONField(blank=True, default=dict)
+
     class Meta:
         db_table = 'account'
 
@@ -136,7 +138,8 @@ def get_raised_tokens():
     """
     Get raised tokens amount
     """
-    return Jnt.objects.all().aggregate(models.Sum('jnt_value'))['jnt_value__sum'] or 0
+    return Jnt.objects.all().aggregate(
+        models.Sum('jnt_value'))['jnt_value__sum'] or 0 + settings.RAISED_TOKENS_SHIFT
 
 
 class Withdraw(models.Model):

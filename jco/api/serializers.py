@@ -29,10 +29,10 @@ class AccountSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Account
-        fields = ('first_name', 'last_name',  'date_of_birth', 'country',
+        fields = ('first_name', 'last_name', 'date_of_birth', 'country',
                   'citizenship', 'residency', 'terms_confirmed', 'document_url',
                   'is_identity_verified', 'jnt_balance', 'identity_verification_status',
-                  'addresses')
+                  'addresses',)
         read_only_fields = ('is_identity_verified', 'jnt_balance')
 
     def get_jnt_balance(self, obj):
@@ -149,6 +149,7 @@ class RegisterSerializer(serializers.Serializer):
     password = serializers.CharField(required=True, write_only=True)
     password_confirm = serializers.CharField(required=True, write_only=True)
     captcha = serializers.CharField(required=True, write_only=True)
+    tracking = serializers.JSONField(write_only=True, required=False, default=dict)
 
     def validate_username(self, username):
         username = get_adapter().clean_username(username)
@@ -228,6 +229,8 @@ class RegisterSerializer(serializers.Serializer):
         adapter.save_user(request, user, self)
         self.custom_signup(request, user)
         setup_user_email(request, user, [])
+        tracking = self.validated_data.get('tracking', {})
+        Account.objects.create(user=user, tracking=tracking)
         return user
 
 

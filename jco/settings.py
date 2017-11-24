@@ -200,6 +200,8 @@ ACCOUNT_ADAPTER = 'jco.api.utils.AccountAdapter'
 ACCOUNT_EMAIL_CONFIRMATION_COOLDOWN = 20
 OLD_PASSWORD_FIELD_ENABLED = True
 
+RAISED_TOKENS_SHIFT = 0
+
 #######################################################################
 #
 #             LEGACY SETTINGS
