@@ -41,6 +41,10 @@ class User(db.Model):
                                 back_populates="user",
                                 cascade="all, delete-orphan",
                                 passive_deletes=True)  # type: Withdraw
+    account = db.relationship('Account',
+                               back_populates="user",
+                               uselist=False,
+                               passive_deletes=True)  # type: Account
 
     # Methods
     def __repr__(self):
@@ -92,7 +96,7 @@ class Account(db.Model):
     withdraw_address = db.Column(db.String(255), nullable=False, default='')
 
     document_url = db.Column(db.String(00), nullable=False, default='')
-    #user = db.relationship(User, back_populates="accountes")  # type: User
+    user = db.relationship(User, back_populates="account")  # type: User
 
     # Methods
     def __repr__(self):
