@@ -26,13 +26,14 @@ class AccountSerializer(serializers.ModelSerializer):
     jnt_balance = serializers.SerializerMethodField()
     identity_verification_status = serializers.SerializerMethodField()
     addresses = serializers.SerializerMethodField()
+    tracking = serializers.JSONField(write_only=True)
     
     class Meta:
         model = Account
-        fields = ('first_name', 'last_name',  'date_of_birth', 'country',
+        fields = ('first_name', 'last_name', 'date_of_birth', 'country',
                   'citizenship', 'residency', 'terms_confirmed', 'document_url',
                   'is_identity_verified', 'jnt_balance', 'identity_verification_status',
-                  'addresses')
+                  'addresses', 'tracking')
         read_only_fields = ('is_identity_verified', 'jnt_balance')
 
     def get_jnt_balance(self, obj):
