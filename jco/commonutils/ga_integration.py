@@ -93,7 +93,7 @@ class GAClient:
         if not self.cid:
             logger.warn("No GA client ID for user #%s", self.account.user.pk)
             return
-        utm = self.make_utm_params(self.tracking_params)
+        utm = self.make_utm_params(self.account.tracking)
         data.update(utm)
         requests.post(GA_URL, data)
 

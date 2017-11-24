@@ -202,6 +202,8 @@ OLD_PASSWORD_FIELD_ENABLED = True
 
 RAISED_TOKENS_SHIFT = 0
 
+GA_ID = os.environ['GA_ID']
+
 #######################################################################
 #
 #             LEGACY SETTINGS
