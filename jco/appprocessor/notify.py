@@ -23,6 +23,7 @@ from jinja2 import FileSystemLoader, Environment
 from jco.commonconfig import config
 from jco.appdb.models import *
 from jco.commonutils.utils import *
+from jco.commands import add_notification
 
 EMAIL_NOTIFICATIONS__TEMPLATES_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'templates')
 
@@ -500,3 +501,50 @@ def send_email_investment_received_7(transaction: Transaction) -> bool:
     logging.getLogger(__name__).info('Finished to send notification about tx: {}'.format(transaction))
 
     return success
+
+
+
+#############################################
+#
+# new code
+#
+#############################################
+
+logger = logging.getLogger(__name__)
+
+
+def send_notification(notification_id):
+    """
+    Sending notification
+    """
+    notification = Notification.objects.get(pk=notification_id)
+
+    if notification.is_sended:
+        logger.warn('Notification #%s aready sent', notification_id)
+        return False, None
+
+    subject = notification.get_subject()
+    body = notification.get_body()
+    logger.info('Sending notification for %s, type %s', notification.email, notification.type)
+    return _send_email(
+        config.EMAIL_NOTIFICATIONS__SENDER,
+        notification.email,
+        subject,
+        body,
+        notification.user_id
+    )
+
+
+def send_email_verify_email(email, activate_url, user_id=None):
+    ctx = {
+        'activate_url': activate_url,
+        'key': key,
+    }
+    add_notification(email, user_id=user_id, type=NotificationType.account_created, data=ctx)
+
+
+def send_email_reset_password(email, activate_url, user_id=None):
+    ctx = {
+        'activate_url': activate_url,
+    }
+    add_notification(email, user_id=user_id, type=NotificationType.password_change_request, data=ctx)

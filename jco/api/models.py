@@ -1,9 +1,12 @@
 from django.db import models, transaction
 from django.conf import settings
 from django.contrib.postgres.fields import JSONField
+from django.template.loader import render_to_string
 
 from jco.appdb.models import CurrencyType
 from jco.appdb.models import TransactionStatus
+from jco.appdb.models import NotificationType
+from jco.appdb.models import NOTIFICATION_KEYS, NOTIFICATION_SUBJECTS
 
 
 class Account(models.Model):
@@ -165,7 +168,7 @@ class Notification(models.Model):
 
     type = models.CharField(max_length=100)
     email = models.CharField(max_length=120, null=False)
-    created = models.DateTimeField()
+    created = models.DateTimeField(auto_now_add=True)
     sended = models.DateTimeField(null=True)
     is_sended = models.BooleanField()
 
@@ -176,3 +179,15 @@ class Notification(models.Model):
 
     def __str__(self):
         return '{} [{}, {}]'.format(self.type, self.created, self.is_sended)
+
+    def get_subject(self):
+        return NOTIFICATION_SUBJECTS[self.get_key()].format(**self.meta)
+
+    def get_template(self):
+        return "{}.html".format(self.get_key())
+
+    def get_key(self):
+        return NOTIFICATION_KEYS[self.type]
+
+    def get_body(self):
+        return render_to_string(self.get_template(), self.meta)

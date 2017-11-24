@@ -1152,3 +1152,16 @@ def add_notification(email: str, type: str, user_id: Optional[int] = None, data:
             "Failed to persist notification to the database due to exception:\n{}".format(exception_str))
         session.rollback()
         return False
+
+
+def process_all_notifications():
+    notifications = session.query(Notification).filter(Notification.is_sended == False).all()
+    for n in notifications:
+        try:
+            success, message_id = send_notification(n.id)
+            if success:
+                n.is_sended = True
+                session.add(n)
+                session.commit()
+        except Exception:
+            logging.getLogger(__name__).exception("Notification sending failed for %s", n.id)

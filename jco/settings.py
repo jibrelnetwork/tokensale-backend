@@ -95,7 +95,7 @@ ROOT_URLCONF = 'jco.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [here('jco/appprocessor/templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -421,7 +421,6 @@ LOGGING = {
             'sqlalchemy': {'handlers': appHandlers, 'level': sqlAlchemyLogLevel, 'propagate': False},
         },
     }
-
 
 
 try:

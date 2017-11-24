@@ -7,6 +7,7 @@ from django.contrib.auth import get_user_model
 from jco.commonutils import person_verify
 from jco.commonutils import ga_integration
 from jco.appprocessor.app_create import celery_app
+from jco.appprocessor import notify
 from jco.api.models import Account
 
 
@@ -82,4 +83,3 @@ def check_user_verification_status_runner():
         logger.info('Run check verification status for user %s <%s>',
                     account.user.pk, account.user.email)
         check_user_verification_status.delay(account.user.pk)
-

@@ -333,6 +333,20 @@ class LoginSerializer(serializers.Serializer):
         return attrs
 
 
+class CustomPasswordResetSerializer(PasswordResetSerializer):
+    """
+        def save(self, domain_override=None,
+             subject_template_name='registration/password_reset_subject.txt',
+             email_template_name='registration/password_reset_email.html',
+             use_https=False, token_generator=default_token_generator,
+             from_email=None, request=None, html_email_template_name=None,
+             extra_email_context=None):
+    """
+    def get_email_options(self):
+        """Override this method to change default e-mail options"""
+        return {}
+
+
 class ResendEmailConfirmationSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True, allow_blank=False)
 
