@@ -9,7 +9,7 @@ from allauth.account import app_settings as allauth_settings
 from allauth.utils import email_address_exists
 from allauth.account.adapter import get_adapter
 from allauth.account.utils import setup_user_email
-from rest_auth.serializers import PasswordResetSerializer
+from rest_auth.serializers import PasswordResetSerializer, PasswordResetForm
 from rest_framework import serializers, exceptions
 import requests
 
@@ -17,6 +17,7 @@ from jco.api.models import Transaction, Address, Account, Jnt, Withdraw
 from jco.commonutils import person_verify
 from jco.commonutils import ga_integration
 from jco.appdb.models import TransactionStatus
+from jco.appprocessor.notify import send_email_reset_password
 
 
 logger = logging.getLogger(__name__)
@@ -334,18 +335,20 @@ class LoginSerializer(serializers.Serializer):
         return attrs
 
 
+class CustomPasswordResetForm(PasswordResetForm):
+
+    def send_mail(self, subject_template_name, email_template_name,
+                  context, from_email, to_email, html_email_template_name=None):
+        """
+        Send a django.core.mail.EmailMultiAlternatives to `to_email`.
+        """
+        context['uid'] = context['uid'].decode()
+        activate_url = '{protocol}://{domain}/#/welcome/password/change/{uid}/{token}'.format(**context)
+        send_email_reset_password(to_email, activate_url, None)
+
+
 class CustomPasswordResetSerializer(PasswordResetSerializer):
-    """
-        def save(self, domain_override=None,
-             subject_template_name='registration/password_reset_subject.txt',
-             email_template_name='registration/password_reset_email.html',
-             use_https=False, token_generator=default_token_generator,
-             from_email=None, request=None, html_email_template_name=None,
-             extra_email_context=None):
-    """
-    def get_email_options(self):
-        """Override this method to change default e-mail options"""
-        return {}
+    password_reset_form_class = CustomPasswordResetForm
 
 
 class ResendEmailConfirmationSerializer(serializers.Serializer):
