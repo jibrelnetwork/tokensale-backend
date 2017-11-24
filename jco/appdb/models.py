@@ -22,6 +22,27 @@ class TransactionStatus:
     success = 'success'
 
 
+class NotificationType:
+    # Registration
+    account_created         = 'account_created'
+    account_email_confirmed = 'account_email_confirmed'
+
+    # KYC
+    kyc_data_received       = 'kyc_data_received'
+    kyc_account_rejected    = 'account_rejected'
+
+    # Account
+    password_change_request = 'password_change_request'
+    password_changed        = 'password_changed'
+    withdraw_address_change_request = 'withdraw_address_change_request'
+    withdraw_address_changed        = 'withdraw_address_changed'
+
+    # Transactions
+    transaction_received    = 'transaction_received'
+    withdrawal_request      = 'withdrawal_request'
+    withdrawal_succeeded    = 'withdrawal_succeeded'
+
+
 class User(db.Model):
     """
     Django auth user
@@ -45,6 +66,10 @@ class User(db.Model):
                                back_populates="user",
                                uselist=False,
                                passive_deletes=True)  # type: Account
+    notifications = db.relationship('Notification',
+                                back_populates="user",
+                                cascade="all, delete-orphan",
+                                passive_deletes=True)  # type: Notification
 
     # Methods
     def __repr__(self):
@@ -371,6 +396,36 @@ class Withdraw(db.Model):
                          ('block_height', self.block_height),
                          ('address_id', self.address_id),
                          ('status', self.status),
+                         ('meta', self.meta))
+
+        argsString = ', '.join(['{}={}'.format(f[0], '"' + f[1] + '"' if (type(f[1]) == str) else f[1])
+                                for f in fieldsToPrint])
+        return '<{}({})>'.format(self.__class__.__name__, argsString)
+
+
+class Notification(db.Model):
+    # Fields
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('auth_user.id'), unique=False, nullable=False)
+    type = db.Column(db.String(10), nullable=False)
+    email = db.Column(db.String(120), nullable=False)
+    created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    sended = db.Column(db.DateTime, nullable=True)
+    is_sended = db.Column(db.Boolean, nullable=False, default=False)
+    meta = db.Column(JSONB, nullable=False, default=lambda: {})
+
+    # Relationships
+    user = db.relationship(User, back_populates="notifications")  # type: User
+
+    # Methods
+    def __repr__(self):
+        fieldsToPrint = (('id', self.id),
+                         ('user_id', self.transaction_id),
+                         ('type', self.type),
+                         ('email', self.email),
+                         ('created', self.created),
+                         ('sended', self.sended),
+                         ('is_sended', self.is_sended),
                          ('meta', self.meta))
 
         argsString = ', '.join(['{}={}'.format(f[0], '"' + f[1] + '"' if (type(f[1]) == str) else f[1])

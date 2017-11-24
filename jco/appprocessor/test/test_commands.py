@@ -59,6 +59,7 @@ def create_user(user_name, email) -> User:
 
 class TestCommands(unittest.TestCase):
     def clear_all_tables(selfself):
+        session.query(Notification).delete()
         session.query(Withdraw).delete()
         session.query(JNT).delete()
         session.query(Transaction).delete()
