@@ -205,9 +205,11 @@ ACCOUNT_ADAPTER = 'jco.api.utils.AccountAdapter'
 ACCOUNT_EMAIL_CONFIRMATION_COOLDOWN = 20
 OLD_PASSWORD_FIELD_ENABLED = True
 
-RAISED_TOKENS_SHIFT = 0
+RAISED_TOKENS_SHIFT = 80000000
 
 GA_ID = os.environ['GA_ID']
+
+WITHDRAW_AVAILABLE_SINCE = datetime(2017, 12, 15, 12)
 
 #######################################################################
 #

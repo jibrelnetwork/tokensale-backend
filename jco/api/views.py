@@ -1,3 +1,4 @@
+from datetime import datetime
 from itertools import chain
 from operator import itemgetter
 
@@ -6,6 +7,7 @@ from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 from rest_framework import authentication, permissions
 from django.contrib.auth.models import User
+from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
 from rest_framework_extensions.cache.decorators import cache_response
@@ -163,6 +165,10 @@ class WithdrawView(APIView):
     Withdraw JNT tokens to user's eth address
     """
     def post(self, request):
+        if datetime.now() < settings.WITHDRAW_AVAILABLE_SINCE:
+            return Response({'detail': _('Withdraw will be available after {}'.format(settings.WITHDRAW_AVAILABLE_SINCE))},
+                            status=403)
+
         if not request.user.account.withdraw_address:
             return Response({'detail': _('No Withdraw address in your account data.')},
                             status=400)
