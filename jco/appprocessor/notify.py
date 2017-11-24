@@ -11,6 +11,8 @@ from pathlib import Path
 from typing import Dict, List, Any, Tuple
 from email.utils import formatdate
 from jinja2 import FileSystemLoader, Environment
+import django
+django.setup()
 
 # from jco.commonconfig.config import MAILGUN__API_MESSAGES_URL, MAILGUN__API_EVENTS_URL, MAILGUN__API_KEY
 # from jco.commonconfig.config import EMAIL_NOTIFICATIONS__ENABLED, EMAIL_NOTIFICATIONS__SENDER
@@ -22,8 +24,11 @@ from jinja2 import FileSystemLoader, Environment
 # from jco.commonconfig.config import INVESTMENTS__PUBLIC_SALE__START_DATE, INVESTMENTS__PUBLIC_SALE__END_DATE
 from jco.commonconfig import config
 from jco.appdb.models import *
+from jco.appdb.db import session
+from jco.api import models as api_models
 from jco.commonutils.utils import *
 from jco.appprocessor.commands import *
+
 
 EMAIL_NOTIFICATIONS__TEMPLATES_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'templates')
 
@@ -513,11 +518,47 @@ def send_email_investment_received_7(transaction: Transaction) -> bool:
 logger = logging.getLogger(__name__)
 
 
+#
+# Persist notification to the database
+#
+
+def add_notification(email: str, type: str, user_id: Optional[int] = None, data: Optional[dict] = None):
+    # noinspection PyBroadException
+    try:
+        logging.getLogger(__name__).info("Start persist notification to the database. email: {}, user_id: {}"
+                                         .format(email, user_id))
+
+        if user_id:
+            user = session.query(User) \
+                .filter(User.id == user_id) \
+                .all()  # type: User
+            assert len(user) == 1, 'Invalid user_id: {}'.format(user_id)
+
+        notification = Notification(user_id=user_id if user_id else None,
+                                    type=type,
+                                    email=email,
+                                    meta=data if data else {})
+
+        session.add(notification)
+        session.commit()
+
+        logging.getLogger(__name__).info("Finished to persist notification to the database. email: {}, account_id: {}"
+                                         .format(email, user_id))
+
+        return True
+    except Exception:
+        exception_str = ''.join(traceback.format_exception(*sys.exc_info()))
+        logging.getLogger(__name__).error(
+            "Failed to persist notification to the database due to exception:\n{}".format(exception_str))
+        session.rollback()
+        return False
+
+
 def send_notification(notification_id):
     """
     Sending notification
     """
-    notification = Notification.objects.get(pk=notification_id)
+    notification = api_models.Notification.objects.get(pk=notification_id)
 
     if notification.is_sended:
         logger.warn('Notification #%s aready sent', notification_id)
@@ -525,20 +566,23 @@ def send_notification(notification_id):
 
     subject = notification.get_subject()
     body = notification.get_body()
+    email_files = _format_email_files(
+    attachments_inline=[("jibrel_logo.png",
+                         Path(EMAIL_NOTIFICATIONS__TEMPLATES_PATH, "jibrel_logo.png"))])
     logger.info('Sending notification for %s, type %s', notification.email, notification.type)
     return _send_email(
         config.EMAIL_NOTIFICATIONS__SENDER,
         notification.email,
         subject,
         body,
-        notification.user_id
+        notification.user_id,
+        files=email_files
     )
 
 
 def send_email_verify_email(email, activate_url, user_id=None):
     ctx = {
         'activate_url': activate_url,
-        'key': key,  # todo: fix it
     }
     add_notification(email, user_id=user_id, type=NotificationType.account_created, data=ctx)
 

@@ -80,7 +80,7 @@ pip install --editable ./
 ## Configure
 
 Check settings `./jco/settings.py`
-
+You can create dotenv file `./jco/.env` and put all env vars here
 
 ## Init database
 
