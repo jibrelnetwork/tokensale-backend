@@ -110,10 +110,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'jco.wsgi.application'
 
-try:
-    JCO_DATABASE_URI = os.environ['JCO_DATABASE_URI']
-except KeyError:
-    JCO_DATABASE_URI = "postgresql://jcouser:MweVD4wdDPUCC@localhost:5432/jcodb"
+JCO_DATABASE_URI = os.environ['JCO_DATABASE_URI']
 
 # Database
 # https://docs.djangoproject.com/en/1.11/ref/settings/#databases
@@ -193,16 +190,11 @@ REST_AUTH_REGISTER_SERIALIZERS = {
 
 CORS_ORIGIN_ALLOW_ALL = True
 
-try:
-    ONFIDO_API_KEY = os.environ['ONFIDO_API_KEY']
-except KeyError:
-    ONFIDO_API_KEY = "live_C9F2UxgGpMvfdbQML8hp0AhiKWa6BO1x"
+ONFIDO_API_KEY = os.environ['ONFIDO_API_KEY']
+
 
 RECAPTCHA_ENABLED = True
-try:
-    RECAPTCHA_PRIVATE_KEY = os.environ['RECAPTCHA_PRIVATE_KEY']
-except KeyError:
-    RECAPTCHA_PRIVATE_KEY = "6Lcd-DgUAAAAABM-hEzcRcjTh2ttoRAoEEoBmcd9"
+RECAPTCHA_PRIVATE_KEY = os.environ['RECAPTCHA_PRIVATE_KEY']
 
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
