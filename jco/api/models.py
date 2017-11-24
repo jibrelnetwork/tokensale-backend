@@ -154,3 +154,21 @@ class Withdraw(models.Model):
 
     class Meta:
         db_table = 'withdraw'
+
+
+class Notification(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, models.DO_NOTHING,
+                             null=False, related_name='notifications')
+    type = models.CharField(max_length=100)
+    email = models.CharField(max_length=120, null=False)
+    created = models.DateTimeField()
+    sended = models.DateTimeField(null=True)
+    is_sended = models.BooleanField()
+
+    meta = JSONField(default=dict)  # This field type is a guess.
+
+    class Meta:
+        db_table = 'notification'
+
+    def __str__(self):
+        return '{} [{}, {}]'.format(self.type, self.created, self.is_sended)
