@@ -5,6 +5,7 @@ import logging
 from django.contrib.auth import get_user_model
 
 from jco.commonutils import person_verify
+from jco.commonutils import ga_integration
 from jco.appprocessor.app_create import celery_app
 from jco.api.models import Account
 
@@ -59,13 +60,16 @@ def check_user_verification_status(user_id):
         logger.warn('Verification completed')
         return
     api = person_verify.get_client()
-    
+
     check = api.find_check(user.account.onfido_applicant_id, user.account.onfido_check_id)
 
     user.account.onfido_check_status = check.status
     user.account.onfido_check_result = check.result
     if check.result == person_verify.RESULT_CLEAR:
         user.account.is_identity_verified = True
+        ga_integration.on_status_verified(user.account)
+    elif check.status == person_verify.STATUS_COMPLETE and check.result != person_verify.RESULT_CLEAR:
+        ga_integration.on_status_not_verified(user.account)
     user.account.save()
     logger.info('Verification status is: %s, result: %s', check.status, check.result)
 
