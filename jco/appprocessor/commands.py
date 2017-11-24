@@ -23,17 +23,17 @@ from jco.appdb.models import CurrencyType, Address, Transaction, JNT, Price, Acc
 from jco.commonutils.crypto import HDPrivateKey, HDKey
 from jco.commonutils.bitfinex import Bitfinex
 from jco.commonconfig.config import (INVESTMENTS__TOKEN_PRICE_IN_USD,
-                                 INVESTMENTS__USD__MIN_LIMIT,
-                                 INVESTMENTS__USD__MAX_LIMIT,
-                                 EMAIL_NOTIFICATIONS__MAX_ATTEMPTS,
-                                 BITFINEX__TIMEOUT,
-                                 CRAWLER_PROXY__ENABLED,
-                                 CRAWLER_PROXY__USER,
-                                 CRAWLER_PROXY__PASS,
-                                 CRAWLER_PROXY__URLS,
-                                 FORCE_SCANNING_ADDRESS__ENABLED,
-                                 CHECK_MAIL_DELIVERY__ENABLED,
-                                 CHECK_MAIL_DELIVERY__DAYS_DEPTH)
+                                     INVESTMENTS__PUBLIC_SALE__START_DATE,
+                                     INVESTMENTS__PUBLIC_SALE__END_DATE,
+                                     EMAIL_NOTIFICATIONS__MAX_ATTEMPTS,
+                                     BITFINEX__TIMEOUT,
+                                     CRAWLER_PROXY__ENABLED,
+                                     CRAWLER_PROXY__USER,
+                                     CRAWLER_PROXY__PASS,
+                                     CRAWLER_PROXY__URLS,
+                                     FORCE_SCANNING_ADDRESS__ENABLED,
+                                     CHECK_MAIL_DELIVERY__ENABLED,
+                                     CHECK_MAIL_DELIVERY__DAYS_DEPTH)
 from jco.commonconfig.config import ETHERSCAN_API_KEY, ETHERSCAN_TIMEOUT, BLOCKCHAININFO_TIMEOUT
 from jco.appprocessor.notify import *
 from jco.commonutils.utils import *
@@ -501,13 +501,19 @@ def get_eth_investments(address_str: str) -> List[Transaction]:
 
 
 #
-# Create JNT records
+# Create JNT records and notify about new transactions
 #
 
 def calculate_jnt_purchases():
     # noinspection PyBroadException
     try:
         logging.getLogger(__name__).info("Start to calculate JNT purchases")
+
+        current_time = datetime.utcnow()
+
+        if current_time < INVESTMENTS__PUBLIC_SALE__START_DATE:
+            logging.getLogger(__name__).info("Finished to calculate JNT purchases")
+            return
 
         processed_tx_ids = session.query(JNT.transaction_id).subquery()
         transactions = session.query(Transaction) \
@@ -519,6 +525,11 @@ def calculate_jnt_purchases():
         for tx in transactions:
             # noinspection PyBroadException
             try:
+                if tx.mined >= INVESTMENTS__PUBLIC_SALE__END_DATE:
+                    send_email_transaction_received_sold_out(tx.address.user.email, tx.address.user_id,
+                                                             tx.as_dict(), jnt.as_dict())
+                    continue
+
                 currency_to_usd_rate = get_ticker_price(tx.address.type, CurrencyType.usd, tx.mined)
                 if currency_to_usd_rate is None:
                     logging.getLogger(__name__).error("Failed to get currency exchange rate. Skip transaction: {}"
@@ -536,6 +547,10 @@ def calculate_jnt_purchases():
                 jnt.transaction = tx
 
                 session.commit()
+
+                send_email_transaction_received(tx.address.user.email, tx.address.user_id,
+                                                tx.as_dict(), jnt.as_dict())
+
                 logging.getLogger(__name__).info("New JNT purchase persisted: {}".format(jnt))
             except Exception:
                 exception_str = ''.join(traceback.format_exception(*sys.exc_info()))
@@ -566,126 +581,6 @@ def get_ticker_price(fixed_currency: str, variable_currency: str, _time) -> Opti
         return None
     else:
         return price[0]
-
-
-#
-# Notify about new transactions
-#
-
-def transaction_processing():
-    # noinspection PyBroadException
-    try:
-        logging.getLogger(__name__).info("Start to process new transactions and notify investors")
-
-        # we activate JNT purchases for investors that made big enough investments
-        # and deactivate for investors that made too big investments
-
-        records = session.query(Proposal, Address, Transaction, JNT) \
-            .join(Address, Address.proposal_id == Proposal.id) \
-            .join(Transaction, Transaction.address_id == Address.id) \
-            .join(JNT, JNT.transaction_id == Transaction.id) \
-            .filter(Address.is_usable == True) \
-            .order_by(Proposal.email, Transaction.mined) \
-            .all()  # type: List[Tuple[Proposal, Address, Transaction, JNT]]
-
-        prev_email = None
-        starting_number = None
-        total_usd_value = 0
-
-        for record_number in range(0, len(records)):
-            proposal, address, transaction, jnt = records[record_number]
-
-            # noinspection PyBroadException
-            try:
-                if prev_email != proposal.email:
-                    prev_email = proposal.email
-                    starting_number = record_number
-                    total_usd_value = 0
-
-                total_usd_value += jnt.usd_value
-
-                next_record_number = record_number + 1
-                if (next_record_number < len(records) and proposal.email != records[next_record_number][0].email) \
-                        or (next_record_number >= len(records)):
-                    # set jnt purchases active/not active
-                    is_valid = INVESTMENTS__USD__MIN_LIMIT <= total_usd_value <= INVESTMENTS__USD__MAX_LIMIT
-                    is_changes = False
-                    for record_number_2 in range(starting_number, next_record_number):
-                        if is_valid != records[record_number_2][3].active:
-                            records[record_number_2][3].active = is_valid
-                            is_changes = True
-                    if is_changes:
-                        session.commit()
-
-                if (transaction.get_notified() is False or transaction.get_notified() is None) \
-                        and (transaction.get_failed_notifications() is None
-                             or transaction.get_failed_notifications() < EMAIL_NOTIFICATIONS__MAX_ATTEMPTS):
-                    # notify investor about received tx
-                    all_transactions = []  # type: List[Transaction]
-                    for record_number_2 in range(starting_number, record_number + 1):
-                        all_transactions.append(records[record_number_2][2])
-
-                    if total_usd_value > INVESTMENTS__USD__MAX_LIMIT and record_number > starting_number:
-                        is_notified, message_id = send_email_investment_received_6(transaction,
-                                                                       all_transactions,
-                                                                       INVESTMENTS__USD__MAX_LIMIT,
-                                                                       INVESTMENTS__PUBLIC_SALE__START_DATE,
-                                                                       INVESTMENTS__PUBLIC_SALE__END_DATE)
-                    elif total_usd_value > INVESTMENTS__USD__MAX_LIMIT:
-                        is_notified, message_id = send_email_investment_received_5(transaction,
-                                                                       INVESTMENTS__USD__MAX_LIMIT,
-                                                                       INVESTMENTS__PUBLIC_SALE__START_DATE,
-                                                                       INVESTMENTS__PUBLIC_SALE__END_DATE)
-                    elif total_usd_value < INVESTMENTS__USD__MIN_LIMIT and record_number > starting_number:
-                        is_notified, message_id = send_email_investment_received_4(transaction,
-                                                                       all_transactions,
-                                                                       INVESTMENTS__USD__MIN_LIMIT,
-                                                                       INVESTMENTS__PUBLIC_SALE__START_DATE,
-                                                                       INVESTMENTS__PUBLIC_SALE__END_DATE)
-                    elif total_usd_value < INVESTMENTS__USD__MIN_LIMIT:
-                        is_notified, message_id = send_email_investment_received_3(transaction,
-                                                                       INVESTMENTS__USD__MIN_LIMIT,
-                                                                       INVESTMENTS__PUBLIC_SALE__START_DATE,
-                                                                       INVESTMENTS__PUBLIC_SALE__END_DATE)
-                    elif record_number > starting_number:
-                        is_notified, message_id = send_email_investment_received_2(transaction,
-                                                                       all_transactions)
-                    else:
-                        is_notified, message_id = send_email_investment_received_1(transaction)
-
-                    if is_notified:
-                        transaction.set_notified(True)
-                        transaction.set_mailgun_message_id(message_id)
-                        session.commit()
-                        logging.getLogger(__name__).info("Investor successfully notified that we received payment: {}"
-                                                         .format(transaction))
-                    else:
-                        failed_notifications = transaction.get_failed_notifications()
-                        if failed_notifications is None:
-                            failed_notifications = 0
-                        failed_notifications += 1
-                        transaction.set_failed_notifications(failed_notifications)
-                        session.commit()
-                        if failed_notifications < EMAIL_NOTIFICATIONS__MAX_ATTEMPTS:
-                            logging.getLogger(__name__).warning("Failed to notify investor about received payment: {}"
-                                                                .format(transaction))
-                        else:
-                            logging.getLogger(__name__).error(
-                                "All attempts to notify investor about received payment exhausted: {}"
-                                    .format(transaction))
-            except Exception:
-                exception_str = ''.join(traceback.format_exception(*sys.exc_info()))
-                logging.getLogger(__name__).error(
-                    "Failed to process transaction {} and notify investors due to exception:\n{}"
-                        .format(transaction.id, exception_str))
-                session.rollback()
-
-        logging.getLogger(__name__).info("Finished to process new transactions and notify investors")
-    except Exception:
-        exception_str = ''.join(traceback.format_exception(*sys.exc_info()))
-        logging.getLogger(__name__).error("Failed to process transactions and notify investors due to exception:\n{}"
-                                          .format(exception_str))
-        session.rollback()
 
 
 #

@@ -23,7 +23,7 @@ from jinja2 import FileSystemLoader, Environment
 from jco.commonconfig import config
 from jco.appdb.models import *
 from jco.commonutils.utils import *
-from jco.commands import add_notification
+from .commands import add_notification
 
 EMAIL_NOTIFICATIONS__TEMPLATES_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'templates')
 
@@ -538,7 +538,7 @@ def send_notification(notification_id):
 def send_email_verify_email(email, activate_url, user_id=None):
     ctx = {
         'activate_url': activate_url,
-        'key': key,
+        'key': key,  # todo: fix it
     }
     add_notification(email, user_id=user_id, type=NotificationType.account_created, data=ctx)
 
@@ -548,3 +548,42 @@ def send_email_reset_password(email, activate_url, user_id=None):
         'activate_url': activate_url,
     }
     add_notification(email, user_id=user_id, type=NotificationType.password_change_request, data=ctx)
+
+
+def send_email_transaction_received(email: str, user_id: int, transaction: dict,
+                                    jnt: dict, type: Optional[str] = NotificationType.transaction_received) -> bool:
+    ctx = {
+        'jnt_id': jnt['id'],
+        'transaction_id': transaction['id'],
+        'jnt_amount': jnt['jnt_value'],
+        'usd_amount': jnt['usd_value'],
+        'currency_amount': transaction['value'],
+        'currency_name': transaction['currency'],
+        'currency_conversion_rate': jnt['currency_to_usd_rate'],
+    }
+
+    return add_notification(email, user_id=user_id, type=type, data=ctx)
+
+
+def send_email_withdrawal_request(email: str, user_id: int, withdraw: dict,
+                                  type: Optional[str] = NotificationType.withdrawal_request) -> bool:
+    ctx = {
+        'withdraw_id': withdraw['id'],
+        'withdraw_address': withdraw['to'],
+    }
+    return add_notification(email, user_id=user_id, type=type, data=ctx)
+
+
+def send_email_transaction_received_sold_out(email: str, user_id: int, transaction: dict, jnt: dict) -> bool:
+    return send_email_transaction_received(email=email, user_id=user_id, transaction=transaction,
+                                           jnt=jnt, type=NotificationType.transaction_received_sold_out)
+
+
+def send_email_transaction_received_sold_out(email: str, user_id: int, transaction: dict, jnt: dict) -> bool:
+    return send_email_transaction_received(email=email, user_id=user_id, transaction=transaction,
+                                           jnt=jnt, type=NotificationType.transaction_received_sold_out)
+
+
+def send_email_withdrawal_request(email: str, user_id: int, withdraw: dict) -> bool:
+    return send_email_transaction_received(email=email, user_id=user_id, withdraw=withdraw,
+                                           type=NotificationType.withdrawal_succeeded)
