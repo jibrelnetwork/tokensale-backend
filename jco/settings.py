@@ -31,6 +31,15 @@ def here(path):
     return os.path.join(BASE_DIR, path)
 
 
+import raven
+
+RAVEN_CONFIG = {
+    'dsn': os.environ.get('RAVEN_DSN'),
+    # If you are using git, you can also automatically configure the
+    # release based on the git info.
+    'release': raven.fetch_git_sha(here('')),
+}
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.11/howto/deployment/checklist/
 
@@ -46,7 +55,10 @@ SITE_ID = 1
 # Application definition
 
 INSTALLED_APPS = [
+    # jco apps
     'jco.api',
+ 
+    # contrib
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -63,8 +75,8 @@ INSTALLED_APPS = [
     'rest_auth.registration',
     'rest_auth',
     'corsheaders',
+    'raven.contrib.django.raven_compat',
 
-    # jco apps
 ]
 
 MIDDLEWARE = [
@@ -355,7 +367,7 @@ CHECK_MAIL_DELIVERY__DAYS_DEPTH = 4
 appLogLevel = logging.DEBUG if DEBUG else logging.INFO
 sqlAlchemyLogLevel = logging.WARNING if DEBUG else logging.ERROR
 # appHandlers = ['handler_file', 'handler_console']
-appHandlers = ['handler_console']
+appHandlers = ['handler_console', 'sentry']
 # if LOGGING__MAILGUN__ENABLED is True and DEBUG is False:
 #     appHandlers.append('handler_mailgun')
 
@@ -405,6 +417,11 @@ LOGGING = {
                 'sender': LOGGING__MAILGUN__SENDER,
                 'recipients': LOGGING__MAILGUN__RECIPIENTS,
                 'subject': LOGGING__MAILGUN__SUBJECT,
+            },
+            'sentry': {
+                'level': logging.WARNING,
+                'class': 'raven.contrib.django.raven_compat.handlers.SentryHandler',
+                'tags': {'custom-tag': 'x'},
             },
         },
         'loggers': {
