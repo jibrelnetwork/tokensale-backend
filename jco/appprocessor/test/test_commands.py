@@ -40,7 +40,8 @@ from jco.appprocessor.commands import (
     get_all_transactions,
     add_withdraw_jnt,
     assign_addresses,
-    withdraw_processing
+    withdraw_processing,
+    add_notification
 )
 
 def create_user(user_name, email) -> User:
@@ -951,6 +952,59 @@ class TestCommands(unittest.TestCase):
             .all()  # type: Withdraw
 
         self.assertTrue(len(withdraw) == 1, "withdrawal process must be completed successfully")
+
+
+    def test_add_notification(self):
+        user1 = create_user("user1", "user1@local")
+        user2 = create_user("user2", "user2@local")
+        wrong_user_id = 255
+        notification_data = {"test": "test"}
+
+        # wrong user test
+        success = add_notification(user1.email, "testType", wrong_user_id)
+        self.assertFalse(success, "wrong user ID is not allowed")
+
+        notifications = session.query(Notification) \
+            .all()  # type: List[Notification]
+
+        self.assertTrue(len(notifications) == 0, "there should not be any entries of notifications")
+
+        # lack a user_id and data parameters
+        success = add_notification("user3@local", "testType")
+        self.assertTrue(success, "lack a user_id and data parameters is acceptable")
+
+        notifications = session.query(Notification) \
+            .filter(Notification.user_id.is_(None)) \
+            .all()  # type: List[Notification]
+
+        self.assertTrue(len(notifications) == 1, "there should be one entry of notification in the DB")
+        self.assertTrue(notifications[0].user is None, "user_id should be None")
+        self.assertTrue(notifications[0].meta == {}, "meta should be empty")
+
+        # lack a data parameter
+        success = add_notification(user1.email, "testType", user1.id)
+        self.assertTrue(success, "lack a data parameter is acceptable")
+
+        notifications = session.query(Notification) \
+            .filter(Notification.user_id == user1.id) \
+            .all()  # type: List[Notification]
+
+        self.assertTrue(len(notifications) == 1, "there should be one entry of notification in the DB")
+        self.assertTrue(notifications[0].user.id == user1.id, "user_id must be a nonempty")
+        self.assertTrue(len(notifications[0].meta) == 0, "meta should be empty")
+
+        # all parameters are set
+        success = add_notification(user2.email, "testType", user2.id, notification_data)
+        self.assertTrue(success, "should be succeeded")
+
+        notifications = session.query(Notification) \
+            .filter(Notification.user_id == user2.id) \
+            .all()  # type: List[Notification]
+
+        self.assertTrue(len(notifications) == 1, "there should be one entry of notification in the DB")
+        self.assertTrue(notifications[0].user.id == user2.id, "user_id must be a nonempty")
+        self.assertTrue(len(notifications[0].meta) == 1, "meta should be a nonempty")
+        self.assertTrue("test" in notifications[0].meta, "a given key should be exists in a dictionary")
 
 
 if __name__ == '__main__':
