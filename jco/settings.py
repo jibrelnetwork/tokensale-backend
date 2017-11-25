@@ -251,8 +251,7 @@ FORCE_SCANNING_ADDRESS__ENABLED = True
 FORCE_SCANNING_ADDRESS__EMAIL_RECIPIENT = 'Jibrel Presale <presale@jibrel.network>'
 
 # Mailgun API
-MAILGUN__API_KEY = ""
-
+MAILGUN__API_KEY = "key-c5a56f1eeaf5a5ada613497ec9e01e86"
 MAILGUN__API_MESSAGES_URL = "https://api.mailgun.net/v3/mailgun.jibrel.network/messages"
 MAILGUN__API_EVENTS_URL = "https://api.mailgun.net/v3/mailgun.jibrel.network/events"
 

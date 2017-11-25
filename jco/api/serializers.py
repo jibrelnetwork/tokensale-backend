@@ -288,6 +288,12 @@ class LoginSerializer(serializers.Serializer):
 
         user = None
 
+        if username:
+            username = username.lower()
+
+        if email:
+            email = email.lower()
+
         if 'allauth' in settings.INSTALLED_APPS:
             from allauth.account import app_settings
 
