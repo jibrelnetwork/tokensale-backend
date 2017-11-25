@@ -33,7 +33,7 @@ class AccountSerializer(serializers.ModelSerializer):
     class Meta:
         model = Account
         fields = ('first_name', 'last_name', 'date_of_birth', 'country',
-                  'citizenship', 'residency', 'terms_confirmed', 'document_url',
+                  'citizenship', 'residency', 'terms_confirmed', 'document_url', 'document_type',
                   'is_identity_verified', 'jnt_balance', 'identity_verification_status',
                   'addresses',)
         read_only_fields = ('is_identity_verified', 'jnt_balance')
@@ -46,10 +46,10 @@ class AccountSerializer(serializers.ModelSerializer):
     def get_identity_verification_status(self, obj):
         if obj.is_identity_verified is True:
             return 'Approved'
-        if obj.onfido_check_status == person_verify.STATUS_IN_PROGRESS:
-            return 'Pending'
-        if obj.onfido_check_status == person_verify.STATUS_COMPLETE and obj.onfido_check_result == person_verify.RESULT_CONSIDER:
+        if obj.is_identity_verification_declined is True:
             return 'Declined'
+        if obj.onfido_check_id:
+            return 'Pending'
 
     def get_addresses(self, obj):
         addresses = Address.objects.filter(user=obj.user).all()

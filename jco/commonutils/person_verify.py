@@ -50,11 +50,10 @@ def create_applicant(user_id):
 
 
 def create_check(applicant_id):
-    onfido.Report(name='identity'), 
 
     reports = [
         onfido.Report(name='document'),
-        # onfido.Rep        ort(name='watchlist', variant='full'),
+        # onfido.Report(name='watchlist', variant='full'),
     ]
 
     check = onfido.CheckCreationRequest(
@@ -67,13 +66,13 @@ def create_check(applicant_id):
     return resp.id
 
 
-def upload_document(applicant_id, document_url):
+def upload_document(applicant_id, document_url, document_type):
     api = get_client()
     resp = requests.get(document_url)
     if resp.status_code != 200:
         raise RuntimeError("Can't get document file {} for applicant {}".format(
                            document_url, applicant_id))
-    with tempfile.NamedTemporaryFile(suffix='.jpg') as fp:
+    with tempfile.NamedTemporaryFile(suffix='.' + document_type) as fp:
         fp.write(resp.content)
         resp = api.upload_document(applicant_id, file=fp.name, type='passport')
         return resp.id

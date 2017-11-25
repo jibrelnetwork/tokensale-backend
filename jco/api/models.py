@@ -27,8 +27,10 @@ class Account(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     notified = models.BooleanField(default=False)
     is_identity_verified = models.BooleanField(default=False)
+    is_identity_verification_declined = models.BooleanField(default=False)
 
     document_url = models.URLField(max_length=200, null=False, blank=True)
+    document_type = models.CharField(max_length=20, null=False, blank=True)
 
     onfido_applicant_id = models.CharField(max_length=200, null=True, blank=True)
     onfido_document_id = models.CharField(max_length=200, null=True, blank=True)
@@ -170,7 +172,7 @@ class Notification(models.Model):
     email = models.CharField(max_length=120, null=False)
     created = models.DateTimeField(auto_now_add=True)
     sended = models.DateTimeField(null=True)
-    is_sended = models.BooleanField()
+    is_sended = models.BooleanField(default=False)
 
     meta = JSONField(default=dict)  # This field type is a guess.
 

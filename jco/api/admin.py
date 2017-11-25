@@ -6,7 +6,9 @@ from jco.api.models import Address, Account, Transaction, Jnt, Withdraw
 @admin.register(Account)
 class AccountAdmin(admin.ModelAdmin):
     list_display = ['id', 'username', 'first_name', 'last_name',
-                    'is_identity_verified', 'onfido_check_id', 'onfido_check_created']
+                    'is_identity_verified', 'onfido_check_id', 'onfido_check_created',
+                    'onfido_check_status', 'onfido_check_result',
+                    'is_identity_verification_declined']
     # readonly_fields = ['status']
 
     # def get_urls(self):
