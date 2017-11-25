@@ -27,20 +27,12 @@ def get_client(api_key=None):
 
 def create_applicant(user_id):
     user = get_user_model().objects.get(pk=user_id)
-    
-    # address = onfido.Address(
-    #     country=user.account.country,
-    #     town=user.account.town,
-    #     street=user.account.street,
-    #     postcode=user.account.postcode,
-    # )
-    
+
     details = {
         'first_name': user.account.first_name,
         'last_name': user.account.last_name,
         'email': user.email,
         'dob': user.account.date_of_birth,
-        # 'addresses': []
     }
     applicant = onfido.Applicant(**details)
 
@@ -53,14 +45,14 @@ def create_check(applicant_id):
 
     reports = [
         onfido.Report(name='document'),
-        # onfido.Report(name='watchlist', variant='full'),
+        onfido.Report(name='watchlist', variant='full'),
     ]
 
     check = onfido.CheckCreationRequest(
         type='express',
         reports=reports
     )
-    
+
     api = get_client()
     resp = api.create_check(applicant_id, data=check)
     return resp.id
@@ -69,6 +61,16 @@ def create_check(applicant_id):
 def upload_document(applicant_id, document_url, document_type):
     api = get_client()
     resp = requests.get(document_url)
+    if not document_type:
+        document_type = resp.headers['X-File-Name'].split('.')[-1]
+        if document_type == 'jpeg':
+            document_type = 'jpg'
+
+    if document_type not in ('jpg', 'png', 'pdf'):
+        raise RuntimeError(
+            'Document type {} is not allowed. Url {}, applicant {}'.format(
+                document_type, document_url, applicant_id))
+
     if resp.status_code != 200:
         raise RuntimeError("Can't get document file {} for applicant {}".format(
                            document_url, applicant_id))
@@ -76,5 +78,3 @@ def upload_document(applicant_id, document_url, document_type):
         fp.write(resp.content)
         resp = api.upload_document(applicant_id, file=fp.name, type='passport')
         return resp.id
-
-
