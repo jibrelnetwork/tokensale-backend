@@ -300,6 +300,7 @@ def scan_addresses():
                         logging.getLogger(__name__).info("Transaction for {} address {} discovered: '{}'"
                                                          .format(address.type, address.address, tx.transaction_id))
                         tx.address = address
+                        tx.status = TransactionStatus.success
                         session.add(tx)
                     session.commit()
             except Exception:
