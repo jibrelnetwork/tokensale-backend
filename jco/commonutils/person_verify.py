@@ -45,7 +45,7 @@ def create_check(applicant_id):
 
     reports = [
         onfido.Report(name='document'),
-        onfido.Report(name='watchlist', variant='full'),
+        # onfido.Report(name='watchlist', variant='full'),
     ]
 
     check = onfido.CheckCreationRequest(
