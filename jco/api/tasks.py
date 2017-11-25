@@ -8,7 +8,7 @@ from jco.commonutils import person_verify
 from jco.commonutils import ga_integration
 from jco.appprocessor.app_create import celery_app
 from jco.appprocessor import notify
-from jco.api.models import Account
+from jco.api.models import Account, Notification
 
 
 logger = logging.getLogger(__name__)
@@ -83,3 +83,18 @@ def check_user_verification_status_runner():
         logger.info('Run check verification status for user %s <%s>',
                     account.user.pk, account.user.email)
         check_user_verification_status.delay(account.user.pk)
+
+
+@celery_app.task()
+def process_all_notifications_runner():
+    logger.info('Run notifications processing')
+
+    notifications_to_send = Notification.objects.filter(is_sended=False).all()
+    for notification in notifications_to_send:
+        success, message_id = notify.send_notification(notification.pk)
+        notification.is_sended = success
+        notification.meta['mailgun_message_id'] = message_id
+
+        notification.save()
+
+    logger.info('Finished notifications processing')

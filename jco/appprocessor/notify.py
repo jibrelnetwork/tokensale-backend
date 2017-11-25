@@ -27,7 +27,6 @@ from jco.appdb.models import *
 from jco.appdb.db import session
 from jco.api import models as api_models
 from jco.commonutils.utils import *
-from jco.appprocessor.commands import *
 
 
 EMAIL_NOTIFICATIONS__TEMPLATES_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'templates')
@@ -529,18 +528,17 @@ def add_notification(email: str, type: str, user_id: Optional[int] = None, data:
                                          .format(email, user_id))
 
         if user_id:
-            user = session.query(User) \
-                .filter(User.id == user_id) \
-                .all()  # type: User
-            assert len(user) == 1, 'Invalid user_id: {}'.format(user_id)
+            try:
+                api_models.Account.objects.get(user_id=user_id)
+            except (ValueError, api_models.Account.DoesNotExist):
+                logging.getLogger(__name__).error("Invalid user_id: {}.".format(user_id))
 
-        notification = Notification(user_id=user_id if user_id else None,
-                                    type=type,
-                                    email=email,
-                                    meta=data if data else {})
-
-        session.add(notification)
-        session.commit()
+        api_models.Notification.objects.create(
+            user_id=user_id,
+            type=type,
+            email=email,
+            meta=data if data else dict()
+        )
 
         logging.getLogger(__name__).info("Finished to persist notification to the database. email: {}, account_id: {}"
                                          .format(email, user_id))
@@ -550,7 +548,6 @@ def add_notification(email: str, type: str, user_id: Optional[int] = None, data:
         exception_str = ''.join(traceback.format_exception(*sys.exc_info()))
         logging.getLogger(__name__).error(
             "Failed to persist notification to the database due to exception:\n{}".format(exception_str))
-        session.rollback()
         return False
 
 
@@ -592,42 +589,3 @@ def send_email_reset_password(email, activate_url, user_id=None):
         'activate_url': activate_url,
     }
     add_notification(email, user_id=user_id, type=NotificationType.password_change_request, data=ctx)
-
-
-def send_email_transaction_received(email: str, user_id: int, transaction: dict,
-                                    jnt: dict, type: Optional[str] = NotificationType.transaction_received) -> bool:
-    ctx = {
-        'jnt_id': jnt['id'],
-        'transaction_id': transaction['id'],
-        'jnt_amount': jnt['jnt_value'],
-        'usd_amount': jnt['usd_value'],
-        'currency_amount': transaction['value'],
-        'currency_name': transaction['currency'],
-        'currency_conversion_rate': jnt['currency_to_usd_rate'],
-    }
-
-    return add_notification(email, user_id=user_id, type=type, data=ctx)
-
-
-def send_email_withdrawal_request(email: str, user_id: int, withdraw: dict,
-                                  type: Optional[str] = NotificationType.withdrawal_request) -> bool:
-    ctx = {
-        'withdraw_id': withdraw['id'],
-        'withdraw_address': withdraw['to'],
-    }
-    return add_notification(email, user_id=user_id, type=type, data=ctx)
-
-
-def send_email_transaction_received_sold_out(email: str, user_id: int, transaction: dict, jnt: dict) -> bool:
-    return send_email_transaction_received(email=email, user_id=user_id, transaction=transaction,
-                                           jnt=jnt, type=NotificationType.transaction_received_sold_out)
-
-
-def send_email_transaction_received_sold_out(email: str, user_id: int, transaction: dict, jnt: dict) -> bool:
-    return send_email_transaction_received(email=email, user_id=user_id, transaction=transaction,
-                                           jnt=jnt, type=NotificationType.transaction_received_sold_out)
-
-
-def send_email_withdrawal_request(email: str, user_id: int, withdraw: dict) -> bool:
-    return send_email_transaction_received(email=email, user_id=user_id, withdraw=withdraw,
-                                           type=NotificationType.withdrawal_succeeded)

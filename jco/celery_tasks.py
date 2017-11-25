@@ -106,12 +106,6 @@ def celery_add_withdraw_jnt(*args, **kwargs):
     return commands.add_withdraw_jnt(*args, **kwargs)
 
 
-@celery_app.task()
-@initialize_app
-def process_all_notifications(*args, **kwargs):
-    return commands.process_all_notifications(*args, **kwargs)
-
-
 @celery_app.on_after_finalize.connect
 def setup_periodic_tasks(sender, **kwargs):
     # sender.add_periodic_task(crontab(minute='*/1'),
@@ -130,6 +124,6 @@ def setup_periodic_tasks(sender, **kwargs):
                              expires=1 * 60,
                              name='check_user_verification_status_runner')
     sender.add_periodic_task(20,
-                             process_all_notifications,
+                             api_tasks.process_all_notifications_runner,
                              expires=1 * 60,
                              name='process_all_notifications')

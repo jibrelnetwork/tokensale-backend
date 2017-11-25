@@ -4,7 +4,7 @@ import time
 import sys
 import traceback
 from datetime import datetime, timedelta
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Dict, List
 import requests
 import logging
 import random
@@ -17,9 +17,10 @@ from sqlalchemy.sql import func
 from sqlalchemy.orm.util import aliased
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.sql import func
+from psycopg2 import tz
 
 from jco.appdb.db import session
-from jco.appdb.models import CurrencyType, Address, Transaction, JNT, Price, Account
+from jco.appdb.models import *
 from jco.commonutils.crypto import HDPrivateKey, HDKey
 from jco.commonutils.bitfinex import Bitfinex
 from jco.commonconfig.config import (INVESTMENTS__TOKEN_PRICE_IN_USD,
@@ -36,8 +37,9 @@ from jco.commonconfig.config import (INVESTMENTS__TOKEN_PRICE_IN_USD,
                                      CHECK_MAIL_DELIVERY__DAYS_DEPTH,
                                      RAISED_TOKENS_SHIFT)
 from jco.commonconfig.config import ETHERSCAN_API_KEY, ETHERSCAN_TIMEOUT, BLOCKCHAININFO_TIMEOUT
-from jco.appprocessor.notify import *
 from jco.commonutils.utils import *
+from jco.commonutils.ga_integration import *
+from jco.commonutils.formats import *
 
 
 #
@@ -505,7 +507,7 @@ def get_eth_investments(address_str: str) -> List[Transaction]:
 # Get total JNT tokens
 #
 def get_total_jnt_amount() -> float:
-    jnt_sum = session.query(func.sum(JNT.jnt_value)) \
+    jnt_sum = session.query(func.coalesce(func.sum(JNT.jnt_value), 0)) \
         .one()  # type: tuple[float]
     return jnt_sum[0]
 
@@ -535,9 +537,12 @@ def calculate_jnt_purchases():
         for tx in transactions:
             # noinspection PyBroadException
             try:
-                if tx.mined >= INVESTMENTS__PUBLIC_SALE__END_DATE:
-                    send_email_transaction_received_sold_out(tx.address.user.email, tx.address.user_id,
-                                                             tx.as_dict(), jnt.as_dict())
+                if tx.mined >= INVESTMENTS__PUBLIC_SALE__END_DATE.replace(tzinfo=tz.FixedOffsetTimezone(offset=0, name=None)):
+                    send_email_transaction_received_sold_out(tx.address.user.email, tx.address.user_id, tx.as_dict())
+                    tx.set_skip_jnt_calculation(True)
+                    session.commit()
+                    continue
+                elif tx.mined < INVESTMENTS__PUBLIC_SALE__START_DATE.replace(tzinfo=tz.FixedOffsetTimezone(offset=0, name=None)):
                     continue
 
                 currency_to_usd_rate = get_ticker_price(tx.address.type, CurrencyType.usd, tx.mined)
@@ -548,12 +553,20 @@ def calculate_jnt_purchases():
                     session.commit()
                     continue
 
+                tx_usd_value = tx.value * currency_to_usd_rate
+                tx_jnt_value = tx_usd_value / INVESTMENTS__TOKEN_PRICE_IN_USD
+
+                if get_total_jnt_amount() + tx_jnt_value >= RAISED_TOKENS_SHIFT:
+                    send_email_transaction_received_sold_out(tx.address.user.email, tx.address.user_id, tx.as_dict())
+                    tx.set_skip_jnt_calculation(True)
+                    session.commit()
+
                 jnt = JNT()
                 jnt.purchase_id = generate_purchase_id()
                 jnt.currency_to_usd_rate = currency_to_usd_rate
-                jnt.usd_value = tx.value * currency_to_usd_rate
+                jnt.usd_value = tx_usd_value
                 jnt.jnt_to_usd_rate = INVESTMENTS__TOKEN_PRICE_IN_USD
-                jnt.jnt_value = jnt.usd_value / INVESTMENTS__TOKEN_PRICE_IN_USD
+                jnt.jnt_value = tx_jnt_value
                 jnt.transaction = tx
 
                 session.commit()
@@ -561,9 +574,13 @@ def calculate_jnt_purchases():
                 send_email_transaction_received(tx.address.user.email, tx.address.user_id,
                                                 tx.as_dict(), jnt.as_dict())
 
-                ga_integration.on_transaction_received(tx.address.user.account,
-                                                       tx,
-                                                       jnt)
+                try:
+                    on_transaction_received(tx.address.user.account, tx, jnt)
+                except Exception:
+                    exception_str = ''.join(traceback.format_exception(*sys.exc_info()))
+                    logging.getLogger(__name__).error(
+                        "Failed GA tracking for TX {} due to exception:\n{}"
+                        .format(tx.id, exception_str))
 
                 logging.getLogger(__name__).info("New JNT purchase persisted: {}".format(jnt))
             except Exception:
@@ -1027,14 +1044,77 @@ def add_withdraw_jnt(user_id: int) -> Boolean:
         return False
 
 
-def process_all_notifications():
-    notifications = session.query(Notification).filter(Notification.is_sended == False).all()
-    for n in notifications:
-        try:
-            success, message_id = send_notification(n.id)
-            if success:
-                n.is_sended = True
-                session.add(n)
-                session.commit()
-        except Exception:
-            logging.getLogger(__name__).exception("Notification sending failed for %s", n.id)
+#
+# Persist notification to the database
+#
+
+def add_notification(email: str, type: str, user_id: Optional[int] = None, data: Optional[dict] = None):
+    # noinspection PyBroadException
+    try:
+        logging.getLogger(__name__).info("Start persist notification to the database. email: {}, user_id: {}"
+                                         .format(email, user_id))
+
+        if user_id:
+            user = session.query(User) \
+                .filter(User.id == user_id) \
+                .all()  # type: User
+            assert len(user) == 1, 'Invalid user_id: {}'.format(user_id)
+
+        notification = Notification(user_id=user_id if user_id else None,
+                                    type=type,
+                                    email=email,
+                                    meta=data if data else {})
+
+        session.add(notification)
+        session.commit()
+
+        logging.getLogger(__name__).info("Finished to persist notification to the database. email: {}, account_id: {}"
+                                         .format(email, user_id))
+
+        return True
+    except Exception:
+        exception_str = ''.join(traceback.format_exception(*sys.exc_info()))
+        logging.getLogger(__name__).error(
+            "Failed to persist notification to the database due to exception:\n{}".format(exception_str))
+        session.rollback()
+        return False
+
+
+def send_email_transaction_received(email: str, user_id: int, transaction: dict,
+                                    jnt: dict, type: Optional[str] = NotificationType.transaction_received) -> bool:
+    ctx = {
+        'jnt_id': jnt['id'],
+        'transaction_id': transaction['id'],
+        'transaction_jnt_amount': format_jnt_value(jnt['jnt_value']),
+        'transaction_usd_amount': format_fiat_value(jnt['usd_value']),
+        'transaction_currency_amount': format_coin_value(transaction['value']),
+        'transaction_currency_name': transaction['currency'],
+        'transaction_currency_conversion_rate': format_conversion_rate(jnt['currency_to_usd_rate']),
+    }
+
+    return add_notification(email, user_id=user_id, type=type, data=ctx)
+
+
+def send_email_withdrawal_request(email: str, user_id: int, withdraw: dict,
+                                  type: Optional[str] = NotificationType.withdrawal_request) -> bool:
+    ctx = {
+        'withdraw_id': withdraw['id'],
+        'withdraw_address': withdraw['to'],
+        'withdraw_jnt_amount': format_jnt_value(withdraw['value']),
+    }
+    return add_notification(email, user_id=user_id, type=type, data=ctx)
+
+
+def send_email_transaction_received_sold_out(email: str, user_id: int, transaction: dict) -> bool:
+    ctx = {
+        'transaction_id': transaction['id'],
+        'transaction_currency_amount': format_coin_value(transaction['value']),
+        'transaction_currency_name': transaction['currency'],
+    }
+
+    return add_notification(email, user_id=user_id, type=NotificationType.transaction_received_sold_out, data=ctx)
+
+
+def send_email_withdrawal_request_succeeded(email: str, user_id: int, withdraw: dict) -> bool:
+    return send_email_transaction_received(email=email, user_id=user_id, withdraw=withdraw,
+                                           type=NotificationType.withdrawal_succeeded)

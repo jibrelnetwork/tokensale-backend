@@ -3,6 +3,7 @@ from typing import List, Optional
 
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm.attributes import flag_modified
+from sqlalchemy.orm import synonym
 
 from jco.appdb.db import db
 
@@ -76,8 +77,9 @@ NOTIFICATION_KEYS = {
     NotificationType.withdraw_address_changed: 'account_02_02',
 
     NotificationType.transaction_received: 'transactions_01',
+    NotificationType.transaction_received_sold_out: 'transactions_04',
     NotificationType.withdrawal_request: 'transactions_02_01',
-    NotificationType.withdrawal_succeeded: 'transactions_02_02',
+    NotificationType.withdrawal_succeeded: 'transactions_03',
 }
 
 NOTIFICATION_SUBJECTS = {
@@ -105,6 +107,7 @@ class User(db.Model):
     __tablename__ = 'auth_user'
 
     id = db.Column(db.Integer, primary_key=True)
+    pk = synonym('id')
     username = db.Column(db.String(120), nullable=False)
     email = db.Column(db.String(120), nullable=False, unique=True)
 

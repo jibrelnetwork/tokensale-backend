@@ -2,7 +2,7 @@ import logging
 
 import requests
 
-from django.conf import settings
+from jco import settings
 
 
 GA_URL = "http://www.google-analytics.com/collect"
