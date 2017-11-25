@@ -1,7 +1,7 @@
 import os,sys
 import traceback
 import unittest
-from datetime import datetime
+from datetime import datetime, timedelta
 import time
 import logging
 from hashlib import *
@@ -26,7 +26,6 @@ from jco.appprocessor.commands import (
     # add_proposal,
     get_ticker_price,
     send_email_payment_data,
-    transaction_processing,
     get_proxies,
     get_btc_investments,
     get_eth_investments,
@@ -41,8 +40,10 @@ from jco.appprocessor.commands import (
     add_withdraw_jnt,
     assign_addresses,
     withdraw_processing,
-    add_notification
+    add_notification,
+    calculate_jnt_purchases
 )
+
 
 def create_user(user_name, email) -> User:
     session.execute("INSERT INTO \"auth_user\" (\"password\", \"last_login\", \"is_superuser\", \"username\","
@@ -1005,6 +1006,48 @@ class TestCommands(unittest.TestCase):
         self.assertTrue(notifications[0].user.id == user2.id, "user_id must be a nonempty")
         self.assertTrue(len(notifications[0].meta) == 1, "meta should be a nonempty")
         self.assertTrue("test" in notifications[0].meta, "a given key should be exists in a dictionary")
+
+    def test_calculate_jnt_purchases(self):
+        # fetch last prices BTC and ETH
+        fetch_tickers_price()
+
+        generate_eth_addresses(self.mnemonic, 1)
+        generate_btc_addresses(self.mnemonic, 1)
+
+        user = create_user("user1", "user1@local")
+
+        account = Account(fullname="user1", country="country", citizenship="US",
+                          residency="US", withdraw_address="0x12345678", user_id=user.id)
+
+        session.add(account)
+        session.commit()
+
+        assign_addresses(user.id)
+
+        address = session.query(Address) \
+            .filter(Address.user_id == user.id) \
+            .filter(Address.type == CurrencyType.eth) \
+            .one()
+
+        eth_transaction = Transaction(transaction_id="0x731b0381aa22ac16a533af873c525f7d0dc8f934be2ff4de5f4d7a04fed6218a",
+                                      value=2000000,
+                                      address_id=address.id,
+                                      mined=datetime.utcnow(),
+                                      block_height=12)
+        session.add(eth_transaction)
+        session.commit()
+
+        calculate_jnt_purchases()
+
+        jnts = session.query(JNT) \
+            .filter(JNT.transaction_id == eth_transaction.id) \
+            .all()
+        notyfies = session.query(Notification) \
+            .filter(Notification.user_id == user.id) \
+            .filter(Notification.type == NotificationType.transaction_received) \
+            .all()
+
+        self.assertTrue(len(jnts) == 1 and len(notyfies) == 1)
 
 
 if __name__ == '__main__':
