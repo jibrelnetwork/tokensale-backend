@@ -66,6 +66,7 @@ def upload_document(applicant_id, document_url, document_type):
         if document_type == 'jpeg':
             document_type = 'jpg'
 
+    document_type = document_type.lower()
     if document_type not in ('jpg', 'png', 'pdf'):
         raise RuntimeError(
             'Document type {} is not allowed. Url {}, applicant {}'.format(
