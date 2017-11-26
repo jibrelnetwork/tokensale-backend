@@ -63,7 +63,6 @@ class Account(models.Model):
         self.is_identity_verified = True
         self.is_identity_verification_declined = False
         self.save()
-        Address.assign_pair_to_user(self.user)
 
     def decline_verification(self):
         self.is_identity_verified = False
