@@ -26,8 +26,8 @@ class Account(models.Model):
     docs_received = models.BooleanField(default=False)
     created = models.DateTimeField(auto_now_add=True)
     notified = models.BooleanField(default=False)
-    is_identity_verified = models.BooleanField(default=False)
-    is_identity_verification_declined = models.BooleanField(default=False)
+    is_identity_verified = models.BooleanField(default=False, verbose_name='Approved')
+    is_identity_verification_declined = models.BooleanField(default=False, verbose_name='Declined')
 
     document_url = models.URLField(max_length=200, null=False, blank=True)
     document_type = models.CharField(max_length=20, null=False, blank=True)
@@ -55,6 +55,17 @@ class Account(models.Model):
         self.onfido_check_result = None
         self.onfido_check_created = None
         self.is_identity_verified = False
+        self.is_identity_verification_declined = False
+        self.save()
+
+    def approve_verification(self):
+        self.is_identity_verified = True
+        self.is_identity_verification_declined = False
+        self.save()
+
+    def decline_verification(self):
+        self.is_identity_verified = False
+        self.is_identity_verification_declined = True
         self.save()
 
     def __str__(self):

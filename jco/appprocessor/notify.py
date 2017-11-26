@@ -589,3 +589,7 @@ def send_email_reset_password(email, activate_url, user_id=None):
         'activate_url': activate_url,
     }
     add_notification(email, user_id=user_id, type=NotificationType.password_change_request, data=ctx)
+
+
+def send_email_identity_not_verified(email, user_id=None):
+    add_notification(email, user_id=user_id, type=NotificationType.account_rejected, data={})
