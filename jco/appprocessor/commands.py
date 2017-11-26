@@ -524,9 +524,9 @@ def calculate_jnt_purchases():
 
         current_time = datetime.utcnow()
 
-        if current_time < INVESTMENTS__PUBLIC_SALE__START_DATE:
-            logging.getLogger(__name__).info("Finished to calculate JNT purchases")
-            return
+        #if current_time < INVESTMENTS__PUBLIC_SALE__START_DATE:
+        #    logging.getLogger(__name__).info("Finished to calculate JNT purchases")
+        #    return
 
         processed_tx_ids = session.query(JNT.transaction_id).subquery()
         transactions = session.query(Transaction) \
