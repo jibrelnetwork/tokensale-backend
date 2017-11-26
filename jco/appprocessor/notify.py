@@ -593,3 +593,11 @@ def send_email_reset_password(email, activate_url, user_id=None):
 
 def send_email_identity_not_verified(email, user_id=None):
     add_notification(email, user_id=user_id, type=NotificationType.account_rejected, data={})
+
+
+def send_email_kyc_data_received(email, user_id=None):
+    add_notification(email, user_id=user_id, type=NotificationType.kyc_data_received, data={})
+
+
+def send_email_kyc_account_rejected(email, user_id=None):
+    add_notification(email, user_id=user_id, type=NotificationType.kyc_account_rejected, data={})
