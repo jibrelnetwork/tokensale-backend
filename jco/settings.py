@@ -414,7 +414,7 @@ LOGGING = {
                 'subject': LOGGING__MAILGUN__SUBJECT,
             },
             'sentry': {
-                'level': logging.WARNING,
+                'level': logging.ERROR,
                 'class': 'raven.contrib.django.raven_compat.handlers.SentryHandler',
                 'tags': {'custom-tag': 'x'},
             },
