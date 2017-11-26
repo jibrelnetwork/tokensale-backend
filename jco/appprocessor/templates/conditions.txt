@@ -1,5 +1,7 @@
 Emails sent by the backend app
 
+
+
 # Registration
 
 ## New account created (we send URL to confirm email)
@@ -9,6 +11,7 @@ Emails sent by the backend app
 ## Email confirmed
 - Condition: user confirmed his email and did not sign in for 15 min
 - Filename: registration_02.html
+
 
 
 # KYC
@@ -22,23 +25,25 @@ Emails sent by the backend app
 - Filename: kyc_02.html
 
 
+
 # Account
 
-## Password change request (we send URL to change password)
-- Condition: user requested password reset via dashboard
+## Password change request
+- Condition: user requested password reset via dashboard, we send confirmation URL
 - Filename: account_01_1.html
 
 ## Password changed
-- Condition: user successfully changed password
+- Condition: we changed password of a user
 - Filename: account_01_2.html
 
 ## ETH address change request
-- Condition: user changed his ETH address via dashboard
+- Condition: user changed his ETH address via dashboard, we send confirmation URL
 - Filename: account_02_01.html
 
 ## ETH address changed
-- Condition: user changed his ETH address via dashboard
+- Condition: we changed ETH of a user
 - Filename: account_02_02.html
+
 
 
 # Transactions
@@ -51,7 +56,7 @@ Emails sent by the backend app
 - Condition: user requested withdrawal of JNT, we send confirmation URL
 - Filename: transactions_02_01.html
 
-## We received withdrawal request (TODO)
+## We received withdrawal request
 - Condition: user confirmed JNT withdrawal via URL from the email
 - Filename: transactions_02_2.html
 
