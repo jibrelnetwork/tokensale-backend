@@ -543,8 +543,8 @@ def calculate_jnt_purchases():
                     tx.set_skip_jnt_calculation(True)
                     session.commit()
                     continue
-                elif tx.mined < INVESTMENTS__PUBLIC_SALE__START_DATE.replace(tzinfo=tz.FixedOffsetTimezone(offset=0, name=None)):
-                    continue
+                #elif tx.mined < INVESTMENTS__PUBLIC_SALE__START_DATE.replace(tzinfo=tz.FixedOffsetTimezone(offset=0, name=None)):
+                #    continue
 
                 currency_to_usd_rate = get_ticker_price(tx.address.type, CurrencyType.usd, tx.mined)
                 if currency_to_usd_rate is None:
