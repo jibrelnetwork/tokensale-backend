@@ -166,8 +166,8 @@ def get_raised_tokens():
     """
     Get raised tokens amount
     """
-    return Jnt.objects.all().aggregate(
-        models.Sum('jnt_value'))['jnt_value__sum'] or 0 + settings.RAISED_TOKENS_SHIFT
+    return (Jnt.objects.all().aggregate(
+        models.Sum('jnt_value'))['jnt_value__sum'] or 0) + settings.RAISED_TOKENS_SHIFT
 
 
 class Withdraw(models.Model):
