@@ -22,6 +22,11 @@ class AccountAdmin(admin.ModelAdmin):
                     'onfido_check_status', 'onfido_check_result',
                     'is_identity_verified', 'is_identity_verification_declined', 'account_actions']
 
+    list_filter = ['is_identity_verified', 'is_identity_verification_declined',
+                   'onfido_check_status', 'onfido_check_result']
+
+    search_fields = ['user__username', 'first_name', 'last_name']
+
     def username(self, obj):
         return obj.user.username
 
@@ -53,7 +58,10 @@ class AccountAdmin(admin.ModelAdmin):
     def document_thumb(self, obj):
         if not obj.document_url:
             return ''
-        return format_html('<a href="{src}"><img src="{src}" width="60"/></a>', src=obj.document_url)
+        if obj.document_type in ('jpg', 'jpeg', 'png'):
+            return format_html('<a href="{src}"><img src="{src}" height="30"/></a>', src=obj.document_url)
+        else:
+            return obj.document_url
     document_thumb.short_description = 'Passport'
     document_thumb.allow_tags = True
 
