@@ -40,9 +40,9 @@ class AccountSerializer(serializers.ModelSerializer):
         read_only_fields = ('is_identity_verified', 'jnt_balance')
 
     def get_jnt_balance(self, obj):
-        return ((Jnt.objects.filter(transaction__address__user=obj.user,
+        return (Jnt.objects.filter(transaction__address__user=obj.user,
                                    transaction__status=TransactionStatus.success)
-                .aggregate(Sum('jnt_value')))['jnt_value__sum'] or 0) + settings.RAISED_TOKENS_SHIFT
+                .aggregate(Sum('jnt_value')))['jnt_value__sum'] or 0
 
     def get_identity_verification_status(self, obj):
         if obj.is_identity_verified is True:
