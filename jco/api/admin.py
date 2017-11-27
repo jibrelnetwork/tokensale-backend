@@ -17,7 +17,7 @@ from jco.api.models import Address, Account, Transaction, Jnt, Withdraw
 
 @admin.register(Account)
 class AccountAdmin(admin.ModelAdmin):
-    list_display = ['id', 'username', 'first_name', 'last_name', 'document_url',
+    list_display = ['id', 'username', 'first_name', 'last_name', 'document_thumb',
                     'onfido_applicant_id', 'onfido_check_id', 'onfido_check_created',
                     'onfido_check_status', 'onfido_check_result',
                     'is_identity_verified', 'is_identity_verification_declined', 'account_actions']
@@ -50,11 +50,18 @@ class AccountAdmin(admin.ModelAdmin):
         ]
         return custom_urls + urls
 
+    def document_thumb(self, obj):
+        if not obj.document_url:
+            return ''
+        return format_html('<a href="{src}"><img src="{src}" width="60"/></a>', src=obj.document_url)
+    document_thumb.short_description = 'Passport'
+    document_thumb.allow_tags = True
+
     def account_actions(self, obj):
         return format_html(
-            '<form></form><form method="post" action="{}"><input type="hidden" name="csrfmiddlewaretoken" value="{token}"><button class="button">Reset</button></form>&nbsp;'
-            '<form method="post" action="{}"><input type="hidden" name="csrfmiddlewaretoken" value="{token}"><button class="button">Approve</button></form>&nbsp;'
-            '<form method="post" action="{}"><input type="hidden" name="csrfmiddlewaretoken" value="{token}"><button class="button">Decline</button></form>&nbsp;',
+            '<form></form><form style="display:inline" method="post" action="{}"><input type="hidden" name="csrfmiddlewaretoken" value="{token}"><button class="button">Reset</button></form>&nbsp;'
+            '<form method="post" style="display:inline" action="{}"><input type="hidden" name="csrfmiddlewaretoken" value="{token}"><button class="button">Approve</button></form>&nbsp;'
+            '<form method="post" style="display:inline" action="{}"><input type="hidden" name="csrfmiddlewaretoken" value="{token}"><button class="button">Decline</button></form>&nbsp;',
             reverse('admin:account-reset', args=[obj.pk]),
             reverse('admin:account-approve', args=[obj.pk]),
             reverse('admin:account-decline', args=[obj.pk]),

@@ -30,7 +30,7 @@ class AccountSerializer(serializers.ModelSerializer):
     jnt_balance = serializers.SerializerMethodField()
     identity_verification_status = serializers.SerializerMethodField()
     addresses = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = Account
         fields = ('first_name', 'last_name', 'date_of_birth', 'country',
