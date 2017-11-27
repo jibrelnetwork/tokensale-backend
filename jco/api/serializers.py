@@ -370,7 +370,7 @@ class EthAddressSerializer(serializers.Serializer):
 
         if address:
             if not ethaddress_verify.is_valid_address(address):
-                raise serializers.ValidationError(_('Ethereum address is not verified.'))
+                raise serializers.ValidationError(_('Ethereum address is not valid.'))
         else:
             raise serializers.ValidationError(_('Must include "address".'))
 
