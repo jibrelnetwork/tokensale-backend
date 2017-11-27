@@ -1144,7 +1144,7 @@ def check_withdraw_addresses() -> int:
             print(account.id, "\t", account.user.username, "\t", account.withdraw_address)
             invalid_addresses_count += 1
 
-    print("\nTotal number of invalid addresses is : {}", invalid_addresses_count)
+    print("\nTotal number of invalid addresses is : {}".format(invalid_addresses_count))
 
     logging.getLogger(__name__).info("Finished checking withdraw addresses.")
     return invalid_addresses_count
