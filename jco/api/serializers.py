@@ -18,6 +18,7 @@ from jco.commonutils import person_verify
 from jco.commonutils import ga_integration
 from jco.appdb.models import TransactionStatus
 from jco.appprocessor.notify import send_email_reset_password
+from jco.commonutils import ethaddress_verify
 
 
 logger = logging.getLogger(__name__)
@@ -363,3 +364,15 @@ class ResendEmailConfirmationSerializer(serializers.Serializer):
 
 class EthAddressSerializer(serializers.Serializer):
     address = serializers.CharField(required=True, allow_blank=False)
+
+    def validate(self, attrs):
+        address = attrs.get('address')
+
+        if address:
+            if not ethaddress_verify.is_valid_address(address):
+                raise serializers.ValidationError(_('Ethereum address is not verified.'))
+        else:
+            raise serializers.ValidationError(_('Must include "address".'))
+
+        attrs['address'] = address
+        return attrs
