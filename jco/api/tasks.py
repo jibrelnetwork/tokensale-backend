@@ -40,6 +40,7 @@ def verify_user(user_id):
         user.account.onfido_document_id = document_id
         user.account.save()
         logger.info('Document uploaded: %s', user.account.onfido_document_id)
+        notify.send_email_kyc_data_received(email=user.email, user_id=user.pk)
     else:
         logger.info('Document already uploaded: %s', user.account.onfido_document_id)
 

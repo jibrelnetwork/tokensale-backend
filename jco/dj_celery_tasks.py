@@ -108,17 +108,12 @@ def celery_add_withdraw_jnt(*args, **kwargs):
 
 @celery_app.on_after_finalize.connect
 def setup_periodic_tasks(sender, **kwargs):
-    # sender.add_periodic_task(crontab(minute='*/1'),
-    #                          celery_send_email_payment_data, expires=1 * 60, name='send_email_payment_data')
-    # sender.add_periodic_task(crontab(minute=0, hour='*/1'),
-    #                          celery_scan_addresses, expires=5 * 60, name='scan_addresses')
-    # sender.add_periodic_task(crontab(minute='*/5'),
-    #                          calculate_jnt_purchases, expires=5 * 60, name='calculate_jnt_purchases')
-    # sender.add_periodic_task(crontab(minute='*/5'),
-    #                          celery_transaction_processing, expires=5 * 60, name='transaction_processing')
-    # sender.add_periodic_task(crontab(minute='*/1'),
-    #                          celery_fetch_tickers_price, expires=1 * 60, name='fetch_tickers_price')
-
+    sender.add_periodic_task(crontab(minute=0, hour='*/1'),
+                             celery_scan_addresses, expires=5 * 60, name='scan_addresses')
+    sender.add_periodic_task(crontab(minute='*/5'),
+                             calculate_jnt_purchases, expires=5 * 60, name='calculate_jnt_purchases')
+    sender.add_periodic_task(crontab(minute='*/1'),
+                             celery_fetch_tickers_price, expires=1 * 60, name='fetch_tickers_price')
     sender.add_periodic_task(20,
                              api_tasks.check_user_verification_status_runner,
                              expires=1 * 60,

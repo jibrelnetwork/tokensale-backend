@@ -99,3 +99,4 @@ vine==1.1.4
 wcwidth==0.1.7
 websocket-client==0.44.0
 Werkzeug==0.12.2
+ethereum-utils==0.6.0

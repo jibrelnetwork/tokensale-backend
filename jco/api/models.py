@@ -7,6 +7,7 @@ from jco.appdb.models import CurrencyType
 from jco.appdb.models import TransactionStatus
 from jco.appdb.models import NotificationType
 from jco.appdb.models import NOTIFICATION_KEYS, NOTIFICATION_SUBJECTS
+from jco.appprocessor import notify
 
 
 class Account(models.Model):
@@ -76,6 +77,8 @@ class Account(models.Model):
         self.is_identity_verified = False
         self.is_identity_verification_declined = True
         self.save()
+        notify.send_email_kyc_account_rejected(self.user.email if self.user else None,
+                                               self.user.id if self.user else None)
 
     def __str__(self):
         return '{} {}'.format(self.first_name, self.last_name)

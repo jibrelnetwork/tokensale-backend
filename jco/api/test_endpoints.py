@@ -305,7 +305,41 @@ def test_get_withdraw_address(client, users):
     assert resp.status_code == 200
     assert resp.json() == {'address': 'aaaxxx'}
 
-    
+
+def test_put_withdraw_address_empty(client, users):
+    client.authenticate('user1@main.com', 'password1')
+    resp = client.get('/api/withdraw-address/')
+    assert resp.status_code == 200
+    assert resp.json() == {'address': None}
+    resp = client.put('/api/withdraw-address/', {})
+    assert resp.status_code == 400
+    resp = client.put('/api/withdraw-address/', {'address': None})
+    assert resp.status_code == 400
+
+
+def test_put_withdraw_address_validate(client, users):
+    client.authenticate('user1@main.com', 'password1')
+    resp = client.get('/api/withdraw-address/')
+    assert resp.status_code == 200
+    assert resp.json() == {'address': None}
+    resp = client.put('/api/withdraw-address/', {'address': ''})
+    assert resp.status_code == 400
+    resp = client.put('/api/withdraw-address/', {'address': '1HEVUxtxGjGnuRT5NsamD6V4RdUduRHqFv'})
+    assert resp.status_code == 400
+    resp = client.put('/api/withdraw-address/', {'address': '3BA2E2565dB2c018aDd0b24483fE99fC2cCCDa8e'})
+    assert resp.status_code == 400
+    resp = client.put('/api/withdraw-address/', {'address': '0x3BA2E2565dB2c018aDd0b24483fE99fC2cCCDa8'})
+    assert resp.status_code == 400
+    resp = client.put('/api/withdraw-address/', {'address': '0x3dA2E2565dB2c018aDd0b24483fE99fC2cCCDa8e'})
+    assert resp.status_code == 400
+    resp = client.put('/api/withdraw-address/', {'address': '0x3BA2E2565dB2c018aDd0b24483fE99fC2cCCDa8e'})
+    assert resp.status_code == 200
+    assert resp.json() == {'address': '0x3BA2E2565dB2c018aDd0b24483fE99fC2cCCDa8e'}
+    resp = client.put('/api/withdraw-address/', {'address': '0xde709f2102306220921060314715629080e2fb77'})
+    assert resp.status_code == 200
+    assert resp.json() == {'address': '0xde709f2102306220921060314715629080e2fb77'}
+
+
 def test_withdraw_jnt(client, users, addresses, jnt):
     client.authenticate('user1@main.com', 'password1')
     models.Account.objects.create(withdraw_address='aaaxxx', user=users[0])
