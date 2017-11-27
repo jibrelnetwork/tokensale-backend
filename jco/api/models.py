@@ -56,6 +56,15 @@ class Account(models.Model):
         self.onfido_check_created = None
         self.is_identity_verified = False
         self.is_identity_verification_declined = False
+
+        self.document_type = ''
+        self.document_url = ''
+        self.first_name = ''
+        self.last_name = ''
+        self.date_of_birth = None
+        self.residency = ''
+        self.country = ''
+        self.citizenship = ''
         self.save()
 
     def approve_verification(self):

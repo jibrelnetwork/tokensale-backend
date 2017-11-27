@@ -10,6 +10,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.middleware.csrf import get_token
 from django.utils.safestring import mark_safe
 
+from rest_framework.authtoken.models import Token
 
 from jco.api.models import Address, Account, Transaction, Jnt, Withdraw
 
@@ -65,6 +66,7 @@ class AccountAdmin(admin.ModelAdmin):
     def reset_identity_verification(self, request, account_id, *args, **kwargs):
         account = get_object_or_404(Account, pk=account_id)
         account.reset_verification_state()
+        Token.objects.filter(user=account.user).delete()
         messages.success(request,
                          mark_safe('Verification Status <b>Reset Done</b> for <{}>'.format(account.user.username)))
         return redirect('admin:api_account_changelist')
