@@ -17,7 +17,6 @@ from sqlalchemy.sql import func
 from sqlalchemy.orm.util import aliased
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.sql import func
-from sqlalchemy import exists
 from psycopg2 import tz
 
 from jco.appdb.db import session
@@ -925,11 +924,8 @@ def assign_addresses(user_id: int) -> bool:
                 .order_by(Address.id) \
                 .limit(1) \
                 .subquery()
-
             session.query(Address) \
                 .filter(Address.id.in_(addressIdSubquery)) \
-                .filter(~exists().where(and_(Address.user_id == user_id,
-                                             Address.type == currency))) \
                 .update({Address.user_id: user_id}, synchronize_session=False)
 
         session.commit()
