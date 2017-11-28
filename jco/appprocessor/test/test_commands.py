@@ -41,7 +41,8 @@ from jco.appprocessor.commands import (
     assign_addresses,
     withdraw_processing,
     add_notification,
-    calculate_jnt_purchases
+    calculate_jnt_purchases,
+    check_withdraw_addresses,
 )
 
 
@@ -943,6 +944,37 @@ class TestCommands(unittest.TestCase):
             .all()
 
         self.assertTrue(len(jnts) == 1 and len(notyfies) == 1)
+
+    def test_check_withdraw_addresses(self):
+        user = create_user('user1@local', 'user1@local')
+        session.add(Account(fullname="user1", country="country", citizenship="US", residency="US",
+                            withdraw_address="1HEVUxtxGjGnuRT5NsamD6V4RdUduRHqFv", user=user))
+
+        user = create_user('user2@local', 'user2@local')
+        session.add(Account(fullname="user2", country="country", citizenship="US", residency="US",
+                            withdraw_address="3BA2E2565dB2c018aDd0b24483fE99fC2cCCDa8e", user=user))
+
+        user = create_user('user3@local', 'user3@local')
+        session.add(Account(fullname="user3", country="country", citizenship="US", residency="US",
+                            withdraw_address="0x3BA2E2565dB2c018aDd0b24483fE99fC2cCCDa8", user=user))
+
+        user = create_user('user4@local', 'user4@local')
+        session.add(Account(fullname="user4", country="country", citizenship="US", residency="US",
+                            withdraw_address="0x3dA2E2565dB2c018aDd0b24483fE99fC2cCCDa8e", user=user))
+
+        user = create_user('user5@local', 'user5@local')
+        session.add(Account(fullname="user5", country="country", citizenship="US", residency="US",
+                            withdraw_address="0x3BA2E2565dB2c018aDd0b24483fE99fC2cCCDa8e", user=user))
+
+        user = create_user('user6@local', 'user6@local')
+        session.add(Account(fullname="user6", country="country", citizenship="US", residency="US",
+                            withdraw_address="0xde709f2102306220921060314715629080e2fb77", user=user))
+        session.commit()
+
+        invalid_addresses_count = check_withdraw_addresses()
+
+        self.assertTrue(invalid_addresses_count == 4,
+                        'there should be 4 entry of account with invalid withdraw address.')
 
 
 if __name__ == '__main__':

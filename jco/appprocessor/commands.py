@@ -40,6 +40,7 @@ from jco.commonconfig.config import ETHERSCAN_API_KEY, ETHERSCAN_TIMEOUT, BLOCKC
 from jco.commonutils.utils import *
 from jco.commonutils.ga_integration import *
 from jco.commonutils.formats import *
+from jco.commonutils.ethaddress_verify import is_valid_address
 
 
 #
@@ -1119,3 +1120,31 @@ def send_email_transaction_received_sold_out(email: str, user_id: int, transacti
 def send_email_withdrawal_request_succeeded(email: str, user_id: int, withdraw: dict) -> bool:
     return send_email_transaction_received(email=email, user_id=user_id, withdraw=withdraw,
                                            type=NotificationType.withdrawal_succeeded)
+
+
+#
+# Build invalid withdraw addresses report
+#
+
+def check_withdraw_addresses() -> int:
+    logging.getLogger(__name__).info("Start checking withdraw addresses.")
+
+    accounts = session.query(Account) \
+        .filter(Account.withdraw_address.isnot(None)) \
+        .filter(Account.withdraw_address != "") \
+        .order_by(Account.id) \
+        .all()  # type: List[Account]
+
+    print(" *** Results ***")
+    print("id\temail\twithdraw_address\n")
+
+    invalid_addresses_count = 0
+    for account in accounts:
+        if not is_valid_address(account.withdraw_address):
+            print(account.id, "\t", account.user.username, "\t", account.withdraw_address)
+            invalid_addresses_count += 1
+
+    print("\nTotal number of invalid addresses is : {}".format(invalid_addresses_count))
+
+    logging.getLogger(__name__).info("Finished checking withdraw addresses.")
+    return invalid_addresses_count
