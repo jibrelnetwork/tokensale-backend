@@ -177,7 +177,7 @@ class Account(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('auth_user.id'), unique=True)
     withdraw_address = db.Column(db.String(255), nullable=False, default='')
 
-    document_url = db.Column(db.String(00), nullable=False, default='')
+    document_url = db.Column(db.String(200), nullable=False, default='')
     user = db.relationship(User, back_populates="account")  # type: User
 
     tracking = db.Column(JSONB, nullable=False, default=lambda: {})

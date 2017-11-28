@@ -43,6 +43,8 @@ class Account(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     withdraw_address = models.CharField(max_length=255, null=True, blank=True)
 
+    comment = models.TextField(null=True, blank=True)
+
     tracking = JSONField(blank=True, default=dict)
 
     class Meta:
