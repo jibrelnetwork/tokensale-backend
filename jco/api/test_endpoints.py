@@ -6,7 +6,8 @@ from django.test import TestCase
 from rest_framework.test import RequestsClient
 from django.contrib.auth.models import User 
 from allauth.account.models import EmailAddress 
-from allauth.account.utils import setup_user_email 
+from allauth.account.utils import setup_user_email
+from jco.appprocessor import commands
 
 from jco.api import models
 from jco.appdb import models as sa_models
@@ -338,6 +339,24 @@ def test_put_withdraw_address_validate(client, users):
     resp = client.put('/api/withdraw-address/', {'address': '0xde709f2102306220921060314715629080e2fb77'})
     assert resp.status_code == 200
     assert resp.json() == {'address': '0xde709f2102306220921060314715629080e2fb77'}
+
+
+def test_assign_pair_address(client, users):
+    models.Address.objects.create(address="addr1", type="ETH", is_usable=True)
+    models.Address.objects.create(address="addr2", type="BTC", is_usable=True)
+    models.Address.objects.create(address="addr3", type="BTC", is_usable=True)
+    models.Address.objects.create(address="addr4", type="BTC", is_usable=True)
+
+    commands.assign_addresses(users[0].pk)
+    addresses = models.Address.objects.filter(user=users[0]).all()
+    assert len(addresses) == 2
+    assert addresses[0].address == "addr1" and addresses[1].address == "addr2"
+
+    commands.assign_addresses(users[0].pk)
+
+    addresses = models.Address.objects.filter(user=users[0]).all()
+    assert len(addresses) == 2
+    assert addresses[0].address == "addr1" and addresses[1].address == "addr2"
 
 
 def test_withdraw_jnt(client, users, addresses, jnt):
