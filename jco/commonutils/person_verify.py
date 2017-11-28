@@ -63,8 +63,8 @@ def upload_document(applicant_id, document_url, document_type):
     resp = requests.get(document_url)
     if not document_type:
         document_type = resp.headers['X-File-Name'].split('.')[-1]
-        if document_type == 'jpeg':
-            document_type = 'jpg'
+    if document_type == 'jpeg':
+        document_type = 'jpg'
 
     document_type = document_type.lower()
     if document_type not in ('jpg', 'png', 'pdf'):
