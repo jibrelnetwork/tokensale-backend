@@ -24,7 +24,6 @@ class Account(models.Model):
     postcode = models.CharField(max_length=120, null=False, blank=True)
 
     terms_confirmed = models.BooleanField(default=False)
-    docs_received = models.BooleanField(default=False)
     created = models.DateTimeField(auto_now_add=True)
     notified = models.BooleanField(default=False)
     is_identity_verified = models.BooleanField(default=False, verbose_name='Approved')
@@ -42,6 +41,8 @@ class Account(models.Model):
 
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     withdraw_address = models.CharField(max_length=255, null=True, blank=True)
+
+    comment = models.TextField(null=True, blank=True)
 
     tracking = JSONField(blank=True, default=dict)
 
@@ -74,6 +75,7 @@ class Account(models.Model):
         self.is_identity_verified = True
         self.is_identity_verification_declined = False
         self.save()
+        Address.assign_pair_to_user(self.user)
 
     def decline_verification(self):
         self.is_identity_verified = False

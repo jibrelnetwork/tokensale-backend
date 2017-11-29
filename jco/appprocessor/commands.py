@@ -315,7 +315,7 @@ def scan_addresses():
         if len(error_addresses) > 0:
             btc_addresses = [a.address for a in error_addresses if a.type == CurrencyType.btc]
             eth_addresses = [a.address for a in error_addresses if a.type == CurrencyType.eth]
-            logging.getLogger(__name__).error("Failed to scan {} addresses because blockexplorer rejected requests:\n{}"
+            logging.getLogger(__name__).warning("Failed to scan {} addresses because blockexplorer rejected requests:\n{}"
                                               .format(len(error_addresses),
                                                       '\n'.join(btc_addresses + eth_addresses)))
 
