@@ -110,7 +110,7 @@ class ResendEmailConfirmationView(GenericAPIView):
             try:
                 user = User.objects.get(username=serializer.data['email'])
             except User.DoesNotExist:
-                return Response({'email':  [_('No such user')]}, status=400)
+                return Response({'email': [_('No such user')]}, status=400)
             else:
                 send_email_confirmation(request, user)
                 return Response({'details': _('Verification e-mail re-sent.')})

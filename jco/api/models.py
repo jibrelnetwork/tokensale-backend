@@ -48,7 +48,8 @@ class Account(models.Model):
     class Meta:
         db_table = 'account'
 
-    def reset_verification_state(self):
+    def reset_verification_state(self, fullreset=True):
+
         self.onfido_applicant_id = None
         self.onfido_document_id = None
         self.onfido_check_id = None
@@ -58,14 +59,15 @@ class Account(models.Model):
         self.is_identity_verified = False
         self.is_identity_verification_declined = False
 
-        self.document_type = ''
-        self.document_url = ''
-        self.first_name = ''
-        self.last_name = ''
-        self.date_of_birth = None
-        self.residency = ''
-        self.country = ''
-        self.citizenship = ''
+        if fullreset:
+            self.document_type = ''
+            self.document_url = ''
+            self.first_name = ''
+            self.last_name = ''
+            self.date_of_birth = None
+            self.residency = ''
+            self.country = ''
+            self.citizenship = ''
         self.save()
 
     def approve_verification(self):

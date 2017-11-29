@@ -9,10 +9,12 @@ from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.middleware.csrf import get_token
 from django.utils.safestring import mark_safe
+from django.http import HttpResponse
 
 from rest_framework.authtoken.models import Token
 
 from jco.api.models import Address, Account, Transaction, Jnt, Withdraw
+from jco.api import tasks
 
 
 @admin.register(Account)
@@ -25,6 +27,14 @@ class AccountAdmin(admin.ModelAdmin):
                    'onfido_check_status']
 
     search_fields = ['user__username', 'first_name', 'last_name']
+    exclude = ['town', 'postcode', 'street', 'notified', 'docs_received']
+    readonly_fields = ['user', 'onfido_check_status', 'onfido_check_result',
+                        'onfido_check_id', 'onfido_check_created',
+                        'onfido_document_id', 'onfido_applicant_id',
+                        'withdraw_address', 'tracking']
+
+    class Media:
+        js = ['https://static.filestackapi.com/v3/filestack.js', 'api/account.js']
 
     def username(self, obj):
         return obj.user.username
@@ -71,9 +81,9 @@ class AccountAdmin(admin.ModelAdmin):
 
     def account_actions(self, obj):
         return format_html(
-            '<a class="button" href="{url}?action=reset">Reset</a>&nbsp;'
-            '<a class="button" href="{url}?action=approve">Approve</a>&nbsp;'
-            '<a class="button" href="{url}?action=decline">Decline</a>&nbsp;',
+            '<a class="button account-action" href="javascript:void(0)" data-url="{url}?action=reset" data-action="reset">Reset</a>&nbsp;'
+            '<a class="button account-action" href="javascript:void(0)" data-url="{url}?action=approve" data-action="approve">Approve</a>&nbsp;'
+            '<a class="button account-action" href="javascript:void(0)" data-url="{url}?action=decline" data-action="decline">Decline</a>&nbsp;',
             url=reverse('admin:account-action', args=[obj.pk]))
 
     account_actions.short_description = 'Account Actions'
@@ -84,16 +94,11 @@ class AccountAdmin(admin.ModelAdmin):
         account.reset_verification_state()
         Token.objects.filter(user=account.user).delete()
         messages.success(request,
-                         mark_safe('Verification Status <b>Reset Done</b> for <{}>'.format(account.user.username)))
-        return redirect('admin:api_account_changelist')
+                         mark_safe('Verification Status <b>Reset Done</b> for {}'.format(account.user.username)))
+        return HttpResponse('OK')
 
     def account_action(self, request, account_id, *args, **kwargs):
-        # account.reset_verification_state()
-        # Token.objects.filter(user=account.user).delete()
-        # messages.success(request,
-        #                  mark_safe('Verification Status <b>Reset Done</b> for <{}>'.format(account.user.username)))
-        # return redirect('admin:api_account_changelist')
-        # print('NNNNNNNNNNNNNNNNNNN', self.app_l)
+
         if request.method == 'POST' and request.POST.get('confirm'):
             action = request.POST.get('action')
             if action == 'reset':
@@ -111,17 +116,28 @@ class AccountAdmin(admin.ModelAdmin):
         account = get_object_or_404(Account, pk=account_id)
         account.approve_verification()
         messages.success(request,
-                         mark_safe('Verification Status <b>Approved</b> for <{}>'.format(account.user.username)),
+                         mark_safe('Verification Status <b>Approved</b> for {}'.format(account.user.username)),
                          extra_tags='safe')
-        return redirect('admin:api_account_changelist')
+        return HttpResponse('OK')
 
     def decline_identity_verification(self, request, account_id, *args, **kwargs):
         account = get_object_or_404(Account, pk=account_id)
         account.decline_verification()
         messages.success(request,
-                         mark_safe('Verification Status <b>Declined</b> for <{}>'.format(account.user.username)),
+                         mark_safe('Verification Status <b>Declined</b> for {}'.format(account.user.username)),
                          extra_tags='safe')
-        return redirect('admin:api_account_changelist')
+        return HttpResponse('OK')
+
+    def save_model(self, request, obj, form, change):
+        """
+        Given a model instance save it to the database.
+        """
+        obj.save()
+        if '_reverify' in request.POST:
+            obj.reset_verification_state(fullreset=False)
+            tasks.verify_user.delay(obj.user.pk)
+            messages.success(request,
+                 mark_safe('Verification <b>Restarted</b> for <b>{}</b> {}'.format(obj, obj.user.username)))
 
 
 @admin.register(Transaction)
