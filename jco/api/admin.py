@@ -15,6 +15,7 @@ from rest_framework.authtoken.models import Token
 
 from jco.api.models import Address, Account, Transaction, Jnt, Withdraw
 from jco.api import tasks
+from jco.commonutils import ga_integration
 
 
 @admin.register(Account)
@@ -27,7 +28,7 @@ class AccountAdmin(admin.ModelAdmin):
                    'onfido_check_status']
 
     search_fields = ['user__username', 'first_name', 'last_name']
-    exclude = ['town', 'postcode', 'street', 'notified', 'docs_received']
+    exclude = ['town', 'postcode', 'street', 'notified',]
     readonly_fields = ['user', 'onfido_check_status', 'onfido_check_result',
                         'onfido_check_id', 'onfido_check_created',
                         'onfido_document_id', 'onfido_applicant_id',
@@ -115,6 +116,7 @@ class AccountAdmin(admin.ModelAdmin):
     def approve_identity_verification(self, request, account_id, *args, **kwargs):
         account = get_object_or_404(Account, pk=account_id)
         account.approve_verification()
+        ga_integration.on_status_verified_manual(account)
         messages.success(request,
                          mark_safe('Verification Status <b>Approved</b> for {}'.format(account.user.username)),
                          extra_tags='safe')
@@ -123,6 +125,7 @@ class AccountAdmin(admin.ModelAdmin):
     def decline_identity_verification(self, request, account_id, *args, **kwargs):
         account = get_object_or_404(Account, pk=account_id)
         account.decline_verification()
+        ga_integration.on_status_not_verified_manual(account)
         messages.success(request,
                          mark_safe('Verification Status <b>Declined</b> for {}'.format(account.user.username)),
                          extra_tags='safe')

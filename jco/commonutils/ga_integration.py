@@ -115,8 +115,16 @@ def on_status_verified(account):
     get_ga_client(account).send_status('Verified')
 
 
+def on_status_verified_manual(account):
+    get_ga_client(account).send_status('VerifiedManual')
+
+
 def on_status_not_verified(account):
     get_ga_client(account).send_status('NotVerified')
+
+
+def on_status_not_verified_manual(account):
+    get_ga_client(account).send_status('NotVerifiedManual')
 
 
 def on_transaction_received(account, tx, jnt):
