@@ -157,7 +157,7 @@ class EthAddressView(GenericAPIView):
             account.withdraw_address = serializer.data['address']
             account.save()
             return Response(serializer.data)
-        return Response(serializer.errors, status=400)
+        return Response({'address':  [_('Invalid Ethereum address')]}, status=400)
 
 
 class WithdrawView(APIView):
