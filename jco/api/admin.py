@@ -10,12 +10,53 @@ from django.views.decorators.csrf import csrf_exempt
 from django.middleware.csrf import get_token
 from django.utils.safestring import mark_safe
 from django.http import HttpResponse
+from django.contrib.admin import SimpleListFilter
 
 from rest_framework.authtoken.models import Token
 
 from jco.api.models import Address, Account, Transaction, Jnt, Withdraw
 from jco.api import tasks
 from jco.commonutils import ga_integration
+
+
+
+class FioFilledListFilter(SimpleListFilter):
+    # Human-readable title which will be displayed in the
+    # right admin sidebar just above the filter options.
+    title = 'Form filled'
+
+    # Parameter for the filter that will be used in the URL query.
+    parameter_name = 'filled'
+
+    def lookups(self, request, model_admin):
+        """
+        Returns a list of tuples. The first element in each
+        tuple is the coded value for the option that will
+        appear in the URL query. The second element is the
+        human-readable name for the option that will appear
+        in the right sidebar.
+        """
+        return (
+            ('true', 'Filled'),
+            ('false', 'Not Filled'),
+        )
+
+    def queryset(self, request, queryset):
+        """
+        Returns the filtered queryset based on the value
+        provided in the query string and retrievable via
+        `self.value()`.
+        """
+        # Compare the requested value (either '80s' or '90s')
+        # to decide how to filter the queryset.
+        if self.value() == 'true':
+            return queryset.exclude(first_name='',
+                                    last_name='')
+        elif self.value() == 'false':
+            return queryset.filter(first_name='',
+                                   last_name='')
+        else:
+            return queryset
 
 
 @admin.register(Account)
@@ -25,7 +66,7 @@ class AccountAdmin(admin.ModelAdmin):
                     'is_identity_verified', 'is_identity_verification_declined', 'account_actions']
 
     list_filter = ['is_identity_verified', 'is_identity_verification_declined',
-                   'onfido_check_status']
+                   'onfido_check_status', FioFilledListFilter]
 
     search_fields = ['user__username', 'first_name', 'last_name']
     exclude = ['town', 'postcode', 'street', 'notified',]
