@@ -131,13 +131,8 @@ class User(db.Model):
     # Methods
     def __repr__(self):
         fieldsToPrint = (('id', self.id),
-                         ('fullname', self.fullname),
-                         ('email', self.email),
-                         ('country', self.country),
-                         ('citizenship', self.citizenship),
-                         ('created', self.created),
-                         ('notified', self.notified),
-                         ('docs_received', self.docs_received))
+                         ('username', self.username),
+                         ('email', self.email))
 
         argsString = ', '.join(['{}={}'.format(f[0], '"' + f[1] + '"' if (type(f[1]) == str) else f[1])
                                 for f in fieldsToPrint])
@@ -146,13 +141,8 @@ class User(db.Model):
     def as_dict(self):
         return {
             'id': self.id,
-            'fullname': self.fullname,
             'email': self.email,
-            'country': self.country,
-            'citizenship': self.citizenship,
-            'created': self.created,
-            'notified': self.notified,
-            'docs_received': self.docs_received
+            'username': self.username
         }
 
 
@@ -170,7 +160,6 @@ class Account(db.Model):
     residency = db.Column(db.String(120), nullable=False)
     created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     terms_confirmed = db.Column(db.Boolean, nullable=False, default=False)
-    docs_received = db.Column(db.Boolean, nullable=False, default=False)
     notified = db.Column(db.Boolean, nullable=False, default=False)
     is_identity_verified = db.Column(db.Boolean, nullable=False, default=False)
 
@@ -190,8 +179,7 @@ class Account(db.Model):
                          ('country', self.country),
                          ('citizenship', self.citizenship),
                          ('created', self.created),
-                         ('notified', self.notified),
-                         ('docs_received', self.docs_received))
+                         ('notified', self.notified))
 
         argsString = ', '.join(['{}={}'.format(f[0], '"' + f[1] + '"' if (type(f[1]) == str) else f[1])
                                 for f in fieldsToPrint])
@@ -205,7 +193,6 @@ class Account(db.Model):
             'citizenship': self.citizenship,
             'created': self.created,
             'notified': self.notified,
-            'docs_received': self.docs_received
         }
 
 

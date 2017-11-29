@@ -24,7 +24,6 @@ class Account(models.Model):
     postcode = models.CharField(max_length=120, null=False, blank=True)
 
     terms_confirmed = models.BooleanField(default=False)
-    docs_received = models.BooleanField(default=False)
     created = models.DateTimeField(auto_now_add=True)
     notified = models.BooleanField(default=False)
     is_identity_verified = models.BooleanField(default=False, verbose_name='Approved')

@@ -54,87 +54,24 @@ def create_flask_app(config_filename):
     @app.route('/crm/accounts', methods=['GET'])
     @requires_auth
     def accounts():
-        from celery_tasks import celery_get_account_list
-
-        task = celery_get_account_list.delay()
-
-        accounts = None
-        try:
-            accounts = task.get(timeout=10)
-        except TimeoutError:
-            exception_str = ''.join(traceback.format_exception(*sys.exc_info()))
-            logging.getLogger(__name__).error("ailed to persist new investment request due to error:\n{}"
-                                              .format(exception_str))
-
-
-        return render_template('www_accounts.html', accounts=accounts)
+        return "OK", 200
 
     @app.route("/crm/proposals/<account_id>", methods=['GET'])
     @app.route("/crm/proposals", methods=['GET'])
     @requires_auth
     def proposals(account_id = None):
-        from celery_tasks import celery_get_all_proposals, celery_get_account_proposals
-
-        account = None
-        proposals = None
-
-        try:
-            if (account_id):
-                task = celery_get_account_proposals.delay(account_id)
-                account, proposals = task.get(timeout=10)  # type: Tuple[Dict,List[Dict]]
-            else:
-                task = celery_get_all_proposals.delay()
-                proposals = task.get(timeout=10)  # type: List[Dict]
-        except TimeoutError:
-            exception_str = ''.join(traceback.format_exception(*sys.exc_info()))
-            logging.getLogger(__name__).error("ailed to persist new investment request due to error:\n{}"
-                                              .format(exception_str))
-
-        return render_template("www_proposals.html", account=account, proposals=proposals)
+        return "OK", 200
 
     @app.route("/crm/transactions/<proposal_id>", methods=['GET'])
     @app.route("/crm/transactions", methods=['GET'])
     @requires_auth
     def transactions(proposal_id=None):
-        from celery_tasks import celery_get_all_transactions, celery_get_proposal_transactions
-
-        proposal = None
-        transactions = None
-
-        try:
-            if (proposal_id):
-                task = celery_get_proposal_transactions.delay(proposal_id)
-                proposal, transactions = task.get(timeout=10)  # type: Tuple[Dict,List[Dict]]
-            else:
-                task = celery_get_all_transactions.delay()
-                transactions = task.get(timeout=10)  # type: List[Dict]
-        except TimeoutError:
-            exception_str = ''.join(traceback.format_exception(*sys.exc_info()))
-            logging.getLogger(__name__).error("ailed to persist new investment request due to error:\n{}"
-                                              .format(exception_str))
-
-        return render_template("www_transactions.html", proposal=proposal, transactions=transactions)
+        return "OK", 200
 
     @app.route('/crm/docsreceived', methods=['POST'])
     @requires_auth
     def docs_received():
-        from celery_tasks import celery_set_docs_received
-
-        account_id = request.form.get('id')
-
-        success = False
-        if account_id:
-            task = celery_set_docs_received.delay(account_id)
-            try:
-                success = task.get(timeout=10)
-            except TimeoutError:
-                exception_str = ''.join(traceback.format_exception(*sys.exc_info()))
-                logging.getLogger(__name__).error("ailed to persist new investment request due to error:\n{}"
-                                                  .format(exception_str))
-        if success:
-            return "OK", 200
-        else:
-            return "FAILED", 400
+        return "OK", 200
 
     return app
 
