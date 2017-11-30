@@ -13,7 +13,7 @@ from rest_auth.serializers import PasswordResetSerializer, PasswordResetForm
 from rest_framework import serializers, exceptions
 import requests
 
-from jco.api.models import Transaction, Address, Account, Jnt, Withdraw
+from jco.api.models import Transaction, Address, Account, Jnt, Withdraw, PresaleJnt
 from jco.commonutils import person_verify
 from jco.commonutils import ga_integration
 from jco.appdb.models import TransactionStatus
@@ -36,13 +36,16 @@ class AccountSerializer(serializers.ModelSerializer):
         fields = ('first_name', 'last_name', 'date_of_birth', 'country',
                   'citizenship', 'residency', 'terms_confirmed', 'document_url', 'document_type',
                   'is_identity_verified', 'jnt_balance', 'identity_verification_status',
-                  'addresses',)
+                  'addresses', 'is_document_skipped')
         read_only_fields = ('is_identity_verified', 'jnt_balance')
 
     def get_jnt_balance(self, obj):
-        return (Jnt.objects.filter(transaction__address__user=obj.user,
-                                   transaction__status=TransactionStatus.success)
-                .aggregate(Sum('jnt_value')))['jnt_value__sum'] or 0
+        presale_balance = PresaleJnt.objects.filter(
+            user=obj.user).aggregate(Sum('jnt_value'))['jnt_value__sum'] or 0
+        jnt_balance = (Jnt.objects.filter(transaction__address__user=obj.user,
+                                          transaction__status=TransactionStatus.success)
+                       .aggregate(Sum('jnt_value')))['jnt_value__sum'] or 0
+        return jnt_balance + presale_balance
 
     def get_identity_verification_status(self, obj):
         if obj.is_identity_verified is True:
@@ -121,10 +124,10 @@ class TransactionSerializer(serializers.ModelSerializer):
 class WithdrawSerializer(TransactionSerializer):
 
     _date = serializers.DateTimeField(source='created')
-    
+
     class Meta:
         model = Withdraw
-        fields = ('jnt', 'status', 'TXtype', 'date', 'type',  '_date',
+        fields = ('jnt', 'status', 'TXtype', 'date', 'type', '_date',
                   'TXhash', 'amount_usd', 'amount_cryptocurrency')
 
     def get_type(self, obj):
@@ -140,11 +143,53 @@ class WithdrawSerializer(TransactionSerializer):
     def get_TXtype(self, obj):
         return 'ETH'
 
+    def get_TXhash(self, obj):
+        return 'ETH'
+
     def get_amount_usd(self, obj):
         return None
 
     def get_amount_cryptocurrency(self, obj):
         return None
+
+
+class PresaleJntSerializer(TransactionSerializer):
+    _date = serializers.DateTimeField(source='created')
+    TXhash = serializers.SerializerMethodField()
+    is_presale = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PresaleJnt
+        fields = ('jnt', 'status', 'TXtype', 'date', 'type', '_date',
+                  'TXhash', 'amount_usd', 'amount_cryptocurrency', 'is_presale')
+
+    def get_is_presale(self, obj):
+        return True
+
+    def get_type(self, obj):
+        return 'incoming'
+
+    def get_date(self, obj):
+        if obj.created is not None:
+            return datetime.strftime(obj.created, '%H:%M %m/%d/%Y')
+
+    def get_jnt(self, obj):
+        return obj.jnt_value
+
+    def get_TXtype(self, obj):
+        return 'ETH'
+
+    def get_TXhash(self, obj):
+        return 'ANGEL ROUND / PRESALE'
+
+    def get_amount_usd(self, obj):
+        return None
+
+    def get_amount_cryptocurrency(self, obj):
+        return None
+
+    def get_status(self, obj):
+        return 'complete'
 
 
 class RegisterSerializer(serializers.Serializer):
