@@ -44,6 +44,8 @@ class NotificationType:
     withdrawal_request      = 'withdrawal_request'
     withdrawal_succeeded    = 'withdrawal_succeeded'
 
+    presale_account_created    = 'presale_account_created'
+
 
 # account_01_01 = "Password change request"
 # account_01_02 = "Your password was updated"
@@ -80,6 +82,7 @@ NOTIFICATION_KEYS = {
     NotificationType.transaction_received_sold_out: 'transactions_04',
     NotificationType.withdrawal_request: 'transactions_02_01',
     NotificationType.withdrawal_succeeded: 'transactions_03',
+    NotificationType.presale_account_created: 'xxx',
 }
 
 NOTIFICATION_SUBJECTS = {
@@ -96,6 +99,7 @@ NOTIFICATION_SUBJECTS = {
     'transactions_02_02': 'JNT withdrawal underway',
     'transactions_03': 'Your JNT was transferred successfully!',
     'transactions_04': 'Token sale closed',
+    'presale_account_created': 'XXX',
 }
 
 

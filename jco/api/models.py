@@ -31,6 +31,7 @@ class Account(models.Model):
 
     document_url = models.URLField(max_length=200, null=False, blank=True)
     document_type = models.CharField(max_length=20, null=False, blank=True)
+    is_document_skipped = models.BooleanField(default=False)
 
     onfido_applicant_id = models.CharField(max_length=200, null=True, blank=True)
     onfido_document_id = models.CharField(max_length=200, null=True, blank=True)
@@ -43,6 +44,7 @@ class Account(models.Model):
     withdraw_address = models.CharField(max_length=255, null=True, blank=True)
 
     comment = models.TextField(null=True, blank=True)
+    is_presale_account = models.BooleanField(default=False)
 
     tracking = JSONField(blank=True, default=dict)
 
@@ -220,3 +222,15 @@ class Notification(models.Model):
 
     def get_body(self):
         return render_to_string(self.get_template(), self.meta)
+
+
+class PresaleJnt(models.Model):
+    """
+    JNT from presale round
+    """
+    user = models.ForeignKey(settings.AUTH_USER_MODEL)
+    jnt_value = models.FloatField()
+    created = models.DateTimeField()
+
+    class Meta:
+        db_table = 'presale_jnt'

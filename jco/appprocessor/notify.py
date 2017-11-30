@@ -252,3 +252,9 @@ def send_email_kyc_data_received(email, user_id=None):
 
 def send_email_kyc_account_rejected(email, user_id=None):
     add_notification(email, user_id=user_id, type=NotificationType.kyc_account_rejected, data={})
+
+
+def send_email_presale_account_created(email, user, enter_url):
+    ctx = {'enter_url': enter_url}
+    print('EMAIL', email, enter_url)
+    # add_notification(email, user_id=user.pk, type=NotificationType.presale_account_created, data=ctx)

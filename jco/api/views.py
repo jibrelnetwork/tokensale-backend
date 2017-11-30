@@ -14,7 +14,7 @@ from rest_framework_extensions.cache.decorators import cache_response
 
 from allauth.account.models import EmailAddress
 from allauth.account.utils import send_email_confirmation
-from jco.api.models import Transaction, Address, Account, get_raised_tokens, Withdraw
+from jco.api.models import Transaction, Address, Account, get_raised_tokens, Withdraw, PresaleJnt
 from jco.api.serializers import (
     AccountSerializer,
     AddressSerializer,
@@ -22,6 +22,7 @@ from jco.api.serializers import (
     ResendEmailConfirmationSerializer,
     TransactionSerializer,
     WithdrawSerializer,
+    PresaleJntSerializer,
 )
 from jco.api import tasks
 from jco.appprocessor import commands
@@ -40,12 +41,14 @@ class TransactionsListView(APIView):
     def get(self, request):
         txs_qs = Transaction.objects.filter(address__user=request.user)
         withdrawals_qs = Withdraw.objects.filter(address__user=request.user)
+        presale_jnt_qs = PresaleJnt.objects.filter(user=request.user)
 
         txs = TransactionSerializer(txs_qs, many=True).data
         withdrawals = WithdrawSerializer(withdrawals_qs, many=True).data
+        presale_jnt = PresaleJntSerializer(presale_jnt_qs, many=True).data
 
         result_list = sorted(
-            chain(txs, withdrawals),
+            chain(presale_jnt, txs, withdrawals),
             key=lambda t: t.pop('_date'),
             reverse=True)
         return Response(result_list)
