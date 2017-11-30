@@ -166,11 +166,13 @@ class Account(db.Model):
     terms_confirmed = db.Column(db.Boolean, nullable=False, default=False)
     notified = db.Column(db.Boolean, nullable=False, default=False)
     is_identity_verified = db.Column(db.Boolean, nullable=False, default=False)
+    is_identity_verification_declined = db.Column(db.Boolean, nullable=False, default=False)
 
     user_id = db.Column(db.Integer, db.ForeignKey('auth_user.id'), unique=True)
     withdraw_address = db.Column(db.String(255), nullable=False, default='')
 
     document_url = db.Column(db.String(200), nullable=False, default='')
+    document_type = db.Column(db.String(20), nullable=False, default='')
     user = db.relationship(User, back_populates="account")  # type: User
 
     tracking = db.Column(JSONB, nullable=False, default=lambda: {})

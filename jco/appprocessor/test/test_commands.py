@@ -43,6 +43,8 @@ from jco.appprocessor.commands import (
     add_notification,
     calculate_jnt_purchases,
     check_withdraw_addresses,
+    get_btc_addresses_with_positive_balance,
+    get_eth_addresses_with_positive_balance,
 )
 
 
@@ -975,6 +977,41 @@ class TestCommands(unittest.TestCase):
 
         self.assertTrue(invalid_addresses_count == 4,
                         'there should be 4 entry of account with invalid withdraw address.')
+
+    def test_get_eth_addresses_with_positive_balance(self):
+        session.add(Address(address='0x3BA2E2565dB2c018aDd0b24483fE99fC2cCCDa8e', type=CurrencyType.eth))
+        session.add(Address(address='0xC28142C80cFFE11086A334402ecFF4517898DCec', type=CurrencyType.eth))
+        session.commit()
+        generate_eth_addresses(self.mnemonic, 18)
+        session.add(Address(address='0xb3d4fee49eb091349dba3bee0f96a9b8b4ff650b', type=CurrencyType.eth))
+        session.add(Address(address='0x410fa2e56e6e802ed65cc60b71d377dcd7fa524f', type=CurrencyType.eth))
+        session.commit()
+        generate_eth_addresses(self.mnemonic, 20, offset=19)
+
+        addresses = session.query(Address).filter(Address.type==CurrencyType.eth).all()
+        positive_addresses = get_eth_addresses_with_positive_balance(addresses)
+
+        self.assertTrue(len(positive_addresses) == 4)
+        self.assertEqual(positive_addresses[0].address, '0x3BA2E2565dB2c018aDd0b24483fE99fC2cCCDa8e')
+        self.assertEqual(positive_addresses[1].address, '0xC28142C80cFFE11086A334402ecFF4517898DCec')
+        self.assertEqual(positive_addresses[2].address, '0xb3d4fee49eb091349dba3bee0f96a9b8b4ff650b')
+        self.assertEqual(positive_addresses[3].address, '0x410fa2e56e6e802ed65cc60b71d377dcd7fa524f')
+
+    def test_get_btc_addresses_with_positive_balance(self):
+
+        session.add(Address(address='1HEVUxtxGjGnuRT5NsamD6V4RdUduRHqFv', type=CurrencyType.btc))
+        session.commit()
+        generate_btc_addresses(self.mnemonic, 19)
+        session.add(Address(address='1FctpG14EZosqFCJCKivKUtFHT7eycRpk7', type=CurrencyType.btc))
+        session.commit()
+        generate_btc_addresses(self.mnemonic, 24, offset=20)
+
+        addresses = session.query(Address).filter(Address.type==CurrencyType.btc).all()
+        positive_addresses = get_btc_addresses_with_positive_balance(addresses)
+
+        self.assertTrue(len(positive_addresses) == 2)
+        self.assertEqual(positive_addresses[0].address, '1HEVUxtxGjGnuRT5NsamD6V4RdUduRHqFv')
+        self.assertEqual(positive_addresses[1].address, '1FctpG14EZosqFCJCKivKUtFHT7eycRpk7')
 
 
 if __name__ == '__main__':

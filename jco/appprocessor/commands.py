@@ -228,6 +228,97 @@ def send_email_payment_data():
 
 
 #
+# Get list of eth addresses with a balance over than zero
+#
+
+def get_eth_addresses_with_positive_balance(addresses: List[Address]) -> List[Address]:
+    """
+    Get Ether Balance for multiple Addresses in a single call
+
+    :param addresses: Target addresses
+    :type addresses: List[Address]
+    :return: List of addresses, otherwise exception
+    :rtype: List[Address
+    """
+    proxies = get_proxies()
+
+    url_base = 'http://api.etherscan.io/api?'
+
+    addresses_in_batch = 20
+    result = list()
+
+    for batch_number in range(0, (len(addresses) // addresses_in_batch) + 1):
+        batch_addresses = addresses[batch_number * addresses_in_batch:
+                                    batch_number * addresses_in_batch + addresses_in_batch]
+
+        # Separate addresses by comma, up to a maxium of 20 accounts in a single batch
+        url_balances = 'module=account&action=balancemulti&address={}&startblock=0&tah=latest&apikey={}' \
+            .format(",".join([address.address for address in batch_addresses]), ETHERSCAN_API_KEY)
+        url_request = url_base + url_balances
+
+        if CRAWLER_PROXY__ENABLED:
+            blances_response = requests.get(url_request, proxies=proxies)
+        else:
+            balances_response = requests.get(url_request)
+        balances_response.raise_for_status()
+        balances_response_json = balances_response.json()
+
+        positive_accounts = [x['account'] for x in balances_response_json['result'] if float(x['balance'])>0]
+        positive_addresses = [x for x in addresses if x.address in positive_accounts]
+        result.extend(positive_addresses)
+
+    return result
+
+
+#
+# Get list of btc addresses with a balance over than zero
+#
+
+def get_btc_addresses_with_positive_balance(addresses: List[Address]) -> List[Address]:
+    """
+    Get list of BTC transactions for the given addresses
+
+    :param addresses: Target addresses
+    :type addresses: List[str]
+    :return: List of transactions, otherwise exception
+    :rtype: list
+    """
+    proxies = get_proxies()
+
+    url_base = 'https://blockchain.info/multiaddr?'
+
+    addresses_in_batch = 50
+    result = list()
+
+    for batch_number in range(0, (len(addresses) // addresses_in_batch) + 1):
+        batch_addresses = addresses[batch_number * addresses_in_batch:
+                                    batch_number * addresses_in_batch + addresses_in_batch]
+
+        # Separate addresses by '|'
+        url_balances = 'active={}'.format("|".join([address.address for address in batch_addresses]))
+        url_request = url_base + url_balances
+
+        if CRAWLER_PROXY__ENABLED:
+            blances_response = requests.get(url_request, proxies=proxies)
+        else:
+            balances_response = requests.get(url_request)
+        balances_response.raise_for_status()
+        balances_response_json = balances_response.json()
+
+        if "addresses" not in balances_response_json \
+                or type(balances_response_json['addresses']) != list:
+            logging.getLogger(__name__).error("Wrong 'addresses' in response of Blockchain.info for BTC transactions:\n{}"
+                         .format(balances_response_json))
+            continue
+
+        positive_accounts = [x['address'] for x in balances_response_json['addresses'] if float(x['n_tx']) > 0]
+        positive_addresses = [x for x in addresses if x.address in positive_accounts]
+        result.extend(positive_addresses)
+
+    return result
+
+
+#
 # Scan for the new transactions
 #
 
@@ -432,6 +523,7 @@ def get_btc_investments(address_str: str) -> List[Transaction]:
     tx_list = sorted(tx_list, key=lambda x: x.mined)
 
     return tx_list
+
 
 
 def get_eth_investments(address_str: str) -> List[Transaction]:
