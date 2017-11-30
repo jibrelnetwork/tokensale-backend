@@ -327,16 +327,38 @@ def scan_addresses():
     try:
         logging.getLogger(__name__).info("Start to scan for the new transactions")
 
-        if FORCE_SCANNING_ADDRESS__ENABLED:
-            addresses = session.query(Address) \
-                .filter(or_(Address.user_id.isnot(None),
-                            and_(Address.meta.has_key(Address.meta_key_force_scanning),
-                                 Address.meta[Address.meta_key_force_scanning].astext.cast(Boolean) == True))) \
-                .all()  # type: List[Address]
-        else:
-            addresses = session.query(Address) \
-                .filter(Address.user_id.isnot(None)) \
-                .all()  # type: List[Address]
+        transaction_counts = session.query(Transaction.address_id, func.count(Transaction.id).label('count')) \
+            .group_by(Transaction.address_id) \
+            .subquery()
+
+        addresses_eth_wo_transaction = session.query(Address) \
+            .outerjoin(transaction_counts, transaction_counts.c.address_id == Address.id) \
+            .filter(Address.type == CurrencyType.eth) \
+            .filter(Address.user_id.isnot(None)) \
+            .filter(func.coalesce(transaction_counts.c.count, 0) == 0)\
+            .all()  # type: List[Address]
+
+        addresses_eth_wo_transaction = get_eth_addresses_with_positive_balance(addresses_eth_wo_transaction)
+
+        addresses_btc_wo_transaction = session.query(Address) \
+            .outerjoin(transaction_counts, transaction_counts.c.address_id == Address.id) \
+            .filter(Address.type == CurrencyType.btc) \
+            .filter(Address.user_id.isnot(None)) \
+            .filter(func.coalesce(transaction_counts.c.count, 0) == 0) \
+            .all()  # type: List[Address]
+
+        addresses_btc_wo_transaction = get_btc_addresses_with_positive_balance(addresses_btc_wo_transaction)
+
+        addresses_with_transaction = session.query(Address) \
+            .outerjoin(transaction_counts, transaction_counts.c.address_id == Address.id) \
+            .filter(Address.user_id.isnot(None)) \
+            .filter(func.coalesce(transaction_counts.c.count, 0) > 0)\
+            .all()  # type: List[Address]
+
+        addresses = list()
+        addresses.extend(addresses_eth_wo_transaction)
+        addresses.extend(addresses_btc_wo_transaction)
+        addresses.extend(addresses_with_transaction)
 
         error_addresses = []  # type: list[Address]
         previous_call_time = {}  # type: Dict[str, time]
