@@ -14,3 +14,5 @@ transactions_02_01 = "JNT withdrawal request"
 transactions_02_02 = "JNT withdrawal underway"
 transactions_03 = "Your JNT was transferred successfully!"
 transactions_04 = "Token sale closed"
+
+presale_01 = "Your Jibrel Network Tokens have arrived!"
