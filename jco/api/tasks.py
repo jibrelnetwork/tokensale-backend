@@ -95,6 +95,7 @@ def process_all_notifications_runner():
         success, message_id = notify.send_notification(notification.pk)
         notification.is_sended = success
         notification.meta['mailgun_message_id'] = message_id
+        notification.rendered_message = notification.get_body()
 
         notification.save()
 

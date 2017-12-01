@@ -115,6 +115,7 @@ class User(db.Model):
     username = db.Column(db.String(120), nullable=False)
     email = db.Column(db.String(120), nullable=False, unique=True)
 
+    # Relationships
     addresses = db.relationship('Address',
                                 back_populates="user",
                                 cascade="all, delete-orphan",
@@ -173,9 +174,14 @@ class Account(db.Model):
 
     document_url = db.Column(db.String(200), nullable=False, default='')
     document_type = db.Column(db.String(20), nullable=False, default='')
-    user = db.relationship(User, back_populates="account")  # type: User
+    is_document_skipped = db.Column(db.Boolean, nullable=False, default=False)
 
+
+    is_presale_account = db.Column(db.Boolean, nullable=False, default=False)
     tracking = db.Column(JSONB, nullable=False, default=lambda: {})
+
+    # Relationships
+    user = db.relationship(User, back_populates="account")  # type: User
 
     # Methods
     def __repr__(self):
@@ -486,6 +492,7 @@ class Notification(db.Model):
     created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     sended = db.Column(db.DateTime, nullable=True)
     is_sended = db.Column(db.Boolean, nullable=False, default=False)
+    rendered_message = db.Column(db.Unicode, nullable=True)
     meta = db.Column(JSONB, nullable=False, default=lambda: {})
 
     # Relationships
