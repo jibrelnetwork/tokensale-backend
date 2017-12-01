@@ -75,7 +75,7 @@ class Command(BaseCommand):
             last_name=last_name,
             date_of_birth=date_of_birth,
             country=country,
-            residence=country,
+            residency=country,
             citizenship=country,
             document_url=document_url,
             is_presale_account=True,
