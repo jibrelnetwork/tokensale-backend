@@ -67,3 +67,10 @@ Emails sent by the backend app
 ## We received BTC/ETH, but JNT are sold out
 - Condition: we received ETH/BTC, but all JNT are sold out -> we will return BTC/ETH back manually
 - Filename: transactions_04.html
+
+
+# Presale
+
+## We created account for an presale investor
+- Condition: we created account for an presale investor and assigned required number of JNT
+- Filename: presale_01.html
