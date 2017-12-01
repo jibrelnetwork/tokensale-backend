@@ -35,25 +35,33 @@ class Command(BaseCommand):
         success = False
         with transaction.atomic():
             for row in reader:
-                user = self.process_row(row)
+                user, jnt_amount = self.process_row(row)
                 created_users.append(user)
                 enter_url = self.get_enter_url(user)
-                send_email_presale_account_created(user.username, user, enter_url)
+                send_email_presale_account_created(user.username, user, enter_url, jnt_amount)
             success = True
 
         if success is True:
             for user in created_users:
-                print('Verify', user.pk)
-                # verify_user.delay(user.pk)
+                verify_user.delay(user.pk)
 
     def process_row(self, row):
         first_name = row[1].strip()
         last_name = row[2].strip()
-        date_of_birth = datetime.datetime.strptime(row[3].strip(), '%m/%d/%Y')
+        if row[3].strip():
+            date_of_birth = datetime.datetime.strptime(row[3].strip(), '%Y-%m-%d')
+        else:
+            date_of_birth = None
         jnt_amount = row[4].strip().replace(',', '')
         email = row[5].strip()
         country = row[6].strip()
         document_url = row[8].strip()
+
+        if date_of_birth is None:
+            first_name = ''
+            last_name = ''
+            country = ''
+
         password = get_random_string(length=12)
 
         user = get_user_model().objects.create_user(email, email, password)
@@ -67,6 +75,8 @@ class Command(BaseCommand):
             last_name=last_name,
             date_of_birth=date_of_birth,
             country=country,
+            residence=country,
+            citizenship=country,
             document_url=document_url,
             is_presale_account=True,
         )
@@ -78,7 +88,7 @@ class Command(BaseCommand):
         )
         self.stdout.write(
             self.style.SUCCESS('Account "{}", JNT {} created'.format(user.username, jnt.jnt_value)))
-        return user
+        return user, jnt.jnt_value
 
     def get_enter_url(self, user):
         uid = urlsafe_base64_encode(force_bytes(user.pk)).decode()
