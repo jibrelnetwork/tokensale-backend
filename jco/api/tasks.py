@@ -7,7 +7,7 @@ from django.contrib.auth import get_user_model
 from jco.commonutils import person_verify
 from jco.commonutils import ga_integration
 from jco.appprocessor.app_create import celery_app
-from jco.appprocessor import notify
+from jco.appprocessor import notify as notify_lib
 from jco.api.models import Account, Notification
 
 
@@ -41,7 +41,7 @@ def verify_user(user_id, notify=True):
         user.account.save()
         logger.info('Document uploaded: %s', user.account.onfido_document_id)
         if notify:
-            notify.send_email_kyc_data_received(email=user.email, user_id=user.pk)
+            notify_lib.send_email_kyc_data_received(email=user.email, user_id=user.pk)
     else:
         logger.info('Document already uploaded: %s', user.account.onfido_document_id)
 
@@ -93,7 +93,7 @@ def process_all_notifications_runner():
 
     notifications_to_send = Notification.objects.filter(is_sended=False).all()
     for notification in notifications_to_send:
-        success, message_id = notify.send_notification(notification.pk)
+        success, message_id = notify_lib.send_notification(notification.pk)
         notification.is_sended = success
         notification.meta['mailgun_message_id'] = message_id
         notification.rendered_message = notification.get_body()
