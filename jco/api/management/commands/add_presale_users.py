@@ -43,7 +43,7 @@ class Command(BaseCommand):
 
         if success is True:
             for user in created_users:
-                verify_user.delay(user.pk)
+                verify_user.delay(user.pk, False)
 
     def process_row(self, row):
         first_name = row[1].strip()
