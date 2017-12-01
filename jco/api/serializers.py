@@ -27,17 +27,21 @@ RECAPTCA_API_URL = 'https://www.google.com/recaptcha/api/siteverify'
 
 
 class AccountSerializer(serializers.ModelSerializer):
+    username = serializers.SerializerMethodField()
     jnt_balance = serializers.SerializerMethodField()
     identity_verification_status = serializers.SerializerMethodField()
     addresses = serializers.SerializerMethodField()
 
     class Meta:
         model = Account
-        fields = ('first_name', 'last_name', 'date_of_birth', 'country',
+        fields = ('username', 'first_name', 'last_name', 'date_of_birth', 'country',
                   'citizenship', 'residency', 'terms_confirmed', 'document_url', 'document_type',
                   'is_identity_verified', 'jnt_balance', 'identity_verification_status',
                   'addresses', 'is_document_skipped')
         read_only_fields = ('is_identity_verified', 'jnt_balance')
+
+    def get_username(self, obj):
+        return obj.user.username
 
     def get_jnt_balance(self, obj):
         presale_balance = PresaleJnt.objects.filter(
