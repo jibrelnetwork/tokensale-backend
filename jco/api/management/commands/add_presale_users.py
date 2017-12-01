@@ -64,31 +64,44 @@ class Command(BaseCommand):
 
         password = get_random_string(length=12)
 
-        user = get_user_model().objects.create_user(email, email, password)
-        EmailAddress.objects.create(user=user,
-                                    email=user.username,
-                                    primary=True,
-                                    verified=True)
-        account = Account.objects.create(
-            user=user,
-            first_name=first_name,
-            last_name=last_name,
-            date_of_birth=date_of_birth,
-            terms_confirmed=True,
-            country=country,
-            residency=country,
-            citizenship=country,
-            document_url=document_url,
-            is_presale_account=True,
-        )
-        Address.assign_pair_to_user(user)
-        jnt = PresaleJnt.objects.create(
-            user=user,
-            jnt_value=jnt_amount,
-            created=datetime.datetime(2017, 11, 27, 12)
-        )
-        self.stdout.write(
-            self.style.SUCCESS('Account "{}", JNT {} created'.format(user.username, jnt.jnt_value)))
+        try:
+            user = get_user_model().objects.get(username=email)
+            self.stdout.write(
+                    self.style.SUCCESS('Account "{}" exist'.format(user.username)))
+        except get_user_model().DoesNotExist:
+            user = get_user_model().objects.create_user(email, email, password)
+            EmailAddress.objects.create(user=user,
+                                        email=user.username,
+                                        primary=True,
+                                        verified=True)
+            account = Account.objects.create(
+                user=user,
+                first_name=first_name,
+                last_name=last_name,
+                date_of_birth=date_of_birth,
+                terms_confirmed=True,
+                country=country,
+                residency=country,
+                citizenship=country,
+                document_url=document_url,
+                is_presale_account=True,
+            )
+            Address.assign_pair_to_user(user)
+            self.stdout.write(
+                self.style.SUCCESS('Account "{}" created'.format(user.username)))
+
+        try:
+            jnt = PresaleJnt.objects.get(user=user)
+            self.stdout.write(
+                    self.style.SUCCESS('JNT for "{}" exist, {}'.format(user.username, jnt.jnt_value)))
+        except PresaleJnt.DoesNotExist:
+            jnt = PresaleJnt.objects.create(
+                user=user,
+                jnt_value=jnt_amount,
+                created=datetime.datetime(2017, 11, 27, 12)
+            )
+            self.stdout.write(
+                self.style.SUCCESS('JNT for "{}" created, {}'.format(user.username, jnt.jnt_value)))
         return user, jnt.jnt_value
 
     def get_enter_url(self, user):
