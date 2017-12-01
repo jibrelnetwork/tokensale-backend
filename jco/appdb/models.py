@@ -99,7 +99,7 @@ NOTIFICATION_SUBJECTS = {
     'transactions_02_02': 'JNT withdrawal underway',
     'transactions_03': 'Your JNT was transferred successfully!',
     'transactions_04': 'Token sale closed',
-    'presale_account_created': 'Your Jibrel Network Tokens have arrived!',
+    'presale_01': 'Your Jibrel Network Tokens have arrived!',
 }
 
 
