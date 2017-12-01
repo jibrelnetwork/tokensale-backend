@@ -52,7 +52,7 @@ class Command(BaseCommand):
             date_of_birth = datetime.datetime.strptime(row[3].strip(), '%Y-%m-%d')
         else:
             date_of_birth = None
-        jnt_amount = row[4].strip().replace(',', '')
+        jnt_amount = float(row[4].strip().replace(',', ''))
         email = row[5].strip()
         country = row[6].strip()
         document_url = row[8].strip()
