@@ -82,7 +82,7 @@ NOTIFICATION_KEYS = {
     NotificationType.transaction_received_sold_out: 'transactions_04',
     NotificationType.withdrawal_request: 'transactions_02_01',
     NotificationType.withdrawal_succeeded: 'transactions_03',
-    NotificationType.presale_account_created: 'presale_01.html',
+    NotificationType.presale_account_created: 'presale_01',
 }
 
 NOTIFICATION_SUBJECTS = {
