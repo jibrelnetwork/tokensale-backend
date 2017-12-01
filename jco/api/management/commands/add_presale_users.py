@@ -74,6 +74,7 @@ class Command(BaseCommand):
             first_name=first_name,
             last_name=last_name,
             date_of_birth=date_of_birth,
+            terms_confirmed=True,
             country=country,
             residency=country,
             citizenship=country,
