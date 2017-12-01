@@ -202,6 +202,7 @@ class Notification(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     sended = models.DateTimeField(null=True)
     is_sended = models.BooleanField(default=False)
+    rendered_message = models.TextField(null=True, blank=True)
 
     meta = JSONField(default=dict)  # This field type is a guess.
 
