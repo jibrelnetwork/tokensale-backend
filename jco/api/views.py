@@ -88,14 +88,18 @@ class AccountView(GenericAPIView):
         if serializer.is_valid():
             serializer.save()
             self.maybe_start_identity_verification(account)
+            self.maybe_assign_addresses(account)
             return Response(serializer.data)
         return Response(serializer.errors, status=400)
 
     def maybe_start_identity_verification(self, account):
         if account.document_url and not account.onfido_check_id:
-            Address.assign_pair_to_user(account.user)
             ga_integration.on_status_registration_complete(account)
             tasks.verify_user.delay(account.user.pk)
+
+    def maybe_assign_addresses(self, account):
+        if (account.document_url and not account.onfido_check_id) or account.is_document_skipped:
+            Address.assign_pair_to_user(account.user)
 
 
 class ResendEmailConfirmationView(GenericAPIView):

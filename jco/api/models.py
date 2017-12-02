@@ -1,3 +1,5 @@
+import logging
+
 from django.db import models, transaction
 from django.conf import settings
 from django.contrib.postgres.fields import JSONField
@@ -8,6 +10,9 @@ from jco.appdb.models import TransactionStatus
 from jco.appdb.models import NotificationType
 from jco.appdb.models import NOTIFICATION_KEYS, NOTIFICATION_SUBJECTS
 from jco.appprocessor import notify
+
+
+logger = logging.getLogger(__name__)
 
 
 class Account(models.Model):
@@ -107,19 +112,21 @@ class Address(models.Model):
     @classmethod
     def assign_pair_to_user(cls, user):
         if cls.objects.filter(user=user).count() > 0:
+            logger.info('User %s already have address', user.username)
             return False
         with transaction.atomic():
             eth_addr = (cls.objects.select_for_update()
                         .filter(type=CurrencyType.eth, user=None, is_usable=True).first())
             eth_addr.user = user
             eth_addr.save()
+            logger.info('ETH Address %s is assigned to user %s', eth_addr.address, user.username)
 
             btc_addr = (cls.objects.select_for_update()
                         .filter(type=CurrencyType.btc, user=None, is_usable=True).first())
             btc_addr.user = user
             btc_addr.save()
+            logger.info('BTC Address %s is assigned to user %s', btc_addr.address, user.username)
         return True
-
 
 
 class Transaction(models.Model):
