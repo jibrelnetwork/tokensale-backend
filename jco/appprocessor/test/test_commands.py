@@ -13,7 +13,7 @@ from sqlalchemy.sql import func
 from sqlalchemy.sql.expression import not_, or_
 
 sys.path.append(os.getcwd())
-from jco.commonconfig.config import INVESTMENTS__TOKEN_PRICE_IN_USD, FORCE_SCANNING_ADDRESS__ENABLED
+from jco.commonconfig.config import FORCE_SCANNING_ADDRESS__ENABLED
 from jco.appdb.db import session
 from jco.appdb.models import *
 from jco.commonutils.utils import *
@@ -46,6 +46,9 @@ from jco.appprocessor.commands import (
     get_btc_addresses_with_positive_balance,
     get_eth_addresses_with_positive_balance,
 )
+
+
+INVESTMENTS__TOKEN_PRICE_IN_USD = 0.25
 
 
 def create_user(user_name, email) -> User:
