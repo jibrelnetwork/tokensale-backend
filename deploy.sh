@@ -4,7 +4,7 @@ JCO_SERVICE=jco.service
 JCO_CELERY_SERVICE=jco-dj-celery.service
 ROOT="/home/jibrelnetwork/jco"
 
-echo "Start deploying"
+echo "Start deploying."
 cd $ROOT
 
 # Stop services
