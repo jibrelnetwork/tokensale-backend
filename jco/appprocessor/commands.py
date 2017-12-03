@@ -263,7 +263,14 @@ def get_eth_addresses_with_positive_balance(addresses: List[Address]) -> List[Ad
         balances_response.raise_for_status()
         balances_response_json = balances_response.json()
 
-        positive_accounts = [x['account'] for x in balances_response_json['result'] if float(x['balance'])>0]
+        try:
+            positive_accounts = [x['account'] for x in balances_response_json['result'] if x.get('balance') and float(x['balance'])>0]
+        except Exception:
+            exception_str = ''.join(traceback.format_exception(*sys.exc_info()))
+            logging.getLogger(__name__).error(
+                "Failed to get eth addresses that have positive balance due to exception:\nblockexplorer response:\n{}\n{}"
+                    .format(balances_response.text, exception_str))
+
         positive_addresses = [x for x in addresses if x.address in positive_accounts]
         result.extend(positive_addresses)
 
@@ -311,7 +318,14 @@ def get_btc_addresses_with_positive_balance(addresses: List[Address]) -> List[Ad
                          .format(balances_response_json))
             continue
 
-        positive_accounts = [x['address'] for x in balances_response_json['addresses'] if float(x['n_tx']) > 0]
+        try:
+            positive_accounts = [x['address'] for x in balances_response_json['addresses'] if x.get('n_tx') and float(x['n_tx']) > 0]
+        except Exception:
+            exception_str = ''.join(traceback.format_exception(*sys.exc_info()))
+            logging.getLogger(__name__).error(
+                "Failed to get btc addresses that have positive balance due to exception:\nblockexplorer response:\n{}\n{}"
+                    .format(balances_response.text, exception_str))
+
         positive_addresses = [x for x in addresses if x.address in positive_accounts]
         result.extend(positive_addresses)
 
