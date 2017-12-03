@@ -670,7 +670,7 @@ def calculate_jnt_purchases():
                     continue
 
                 tx_usd_value = tx.value * currency_to_usd_rate
-                tx_jnt_value = tx_usd_value / INVESTMENTS__TOKEN_PRICE_IN_USD
+                tx_jnt_value = tx_usd_value / 0.25
 
                 if get_total_jnt_amount() + tx_jnt_value >= RAISED_TOKENS_SHIFT:
                     send_email_transaction_received_sold_out(tx.address.user.email, tx.address.user_id, tx.as_dict())
@@ -681,7 +681,7 @@ def calculate_jnt_purchases():
                 jnt.purchase_id = generate_purchase_id()
                 jnt.currency_to_usd_rate = currency_to_usd_rate
                 jnt.usd_value = tx_usd_value
-                jnt.jnt_to_usd_rate = INVESTMENTS__TOKEN_PRICE_IN_USD
+                jnt.jnt_to_usd_rate = 0.25
                 jnt.jnt_value = tx_jnt_value
                 jnt.transaction = tx
 
