@@ -143,8 +143,6 @@ curl -H "Content-Type: application/json" -X POST -d '{"email":"test1@local","pas
 
 # Launch celery tasks
 
-## Launch Django celery tasks in dev mode
-
 ```
 mkdir -p ./celery-sys/
 mkdir -p ./celery-log/
@@ -157,17 +155,8 @@ celery -A jco worker \
     --loglevel=INFO
 ```
 
-## Launch SQLAlchemy celery tasks in dev mode
+# Upgrading App to a newer version
 
 ```
-mkdir -p ./celery-sys/
-mkdir -p ./celery-log/
-
-source venv/bin/activate
-
-celery worker \
-  --app=jco.celery_tasks \
-  --pidfile="./celery-sys/%n.pid" \
-  --logfile="./celery-log/%n-%i.log" \
-  --loglevel=INFO
+./deploy.sh
 ```
