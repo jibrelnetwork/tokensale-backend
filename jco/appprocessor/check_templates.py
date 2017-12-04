@@ -15,10 +15,9 @@ from jco.appprocessor.templates.subjects import TEMPLATE__SUBJECT
 MAIL_TESTER__USER = "denalex"
 MAIL_TESTER__REPORT_URL = "https://www.mail-tester.com/{}-{}&format={}"
 
-class ReportType {
+class ReportType:
     json = "json"
     dbug = "dbug"
-}
 
 
 def get_templates_path() -> str:
@@ -97,7 +96,7 @@ def get_email_template_mark(template_id: str) -> Dict:
     r = requests.get(_url)
     r.raise_for_status()
 
-    return r.json()["displayedMark"]
+    return r.json()["displayedMark"] if r.json().get("displayedMark") else None
 
 
 #
