@@ -3,6 +3,7 @@ from datetime import datetime
 import logging
 
 from django.contrib.auth import get_user_model
+from django.conf import settings
 
 from jco.commonutils import person_verify
 from jco.commonutils import ga_integration
@@ -66,15 +67,25 @@ def check_user_verification_status(user_id):
 
     check = api.find_check(user.account.onfido_applicant_id, user.account.onfido_check_id)
 
+    logger.info('Verification status is: %s, result: %s', check.status, check.result)
     user.account.onfido_check_status = check.status
     user.account.onfido_check_result = check.result
     if check.result == person_verify.RESULT_CLEAR:
+        for report_id in check.reports:
+            report = api.find_report(user.account.onfido_check_id, report_id)
+            if report.name == 'document':
+                if report.properties['issuing_country'].upper() in settings.COUNTRIES_NOT_ALLOWED:
+                    user.account.is_identity_verification_declined = True
+                    ga_integration.on_status_not_verified(user.account)
+                    user.account.save()
+                    logger.info('User %s is rejected by country: %s',
+                                user.email, report.properties['issuing_country'])
+                    return
         user.account.is_identity_verified = True
         ga_integration.on_status_verified(user.account)
     elif check.status == person_verify.STATUS_COMPLETE and check.result != person_verify.RESULT_CLEAR:
         ga_integration.on_status_not_verified(user.account)
     user.account.save()
-    logger.info('Verification status is: %s, result: %s', check.status, check.result)
 
 
 @celery_app.task()
