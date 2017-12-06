@@ -30,7 +30,7 @@ class GAClient:
             'ea': 'Status',  #=Status
             'el': status,  #=Verified
         }
-        logger.debug("Sending GA event data for user %s: %s", self.account.user.pk, data)
+        logger.info("Sending GA event data for user %s: %s", self.account.user.pk, data)
         self.send_data(data)
 
     def send_transaction(self, transaction_id, summ):
@@ -47,7 +47,7 @@ class GAClient:
             'tr': summ,  #=14500.123
             'cu': 'USD',  #=USD
         }
-        logger.debug("Sending GA TX data for user %s: %s", self.account.user.pk, data)
+        logger.info("Sending GA TX data for user %s: %s", self.account.user.pk, data)
         self.send_data(data)
 
     def send_item(self, transaction_id, quantity, item_price):
@@ -68,7 +68,7 @@ class GAClient:
             '1c': '1111',  #=qweqeq
             'iv': 'Tokens',  #=phones
         }
-        logger.debug("Sending GA Item data for user %s: %s", self.account.user.pk, data)
+        logger.info("Sending GA Item data for user %s: %s", self.account.user.pk, data)
         self.send_data(data)
 
     def send_tx_with_item(self, transaction_id, summ, quantity, item_price):
@@ -90,9 +90,6 @@ class GAClient:
         return utm
 
     def send_data(self, data):
-        # FIXME !
-        logger.info('Bypass GA (quickfix)')
-        return
         if not self.cid:
             logger.warn("No GA client ID for user #%s", self.account.user.pk)
             return

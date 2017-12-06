@@ -94,7 +94,8 @@ class AccountView(GenericAPIView):
 
     def maybe_start_identity_verification(self, account):
         if account.document_url and not account.onfido_check_id:
-            ga_integration.on_status_registration_complete(account)
+            # FIXME !!!
+            # ga_integration.on_status_registration_complete(account)
             tasks.verify_user.delay(account.user.pk)
 
     def maybe_assign_addresses(self, account):
