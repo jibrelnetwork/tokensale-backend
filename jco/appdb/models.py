@@ -17,6 +17,21 @@ class CurrencyType:
     chf = 'CHF'
 
 
+class AffiliateNetwork:
+    clicksure = 'clicksure'
+    runcpa = 'runcpa'
+    actionpay = 'actionpay'
+
+
+class AffiliateStatus:
+    success = 200
+
+
+class AffiliateEvent:
+    registration = 'registration'
+    transaction = 'transaction'
+
+
 class TransactionStatus:
     pending = 'pending'
     fail = 'fail'
@@ -129,9 +144,13 @@ class User(db.Model):
                                uselist=False,
                                passive_deletes=True)  # type: Account
     notifications = db.relationship('Notification',
-                                back_populates="user",
-                                cascade="all, delete-orphan",
-                                passive_deletes=True)  # type: Notification
+                                    back_populates="user",
+                                    cascade="all, delete-orphan",
+                                    passive_deletes=True)  # type: Notification
+    affiliates = db.relationship('Affiliate',
+                                 back_populates="user",
+                                 cascade="all, delete-orphan",
+                                 passive_deletes=True)  # type: Affiliate
 
     # Methods
     def __repr__(self):
@@ -183,7 +202,28 @@ class Account(db.Model):
     # Relationships
     user = db.relationship(User, back_populates="account")  # type: User
 
+    # Tracking keys
+    tracking_key_affiliate_clicksureclickid = 'clicksureclickid'
+    tracking_key_affiliate_track_id = 'track_id'
+    tracking_key_affiliate_actionpay = 'actionpay'
+
     # Methods
+
+    def get_affiliate_clicksureclickid(self) -> Optional[str]:
+        if self.tracking_key_affiliate_clicksureclickid not in self.tracking:
+            return None
+        return self.tracking[self.tracking_key_affiliate_clicksureclickid]
+
+    def get_affiliate_track_id(self) -> Optional[str]:
+        if self.tracking_key_affiliate_track_id not in self.tracking:
+            return None
+        return self.tracking[self.tracking_key_affiliate_track_id]
+
+    def get_affiliate_actionpay(self) -> Optional[str]:
+        if self.tracking_key_affiliate_actionpay not in self.tracking:
+            return None
+        return self.tracking[self.tracking_key_affiliate_actionpay]
+
     def __repr__(self):
         fieldsToPrint = (('id', self.id),
                          ('fullname', self.fullname),
@@ -548,4 +588,47 @@ class Notification(db.Model):
         if self.meta is None:
             self.meta = {}
         self.meta[self.meta_key_mailgun_delivered] = value
+        flag_modified(self, "meta")
+
+
+class Affiliate(db.Model):
+    # Fields
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('auth_user.id'), unique=False, nullable=True)
+    event = db.Column(db.String(20), nullable=False)
+    url = db.Column(db.String(300), nullable=False, default='')
+    created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    sended = db.Column(db.DateTime, nullable=True)
+    status = db.Column(db.Integer, nullable=True)
+    meta = db.Column(JSONB, nullable=False, default=lambda: {})
+
+    # Meta keys
+    meta_key_transaction_id = 'transaction_id'
+
+    # Relationships
+    user = db.relationship(User, back_populates="affiliates")  # type: User
+
+    # Methods
+    def __repr__(self):
+        fieldsToPrint = (('id', self.id),
+                         ('user_id', self.user_id),
+                         ('event', self.event),
+                         ('url', self.url),
+                         ('created', self.created),
+                         ('sended', self.sended),
+                         ('status', self.status))
+
+        argsString = ', '.join(['{}={}'.format(f[0], '"' + f[1] + '"' if (type(f[1]) == str) else f[1])
+                                for f in fieldsToPrint])
+        return '<{}({})>'.format(self.__class__.__name__, argsString)
+
+    def get_transaction_id(self) -> Optional[int]:
+        if self.meta_key_transaction_id not in self.meta:
+            return None
+        return self.meta[self.meta_key_transaction_id]
+
+    def set_transaction_id(self, value: int):
+        if self.meta is None:
+            self.meta = {}
+        self.meta[self.meta_key_transaction_id] = value
         flag_modified(self, "meta")

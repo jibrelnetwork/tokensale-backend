@@ -7,6 +7,7 @@ from jco.appprocessor import commands
 import django
 django.setup()
 from jco.api import tasks as api_tasks
+from jco.appprocessor import affiliate
 
 
 @celery_app.task()
@@ -39,6 +40,20 @@ def celery_withdraw_processing():
 
 @celery_app.task()
 @initialize_app
+@locked_task()
+def celery_check_affiliate_events():
+    return affiliate.check_new_events()
+
+
+@celery_app.task()
+@initialize_app
+@locked_task()
+def celery_scan_affiliates():
+    return affiliate.scan_affiliates()
+
+
+@celery_app.task()
+@initialize_app
 def celery_get_account_list():
     return  commands.get_account_list()
 
@@ -63,6 +78,11 @@ def setup_periodic_tasks(sender, **kwargs):
                              calculate_jnt_purchases, expires=5 * 60, name='calculate_jnt_purchases')
     sender.add_periodic_task(crontab(minute='*/1'),
                              celery_fetch_tickers_price, expires=1 * 60, name='fetch_tickers_price')
+    sender.add_periodic_task(crontab(minute='*/10'),
+                             celery_check_affiliate_events, expires=5 * 60, name='celery_check_affiliate_events')
+    sender.add_periodic_task(crontab(minute='*/10'),
+                             celery_scan_affiliates, expires=5 * 60, name='celery_scan_affiliates')
+
     sender.add_periodic_task(20,
                              api_tasks.check_user_verification_status_runner,
                              expires=1 * 60,
