@@ -90,6 +90,9 @@ class GAClient:
         return utm
 
     def send_data(self, data):
+        # FIXME !
+        logger.info('Bypass GA (quickfix)')
+        return
         if not self.cid:
             logger.warn("No GA client ID for user #%s", self.account.user.pk)
             return
