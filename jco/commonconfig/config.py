@@ -20,9 +20,6 @@ if 'pytest' in ' '.join(sys.argv):
     SQLALCHEMY_DATABASE_URI = '/'.join(SQLALCHEMY_DATABASE_URI.split('/')[:-1] + ['test_' + db_name])
 
 
-print('SQLA DB URI', SQLALCHEMY_DATABASE_URI)
-
-
 def getLoggingConfig(path):
     return LOGGING
 # def getLoggingConfig(rootLogDir: Path) -> Dict:

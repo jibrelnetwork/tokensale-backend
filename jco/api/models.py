@@ -44,6 +44,7 @@ class Account(models.Model):
     onfido_check_status = models.CharField(max_length=200, null=True, blank=True)
     onfido_check_result = models.CharField(max_length=200, null=True, blank=True)
     onfido_check_created = models.DateTimeField(null=True, blank=True)
+    verification_started_at = models.DateTimeField(null=True, blank=True)
 
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     withdraw_address = models.CharField(max_length=255, null=True, blank=True)

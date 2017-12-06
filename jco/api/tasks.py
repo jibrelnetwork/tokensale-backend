@@ -1,9 +1,12 @@
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 
 from django.contrib.auth import get_user_model
 from django.conf import settings
+from django.db.models import Q
+from django.db import transaction
+from django.utils import timezone
 
 from jco.commonutils import person_verify
 from jco.commonutils import ga_integration
@@ -22,41 +25,60 @@ def verify_user(user_id, notify=True):
     """
     user = get_user_model().objects.get(pk=user_id)
 
-    if user.account.onfido_check_status == person_verify.STATUS_COMPLETE:
-        logger.warn('Verification completed')
-        return
+    with transaction.atomic():
+        now = timezone.now()
+        account = Account.objects.select_for_update().get(user=user)
 
-    logger.info('Start verifying process for user %s <%s>', user.pk, user.email)
-    if not user.account.onfido_applicant_id:
+        if account.onfido_check_status == person_verify.STATUS_COMPLETE:
+            logger.warn('Verification completed for %s, exiting', user.username)
+            return
+
+        if account.onfido_check_id is not None:
+            logger.warn('Check exists for %s, exiting', user.username)
+            return
+        if (account.verification_started_at and
+           (now - account.verification_started_at) < timedelta(minutes=5)):
+            logger.info('Verification already started for %s, exiting', user.username)
+            return
+
+        logger.info('Start verifying process for user %s <%s>', user.pk, user.username)
+        account.verification_started_at = now
+        account.save()
+
+    if not account.onfido_applicant_id:
         applicant_id = person_verify.create_applicant(user_id)
-        user.account.onfido_applicant_id = applicant_id
-        user.account.save()
-        logger.info('Applicant created: %s', user.account.onfido_applicant_id)
+        account.onfido_applicant_id = applicant_id
+        account.save()
+        logger.info('Applicant %s created for %s',
+                    account.onfido_applicant_id, user.username)
     else:
-        logger.info('Applicant already exists: %s', user.account.onfido_applicant_id)
+        logger.info('Applicant for %s already exists: %s',
+                    user.username, account.onfido_applicant_id)
 
-    if not user.account.onfido_document_id:
+    if not account.onfido_document_id:
         document_id = person_verify.upload_document(
-            user.account.onfido_applicant_id, user.account.document_url, user.account.document_type)
-        user.account.onfido_document_id = document_id
-        user.account.save()
-        logger.info('Document uploaded: %s', user.account.onfido_document_id)
+            account.onfido_applicant_id, account.document_url, account.document_type)
+        account.onfido_document_id = document_id
+        account.save()
+        logger.info('Document for %s uploaded: %s',
+                    user.username, account.onfido_document_id)
         if notify:
             notify_lib.send_email_kyc_data_received(email=user.email, user_id=user.pk)
     else:
-        logger.info('Document already uploaded: %s', user.account.onfido_document_id)
+        logger.info('Document for %s already uploaded: %s',
+                    user.username, account.onfido_document_id)
 
-    check_id = person_verify.create_check(user.account.onfido_applicant_id)
-    user.account.onfido_check_id = check_id
-    user.account.onfido_check_created = datetime.now()
-    user.account.save()
-    logger.info('Check created: %s', user.account.onfido_check_id)
+    check_id = person_verify.create_check(account.onfido_applicant_id)
+    account.onfido_check_id = check_id
+    account.onfido_check_created = timezone.now()
+    account.save()
+    logger.info('Check for %s created: %s', user.username, account.onfido_check_id)
 
 
 @celery_app.task()
 def check_user_verification_status(user_id):
     """
-    Check and store OnFido check status and result 
+    Check and store OnFido check status and result
     """
     user = get_user_model().objects.get(pk=user_id)
     logger.info('Checking verification status for user %s <%s>', user.pk, user.email)
@@ -96,6 +118,20 @@ def check_user_verification_status_runner():
         logger.info('Run check verification status for user %s <%s>',
                     account.user.pk, account.user.email)
         check_user_verification_status.delay(account.user.pk)
+
+
+@celery_app.task()
+def retry_uncomplete_verifications():
+    now = datetime.now()
+    accounts_to_verify = Account.objects.filter(
+        onfido_check_id=None,
+        verification_started_at__lt=(now - timedelta(minutes=5))
+    ).exclude(document_url=None).all()
+
+    for account in accounts_to_verify:
+        logger.info('Retry uncomplete account verification %s <%s>',
+                    account.user.pk, account.user.email)
+        verify_user.delay(account.user.pk)
 
 
 @celery_app.task()

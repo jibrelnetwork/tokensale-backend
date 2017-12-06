@@ -10,4 +10,3 @@ Session = sessionmaker(autocommit=False,
                        autoflush=False,
                        bind=create_engine(SQLALCHEMY_DATABASE_URI))
 session = scoped_session(Session)
-print('SS', session, SQLALCHEMY_DATABASE_URI)
