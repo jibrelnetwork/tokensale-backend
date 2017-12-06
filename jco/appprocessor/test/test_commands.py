@@ -13,11 +13,18 @@ from sqlalchemy.sql import func
 from sqlalchemy.sql.expression import not_, or_
 
 sys.path.append(os.getcwd())
-from jco.commonconfig.config import INVESTMENTS__TOKEN_PRICE_IN_USD, FORCE_SCANNING_ADDRESS__ENABLED
+from jco.commonconfig.config import FORCE_SCANNING_ADDRESS__ENABLED
 from jco.appdb.db import session
 from jco.appdb.models import *
 from jco.commonutils.utils import *
 from jco.commonutils.app_init import initialize_app
+from jco.appprocessor.affiliate import (
+    scan_affiliates,
+    check_new_transactions,
+    check_new_registartions,
+    get_affiliate_url,
+    get_affiliate,
+)
 from jco.appprocessor.commands import (
     generate_eth_addresses,
     generate_btc_addresses,
@@ -48,6 +55,9 @@ from jco.appprocessor.commands import (
 )
 
 
+INVESTMENTS__TOKEN_PRICE_IN_USD = 0.25
+
+
 def create_user(user_name, email) -> User:
     session.execute("INSERT INTO \"auth_user\" (\"password\", \"last_login\", \"is_superuser\", \"username\","
                     "\"first_name\", \"last_name\", \"email\", \"is_staff\", \"is_active\", \"date_joined\")"
@@ -64,6 +74,7 @@ def create_user(user_name, email) -> User:
 
 class TestCommands(unittest.TestCase):
     def clear_all_tables(selfself):
+        session.query(Affiliate).delete()
         session.query(Notification).delete()
         session.query(Withdraw).delete()
         session.query(JNT).delete()
@@ -1012,6 +1023,141 @@ class TestCommands(unittest.TestCase):
         self.assertTrue(len(positive_addresses) == 2)
         self.assertEqual(positive_addresses[0].address, '1HEVUxtxGjGnuRT5NsamD6V4RdUduRHqFv')
         self.assertEqual(positive_addresses[1].address, '1FctpG14EZosqFCJCKivKUtFHT7eycRpk7')
+
+    def test_aaa_check_new_transactions(self):
+        generate_eth_addresses(self.mnemonic, 3)
+        generate_btc_addresses(self.mnemonic, 3)
+
+        user1 = create_user("user1", "user1@local")
+        user2 = create_user("user2", "user2@local")
+        user3 = create_user("user3", "user3@local")
+
+        assign_addresses(user1.id)
+        assign_addresses(user2.id)
+        assign_addresses(user3.id)
+
+        account1 = Account(fullname="user1",
+                           country="country",
+                           citizenship="US",
+                           residency="US",
+                           withdraw_address="0x00000000",
+                           user_id=user1.id,
+                           tracking={"clicksureclickid": "abcdf"})
+
+        session.add(account1)
+
+        account2 = Account(fullname="user2",
+                           country="country",
+                           citizenship="US",
+                           residency="US",
+                           withdraw_address="0x00000000",
+                           user_id=user2.id,
+                           tracking={"track_id": "abcdf"})
+
+        session.add(account2)
+
+        account3 = Account(fullname="user3",
+                           country="country",
+                           citizenship="US",
+                           residency="US",
+                           withdraw_address="0x00000000",
+                           user_id=user3.id)
+
+        session.add(account3)
+        session.flush()
+
+        transaction1 = Transaction(transaction_id="0xffaaaddcc1",
+                                    value=1001,
+                                    address_id=user1.addresses[0].id,
+                                    mined=datetime.utcnow(),
+                                    block_height=3)
+        transaction2 = Transaction(transaction_id="0xffaaaddcc2",
+                                    value=1002,
+                                    address_id=user2.addresses[0].id,
+                                    mined=datetime.utcnow(),
+                                    block_height=3)
+        transaction3 = Transaction(transaction_id="0xffaaaddcc3",
+                                    value=1003,
+                                    address_id=user3.addresses[0].id,
+                                    mined=datetime.utcnow(),
+                                    block_height=3)
+
+        session.add(transaction1)
+        session.add(transaction2)
+        session.add(transaction3)
+        session.flush()
+
+        affiliate = Affiliate(user_id=account2.user_id,
+                              event=AffiliateEvent.transaction,
+                              url=get_affiliate_url(account2, AffiliateEvent.transaction, transaction2),
+                              meta={Affiliate.meta_key_transaction_id: transaction2.id})
+        session.add(affiliate)
+        session.commit()
+
+        check_new_transactions()
+
+        affiliates = session.query(Affiliate) \
+            .filter(Affiliate.event == AffiliateEvent.transaction) \
+            .all()
+        self.assertEqual(len(affiliates), 2)
+        self.assertEqual(affiliates[0].url,
+                         "http://runcpa.com/callbacks/events/revenue-partner/QGcal1rP6kwTYWRtxU_EXiyUQ7sYwCPz/rs174937/abcdf/1002.00")
+        self.assertEqual(affiliates[1].url,
+                         "https://454048.cpa.clicksure.com/postback?transactionRef=0xffaaaddcc1&clickID=abcdf")
+
+    def test_aa_check_new_registartions(self):
+        user1 = create_user("user1", "user1@local")
+        user2 = create_user("user2", "user2@local")
+        user3 = create_user("user3", "user3@local")
+
+        account1 = Account(fullname="user1",
+                           country="country",
+                           citizenship="US",
+                           residency="US",
+                           withdraw_address="0x00000000",
+                           user_id=user1.id,
+                           is_identity_verified=True,
+                           tracking={"clicksureclickid": "abcdf"})
+
+        session.add(account1)
+
+        account2 = Account(fullname="user2",
+                           country="country",
+                           citizenship="US",
+                           residency="US",
+                           withdraw_address="0x00000000",
+                           user_id=user2.id,
+                           is_identity_verified=True,
+                           tracking={"track_id": "abcdf"})
+
+        session.add(account2)
+
+        account3 = Account(fullname="user3",
+                           country="country",
+                           citizenship="US",
+                           residency="US",
+                           withdraw_address="0x00000000",
+                           user_id=user3.id,
+                           is_identity_verified=True)
+
+        session.add(account3)
+        session.flush()
+
+        affiliate = Affiliate(user_id=account2.user_id,
+                              event=AffiliateEvent.registration,
+                              url=get_affiliate_url(account2, AffiliateEvent.registration))
+        session.add(affiliate)
+        session.commit()
+
+        check_new_registartions()
+
+        affiliates = session.query(Affiliate) \
+            .filter(Affiliate.event == AffiliateEvent.registration) \
+            .all()
+        self.assertEqual(len(affiliates), 2)
+        self.assertEqual(affiliates[0].url,
+                         "http://runcpa.com/callbacks/event/s2s-partner/QGcal1rP6kwTYWRtxU_EXiyUQ7sYwCPz/cpl200008/abcdf")
+        self.assertTrue("https://451418.cpa.clicksure.com/postback?transactionRef=" in affiliates[1].url)
 
 
 if __name__ == '__main__':

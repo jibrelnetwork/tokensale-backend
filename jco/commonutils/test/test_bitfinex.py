@@ -18,7 +18,7 @@ class TestBitfinexWrapper(unittest.TestCase):
         self.assertIsInstance(btcusdTickerData, dict, 'Ticker data should be an dict')
         self.assertEqual({'ask', 'timestamp', 'bid', 'last_price', 'mid'}, set(btcusdTickerData.keys()),
                          'Ticker data should contain all expected fields')
-        self.assertLess(btcusdTickerData['bid'], 10000, 'BTC/USD conversion rate should be less than 10000 BTC/USD')
+        self.assertLess(btcusdTickerData['bid'], 15000, 'BTC/USD conversion rate should be less than 15000 BTC/USD')
         self.assertGreater(btcusdTickerData['bid'], 1000, 'BTC/USD conversion rate should be greater than 1000 BTC/USD')
 
         ethusdTickerData = bitfinexWrapper.get_ticker('ethusd')

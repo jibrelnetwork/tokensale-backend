@@ -212,6 +212,8 @@ GA_ID = os.environ['GA_ID']
 
 WITHDRAW_AVAILABLE_SINCE = datetime(2017, 12, 15, 12)
 
+COUNTRIES_NOT_ALLOWED = ['USA']
+
 #######################################################################
 #
 #             LEGACY SETTINGS

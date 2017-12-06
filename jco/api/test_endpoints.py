@@ -10,6 +10,7 @@ from allauth.account.utils import setup_user_email
 
 from jco.api import models
 from jco.appdb import models as sa_models
+from jco.settings import RAISED_TOKENS_SHIFT
 
 
 class ApiClient(RequestsClient):
@@ -220,18 +221,22 @@ def test_get_account_empty(client, users):
     client.authenticate('user1@main.com', 'password1')
     resp = client.get('/api/account/')
     assert resp.status_code == 200
-    assert resp.json() == {'country': '',
-                           'date_of_birth': None,
+    assert resp.json() == {'username': 'user1@main.com',
                            'first_name': '',
                            'last_name': '',
-                           'terms_confirmed': False,
-                           'document_url': '',
-                           'is_identity_verified': False,
-                           'identity_verification_status': None,
+                           'date_of_birth': None,
+                           'country': '',
                            'citizenship': '',
                            'residency': '',
+                           'terms_confirmed': False,
+                           'document_url': '',
+                           'document_type': '',
+                           'is_identity_verified': False,
+                           'jnt_balance': 0,
+                           'identity_verification_status': None,
                            'addresses': {},
-                           'jnt_balance': 0}
+                           'is_document_skipped': False,
+                           }
 
 
 def test_update_account(client, users, transactions):
@@ -247,24 +252,28 @@ def test_update_account(client, users, transactions):
     client.authenticate('user1@main.com', 'password1')
     resp = client.put('/api/account/', {'first_name': 'John', 'terms_confirmed': True})
     assert resp.status_code == 200
-    assert resp.json() == {'country': '',
-                           'date_of_birth': None,
+    assert resp.json() == {'username': 'user1@main.com',
                            'first_name': 'John',
                            'last_name': '',
-                           'terms_confirmed': True,
-                           'document_url': '',
-                           'is_identity_verified': False,
-                           'identity_verification_status': None,
+                           'date_of_birth': None,
+                           'country': '',
                            'citizenship': '',
                            'residency': '',
+                           'terms_confirmed': True,
+                           'document_url': '',
+                           'document_type': '',
+                           'is_identity_verified': False,
+                           'jnt_balance': 1.5,
+                           'identity_verification_status': None,
                            'addresses': {'BTC': 'aba', 'ETH': 'aaa'},
-                           'jnt_balance': 1.5}
+                           'is_document_skipped': False,
+                           }
 
 
 def test_get_raised_tokens_empty(client, users):
     resp = client.get('/api/raised-tokens/')
     assert resp.status_code == 200
-    assert resp.json() == {'raised_tokens': 0}
+    assert resp.json() == {'raised_tokens': RAISED_TOKENS_SHIFT}
 
 
 def test_get_raised_tokens(client, transactions):
@@ -286,9 +295,12 @@ def test_get_raised_tokens(client, transactions):
         active=True,
         created=datetime.now(),
         transaction=transactions[1])
+    jnts = models.Jnt.objects.all()
+    assert len(jnts) == 2
+
     resp = client.get('/api/raised-tokens/')
     assert resp.status_code == 200
-    assert resp.json() == {'raised_tokens': 2.25}
+    assert resp.json() == {'raised_tokens': RAISED_TOKENS_SHIFT + 2.25}
 
 
 def test_get_withdraw_address_empty(client, users):
@@ -359,6 +371,42 @@ def test_registration(client):
         'password_confirm': '123qwerty',
         'captcha': 'zxc',
         'tracking': {'ga_id': '123.456.7890', 'utm_campaign': 'Cmp1', 'utm_source': 'src'},
+    }
+    resp = client.post('/auth/registration/', json=user_data)
+    assert resp.status_code == 201
+    account = models.Account.objects.get(user__username=user_data['email'])
+    assert account.tracking == user_data['tracking']
+
+    user_data = {
+        'email': 'aa1@aa.aa',
+        'password': '123qwerty',
+        'password_confirm': '123qwerty',
+        'captcha': 'zxc',
+        'tracking': {'ga_id': '123.456.7890', 'utm_campaign': 'Cmp1', 'utm_source': 'src', 'clicksureclickid': 'abcdefgh'},
+    }
+    resp = client.post('/auth/registration/', json=user_data)
+    assert resp.status_code == 201
+    account = models.Account.objects.get(user__username=user_data['email'])
+    assert account.tracking == user_data['tracking']
+
+    user_data = {
+        'email': 'aa2@aa.aa',
+        'password': '123qwerty',
+        'password_confirm': '123qwerty',
+        'captcha': 'zxc',
+        'tracking': {'ga_id': '123.456.7890', 'utm_campaign': 'Cmp1', 'utm_source': 'src', 'track_id': 'abcdefgh'},
+    }
+    resp = client.post('/auth/registration/', json=user_data)
+    assert resp.status_code == 201
+    account = models.Account.objects.get(user__username=user_data['email'])
+    assert account.tracking == user_data['tracking']
+
+    user_data = {
+        'email': 'aa3@aa.aa',
+        'password': '123qwerty',
+        'password_confirm': '123qwerty',
+        'captcha': 'zxc',
+        'tracking': {'ga_id': '123.456.7890', 'utm_campaign': 'Cmp1', 'utm_source': 'src', 'actionpay': 'abcdefgh'},
     }
     resp = client.post('/auth/registration/', json=user_data)
     assert resp.status_code == 201

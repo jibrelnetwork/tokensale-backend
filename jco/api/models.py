@@ -242,3 +242,16 @@ class PresaleJnt(models.Model):
 
     class Meta:
         db_table = 'presale_jnt'
+
+
+class Affiliate(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL)
+    event = models.CharField(max_length=20)
+    url = models.CharField(max_length=300, null=False)
+    created = models.DateTimeField(auto_now_add=True)
+    sended = models.DateTimeField(null=True)
+    status = models.IntegerField(blank=True, null=True)
+    meta = JSONField(default=dict)  # This field type is a guess.
+
+    class Meta:
+        db_table = 'affiliate'
