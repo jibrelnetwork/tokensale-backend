@@ -45,6 +45,7 @@ class Account(models.Model):
     onfido_check_result = models.CharField(max_length=200, null=True, blank=True)
     onfido_check_created = models.DateTimeField(null=True, blank=True)
     verification_started_at = models.DateTimeField(null=True, blank=True)
+    verification_attempts = models.IntegerField(default=0)
 
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     withdraw_address = models.CharField(max_length=255, null=True, blank=True)
@@ -67,6 +68,7 @@ class Account(models.Model):
         self.onfido_check_created = None
         self.is_identity_verified = False
         self.is_identity_verification_declined = False
+        self.verification_attempts = 0
 
         if fullreset:
             self.document_type = ''

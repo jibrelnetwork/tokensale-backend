@@ -18,6 +18,9 @@ from jco.api.models import Account, Notification
 logger = logging.getLogger(__name__)
 
 
+MAX_VERIFICATION_ATTEMPTS = 3
+
+
 @celery_app.task()
 def verify_user(user_id, notify=True):
     """
@@ -36,6 +39,7 @@ def verify_user(user_id, notify=True):
         if account.onfido_check_id is not None:
             logger.warn('Check exists for %s, exiting', user.username)
             return
+
         if (account.verification_started_at and
            (now - account.verification_started_at) < timedelta(minutes=5)):
             logger.info('Verification already started for %s, exiting', user.username)
@@ -43,6 +47,7 @@ def verify_user(user_id, notify=True):
 
         logger.info('Start verifying process for user %s <%s>', user.pk, user.username)
         account.verification_started_at = now
+        account.verification_attempts += 1
         account.save()
 
     if not account.onfido_applicant_id:
@@ -125,6 +130,9 @@ def retry_uncomplete_verifications():
     now = datetime.now()
     condition = (
         Q(onfido_check_id=None) &
+        Q(is_identity_verified=False) &
+        Q(is_identity_verification_declined=False) &
+        Q(verification_attempts__lt=MAX_VERIFICATION_ATTEMPTS) &
         ~Q(document_url='') &
         (Q(verification_started_at__lt=(now - timedelta(minutes=5))) |
          Q(verification_started_at=None))

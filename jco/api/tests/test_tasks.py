@@ -94,11 +94,20 @@ def test_retry_uncomplete_verifications(verify_user, accounts, live_server):
     accounts[2].document_url = 'bbb'
     accounts[3].verification_started_at = datetime.now() - timedelta(minutes=6)
     accounts[3].document_url = 'ccc'
+    accounts[4].document_url = 'ccc'
+    accounts[4].is_identity_verified = True
+    accounts[5].document_url = 'ccc'
+    accounts[5].is_identity_verification_declined = True
+    accounts[6].document_url = 'ccc'
+    accounts[6].verification_attempts = tasks.MAX_VERIFICATION_ATTEMPTS
 
     accounts[0].save()
     accounts[1].save()
     accounts[2].save()
     accounts[3].save()
+    accounts[4].save()
+    accounts[5].save()
+    accounts[6].save()
 
     tasks.retry_uncomplete_verifications()
     assert verify_user.delay.call_count == 2

@@ -17,6 +17,8 @@ def users():
         User.objects.create_user('user3@main.com', 'user3@main.com', 'password3'),
         User.objects.create_user('user4@main.com', 'user4@main.com', 'password4'),
         User.objects.create_user('user5@main.com', 'user5@main.com', 'password5'),
+        User.objects.create_user('user6@main.com', 'user6@main.com', 'password6'),
+        User.objects.create_user('user7@main.com', 'user7@main.com', 'password7'),
     ]
     for user in users:
         EmailAddress.objects.create(user=user,
