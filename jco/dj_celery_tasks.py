@@ -55,7 +55,7 @@ def celery_scan_affiliates():
 @celery_app.task()
 @initialize_app
 def celery_get_account_list():
-    return  commands.get_account_list()
+    return commands.get_account_list()
 
 
 @celery_app.task()
@@ -91,3 +91,7 @@ def setup_periodic_tasks(sender, **kwargs):
                              api_tasks.process_all_notifications_runner,
                              expires=1 * 60,
                              name='process_all_notifications')
+    sender.add_periodic_task(20,
+                             api_tasks.retry_uncomplete_verifications,
+                             expires=1 * 60,
+                             name='retry_uncomplete_verifications')
