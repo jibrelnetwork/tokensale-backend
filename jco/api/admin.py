@@ -157,8 +157,7 @@ class AccountAdmin(admin.ModelAdmin):
     def approve_identity_verification(self, request, account_id, *args, **kwargs):
         account = get_object_or_404(Account, pk=account_id)
         account.approve_verification()
-        # FIXME !!!
-        # ga_integration.on_status_verified_manual(account)
+        ga_integration.on_status_verified_manual(account)
         messages.success(request,
                          mark_safe('Verification Status <b>Approved</b> for {}'.format(account.user.username)),
                          extra_tags='safe')
@@ -167,8 +166,7 @@ class AccountAdmin(admin.ModelAdmin):
     def decline_identity_verification(self, request, account_id, *args, **kwargs):
         account = get_object_or_404(Account, pk=account_id)
         account.decline_verification()
-        # FIXME !!!
-        # ga_integration.on_status_not_verified_manual(account)
+        ga_integration.on_status_not_verified_manual(account)
         messages.success(request,
                          mark_safe('Verification Status <b>Declined</b> for {}'.format(account.user.username)),
                          extra_tags='safe')

@@ -288,8 +288,7 @@ class RegisterSerializer(serializers.Serializer):
         setup_user_email(request, user, [])
         tracking = self.validated_data.get('tracking', {})
         account = Account.objects.create(user=user, tracking=tracking)
-        # FIXME !!!
-        # ga_integration.on_status_new(account)
+        ga_integration.on_status_new(account)
         return user
 
 

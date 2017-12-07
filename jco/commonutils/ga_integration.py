@@ -3,6 +3,7 @@ import logging
 import requests
 
 from jco import settings
+from jco.appprocessor.app_create import celery_app
 
 
 GA_URL = "http://www.google-analytics.com/collect"
@@ -95,7 +96,7 @@ class GAClient:
             return
         utm = self.make_utm_params(self.account.tracking)
         data.update(utm)
-        requests.post(GA_URL, data)
+        send_ga_request_async.delay(GA_URL, data)
 
 
 def get_ga_client(account):
@@ -134,3 +135,10 @@ def on_transaction_received(account, tx, jnt):
     quantity = jnt.jnt_value
     item_price = jnt.jnt_to_usd_rate
     get_ga_client(account).send_tx_with_item(transaction_id, summ, quantity, item_price)
+
+
+@celery_app.task(autoretry_for=(requests.RequestException,))
+def send_ga_request_async(url, data):
+    logger.info('Sending GA request. Data: %s', data)
+    requests.post(url, data)
+    logger.info('GA request sent')
