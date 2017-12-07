@@ -257,7 +257,7 @@ def get_eth_addresses_with_positive_balance(addresses: List[Address]) -> List[Ad
         url_request = url_base + url_balances
 
         if CRAWLER_PROXY__ENABLED:
-            blances_response = requests.get(url_request, proxies=proxies)
+            balances_response = requests.get(url_request, proxies=proxies)
         else:
             balances_response = requests.get(url_request)
         balances_response.raise_for_status()
@@ -306,7 +306,7 @@ def get_btc_addresses_with_positive_balance(addresses: List[Address]) -> List[Ad
         url_request = url_base + url_balances
 
         if CRAWLER_PROXY__ENABLED:
-            blances_response = requests.get(url_request, proxies=proxies)
+            balances_response = requests.get(url_request, proxies=proxies)
         else:
             balances_response = requests.get(url_request)
         balances_response.raise_for_status()
