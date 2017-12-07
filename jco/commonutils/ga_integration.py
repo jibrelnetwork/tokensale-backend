@@ -3,6 +3,7 @@ import logging
 import requests
 
 from jco import settings
+from jco.appprocessor.app_create import celery_app
 
 
 GA_URL = "http://www.google-analytics.com/collect"
@@ -30,7 +31,7 @@ class GAClient:
             'ea': 'Status',  #=Status
             'el': status,  #=Verified
         }
-        logger.debug("Sending GA event data for user %s: %s", self.account.user.pk, data)
+        logger.info("Sending GA event data for user %s: %s", self.account.user.pk, data)
         self.send_data(data)
 
     def send_transaction(self, transaction_id, summ):
@@ -47,7 +48,7 @@ class GAClient:
             'tr': summ,  #=14500.123
             'cu': 'USD',  #=USD
         }
-        logger.debug("Sending GA TX data for user %s: %s", self.account.user.pk, data)
+        logger.info("Sending GA TX data for user %s: %s", self.account.user.pk, data)
         self.send_data(data)
 
     def send_item(self, transaction_id, quantity, item_price):
@@ -68,7 +69,7 @@ class GAClient:
             '1c': '1111',  #=qweqeq
             'iv': 'Tokens',  #=phones
         }
-        logger.debug("Sending GA Item data for user %s: %s", self.account.user.pk, data)
+        logger.info("Sending GA Item data for user %s: %s", self.account.user.pk, data)
         self.send_data(data)
 
     def send_tx_with_item(self, transaction_id, summ, quantity, item_price):
@@ -95,7 +96,7 @@ class GAClient:
             return
         utm = self.make_utm_params(self.account.tracking)
         data.update(utm)
-        requests.post(GA_URL, data)
+        send_ga_request_async.delay(GA_URL, data)
 
 
 def get_ga_client(account):
@@ -134,3 +135,10 @@ def on_transaction_received(account, tx, jnt):
     quantity = jnt.jnt_value
     item_price = jnt.jnt_to_usd_rate
     get_ga_client(account).send_tx_with_item(transaction_id, summ, quantity, item_price)
+
+
+@celery_app.task(autoretry_for=(requests.RequestException,))
+def send_ga_request_async(url, data):
+    logger.info('Sending GA request. Data: %s', data)
+    requests.post(url, data)
+    logger.info('GA request sent')
