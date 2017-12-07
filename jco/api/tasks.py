@@ -123,11 +123,13 @@ def check_user_verification_status_runner():
 @celery_app.task()
 def retry_uncomplete_verifications():
     now = datetime.now()
-    accounts_to_verify = Account.objects.filter(
-        onfido_check_id=None,
-        verification_started_at__lt=(now - timedelta(minutes=5))
-    ).exclude(document_url=None).all()
-
+    condition = (
+        Q(onfido_check_id=None) &
+        ~Q(document_url='') &
+        (Q(verification_started_at__lt=(now - timedelta(minutes=5))) |
+         Q(verification_started_at=None))
+    )
+    accounts_to_verify = Account.objects.filter(condition).all()
     for account in accounts_to_verify:
         logger.info('Retry uncomplete account verification %s <%s>',
                     account.user.pk, account.user.email)
