@@ -16,11 +16,12 @@ class GAClient:
         self.ga_id = ga_id
         self.account = account
         self.cid = account.tracking.get('ga_id')
+        self.cd2 = "{0:%d/%m/%y}".format(account.created)
 
     def send_status(self, status):
         """
         v=1&t=event&tid=UA-103798122-1&cid=1734424917.1494941541&ec=TokensRequest&ea=Status&el=Verified
-        &cn=campaign&cs=source&cm=medium&ck=keyword&cc=content
+        &cn=campaign&cs=source&cm=medium&ck=keyword&cc=content&cd2=registration_date
         """
         data = {
             'v': '1',
@@ -38,6 +39,7 @@ class GAClient:
         """
         v=1&t=transaction&tid=UA-103798122-1&cid=1.2.894891330.1494586649&ti=12345
         &tr=14500.123&cu=USD&cn=campaign&cs=source&cm=medium&ck=keyword&cc=content
+        cd2=registration_date
         """
         data = {
             'v': '1',  #=1
@@ -56,6 +58,7 @@ class GAClient:
         v=1&t=item&tid=UA-103798122-1&cid=1.2.894891330.1494586649&ti=12345
         &in=JibrelTokens&ip=14500.123&iq=1&1c=qweqeq&
         iv=phones&cn=campaign&cs=source&cm=medium&ck=keyword&cc=content
+        &cd2=registration_date
         """
         data = {
             'v': '1',  #=1
@@ -84,6 +87,7 @@ class GAClient:
             'cm': tp.get('utm_medium', ''),  #=medium
             'ck': tp.get('utm_keyword', ''),  #=keyword
             'cc': tp.get('utm_content', ''),  #=content
+            'cd2': self.cd2, #=registration_date
         }
         for k, v in list(utm.items()):
             if not v:
