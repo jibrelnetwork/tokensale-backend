@@ -92,6 +92,12 @@ def transactions(addresses):
                                           block_height=110,
                                           status='pending',
                                           address=addresses[0]),
+        models.Transaction.objects.create(transaction_id='999',
+                                          value=0.5,
+                                          mined=datetime(2017, 11, 13),
+                                          block_height=111,
+                                          status='success',
+                                          address=addresses[0]),
     ]
 
 

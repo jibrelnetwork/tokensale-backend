@@ -39,7 +39,7 @@ class TransactionsListView(APIView):
     authentication_classes = (authentication.TokenAuthentication,)
 
     def get(self, request):
-        txs_qs = Transaction.objects.filter(address__user=request.user)
+        txs_qs = Transaction.objects.filter(address__user=request.user).exclude(jnt=None)
         withdrawals_qs = Withdraw.objects.filter(address__user=request.user)
         presale_jnt_qs = PresaleJnt.objects.filter(user=request.user)
 
