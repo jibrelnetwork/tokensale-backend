@@ -1157,11 +1157,17 @@ def add_withdraw_jnt(user_id: int) -> Boolean:
                     status=TransactionStatus.pending,
                     to=account.withdraw_address,
                     value=total_jnt - total_withdraw_jnt,
-                    transaction_id='')
+                    transaction_id='')\
+            .returning(Withdraw.value)
 
-        session.execute(insert_query)
+        result = session.execute(insert_query).fetchone()
         session.commit()
-
+        withdraw = {
+            'id': None,
+            'to': account.withdraw_address,
+            'value': result.value
+        }
+        send_email_withdrawal_request(account.user.username, user_id, withdraw)
         logging.getLogger(__name__).info("Finished to persist withdraw operation of JNT to the database. account_id: {}"
                                          .format(user_id))
 

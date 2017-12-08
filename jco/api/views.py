@@ -1,6 +1,7 @@
 from datetime import datetime
 from itertools import chain
 from operator import itemgetter
+import logging
 
 from rest_framework.views import APIView
 from rest_framework.generics import GenericAPIView
@@ -25,8 +26,11 @@ from jco.api.serializers import (
     PresaleJntSerializer,
 )
 from jco.api import tasks
-from jco.appprocessor import commands
+from jco.appprocessor import commands, notify
 from jco.commonutils import ga_integration
+
+
+logger = logging.getLogger(__name__)
 
 
 class TransactionsListView(APIView):
@@ -159,9 +163,14 @@ class EthAddressView(GenericAPIView):
 
     def put(self, request):
         account = self.ensure_account(request)
+        current_address = account.withdraw_address
         serializer = EthAddressSerializer(data=request.data)
         if serializer.is_valid():
             account.withdraw_address = serializer.data['address']
+            if account.withdraw_address != current_address:
+                logger.info('User %s change withdraw address: %s -> %s',
+                            account.user.username, current_address, account.withdraw_address)
+                notify.send_email_eth_address_changed(account.user.username)
             account.save()
             return Response(serializer.data)
         return Response({'address':  [_('Invalid Ethereum address')]}, status=400)

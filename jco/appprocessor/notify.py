@@ -235,11 +235,23 @@ def send_email_verify_email(email, activate_url, user_id=None):
     add_notification(email, user_id=user_id, type=NotificationType.account_created, data=ctx)
 
 
+def send_email_email_verified(emailuser_id=None):
+    ctx = {
+    }
+    add_notification(email, user_id=user_id, type=NotificationType.account_email_confirmed, data=ctx)
+
+
 def send_email_reset_password(email, activate_url, user_id=None):
     ctx = {
         'activate_url': activate_url,
     }
     add_notification(email, user_id=user_id, type=NotificationType.password_change_request, data=ctx)
+
+
+def send_email_password_changed(email, user_id=None):
+    ctx = {
+    }
+    add_notification(email, user_id=user_id, type=NotificationType.password_changed, data=ctx)
 
 
 def send_email_identity_not_verified(email, user_id=None):
@@ -258,3 +270,11 @@ def send_email_presale_account_created(email, user, password_set_url, jnt_amount
     ctx = {'password_set_url': password_set_url,
            'jnt_amount': '{:.2f}'.format(jnt_amount)}
     add_notification(email, user_id=user.pk, type=NotificationType.presale_account_created, data=ctx)
+
+
+def send_email_eth_address_changed(email, user_id=None):
+    add_notification(email, user_id=user_id, type=NotificationType.withdraw_address_changed, data={})
+
+
+def send_email_withdrawal_request_received(email, user_id=None):
+    add_notification(email, user_id=user_id, type=NotificationType.withdrawal_request, data={})

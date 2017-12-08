@@ -17,6 +17,7 @@ from jco.commonconfig.config import FORCE_SCANNING_ADDRESS__ENABLED
 from jco.appdb.db import session
 from jco.appdb.models import *
 from jco.commonutils.utils import *
+from jco.commonutils.formats import *
 from jco.commonutils.app_init import initialize_app
 from jco.appprocessor.affiliate import (
     scan_affiliates,
@@ -768,6 +769,16 @@ class TestCommands(unittest.TestCase):
 
         self.assertTrue(withdraw_sum[0] > 0, 'should be non-negative and greater than zero')
         self.assertAlmostEqual(withdraw_sum[0], jnt.jnt_value + jnt2.jnt_value, places=5, msg='sum of withdraws must be equal to sum of jnts')
+
+        # check notification
+        notification = session.query(Notification).filter(
+            Notification.type == NotificationType.withdrawal_request,
+            Notification.email == user.username).first()
+        self.assertEqual(
+            notification.meta,
+            {'withdraw_jnt_amount': format_jnt_value(withdraw_sum[0]),
+             'withdraw_id': None,
+             'withdraw_address': account.withdraw_address})
 
         transaction_id = "0xeeaaaddcc"
         transaction_value = 10000 * (10 ** 18)
