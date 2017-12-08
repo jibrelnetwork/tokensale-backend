@@ -16,7 +16,7 @@ import requests
 from jco.api.models import Transaction, Address, Account, Jnt, Withdraw, PresaleJnt, is_user_email_confirmed
 from jco.commonutils import person_verify
 from jco.commonutils import ga_integration
-from jco.appdb.models import TransactionStatus
+from jco.appdb.models import TransactionStatus, CurrencyType
 from jco.appprocessor.notify import send_email_reset_password
 from jco.commonutils import ethaddress_verify
 
@@ -29,16 +29,18 @@ RECAPTCA_API_URL = 'https://www.google.com/recaptcha/api/siteverify'
 class AccountSerializer(serializers.ModelSerializer):
     username = serializers.SerializerMethodField()
     jnt_balance = serializers.SerializerMethodField()
+    verification_form_status = serializers.SerializerMethodField()
     identity_verification_status = serializers.SerializerMethodField()
-    addresses = serializers.SerializerMethodField()
     is_email_confirmed = serializers.SerializerMethodField()
+    btc_address = serializers.SerializerMethodField()
+    eth_address = serializers.SerializerMethodField()
 
     class Meta:
         model = Account
-        fields = ('username', 'first_name', 'last_name', 'date_of_birth', 'country',
+        fields = ('username', 'first_name', 'last_name', 'date_of_birth',
                   'citizenship', 'residency', 'terms_confirmed', 'document_url', 'document_type',
-                  'is_identity_verified', 'jnt_balance', 'identity_verification_status',
-                  'addresses', 'is_document_skipped', 'is_email_confirmed')
+                  'jnt_balance', 'identity_verification_status', 'verification_form_status',
+                  'btc_address', 'eth_address', 'is_document_skipped', 'is_email_confirmed')
         read_only_fields = ('is_identity_verified', 'jnt_balance')
 
     def get_username(self, obj):
@@ -52,17 +54,45 @@ class AccountSerializer(serializers.ModelSerializer):
                        .aggregate(Sum('jnt_value')))['jnt_value__sum'] or 0
         return jnt_balance + presale_balance
 
+    def get_verification_form_status(self, obj):
+        def personal_data_filled(obj):
+            fields = [obj.first_name, obj.last_name, obj.date_of_birth,
+                      obj.residency, obj.citizenship]
+            if all(fields):
+                return True
+            else:
+                return False
+
+        if obj.is_document_skipped is True:
+            return 'passport_skipped'
+        elif obj.document_url:
+            return 'passport_uploaded'
+        elif personal_data_filled(obj) is True:
+            return 'personal_data_filled'
+        elif obj.terms_confirmed is True:
+            return 'terms_confirmed'
+
     def get_identity_verification_status(self, obj):
         if obj.is_identity_verified is True:
             return 'Approved'
-        if obj.is_identity_verification_declined is True:
+        elif obj.is_identity_verification_declined is True:
             return 'Declined'
-        if obj.onfido_check_id:
+        elif obj.document_url:
+            return 'Preliminarily Approved'
+        elif obj.is_document_skipped is True:
             return 'Pending'
 
-    def get_addresses(self, obj):
-        addresses = Address.objects.filter(user=obj.user).all()
-        return {a.type: a.address for a in addresses}
+    def get_btc_address(self, obj):
+        address = Address.objects.filter(
+            user=obj.user, type=CurrencyType.btc).first()
+        if address is not None:
+            return address.address
+
+    def get_eth_address(self, obj):
+        address = Address.objects.filter(
+            user=obj.user, type=CurrencyType.eth).first()
+        if address is not None:
+            return address.address
 
     def get_is_email_confirmed(self, obj):
         return is_user_email_confirmed(obj.user)
