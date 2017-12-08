@@ -108,20 +108,20 @@ def test_get_account_empty(client, users):
     client.authenticate('user1@main.com', 'password1')
     resp = client.get('/api/account/')
     assert resp.status_code == 200
-    assert resp.json() == {'country': '',
-                           'date_of_birth': None,
+    assert resp.json() == {'date_of_birth': None,
                            'username': 'user1@main.com',
                            'first_name': '',
                            'last_name': '',
                            'terms_confirmed': False,
                            'document_url': '',
                            'document_type': '',
-                           'is_identity_verified': False,
                            'identity_verification_status': None,
+                           'verification_form_status': None,
                            'is_document_skipped': False,
                            'citizenship': '',
                            'residency': '',
-                           'addresses': {},
+                           'btc_address': None,
+                           'eth_address': None,
                            'jnt_balance': 0}
 
 
@@ -138,21 +138,39 @@ def test_update_account(client, users, transactions):
     client.authenticate('user1@main.com', 'password1')
     resp = client.put('/api/account/', {'first_name': 'John', 'terms_confirmed': True})
     assert resp.status_code == 200
-    assert resp.json() == {'country': '',
-                           'date_of_birth': None,
+    assert resp.json() == {'date_of_birth': None,
                            'username': 'user1@main.com',
                            'first_name': 'John',
                            'last_name': '',
                            'terms_confirmed': True,
                            'document_url': '',
                            'document_type': '',
-                           'is_identity_verified': False,
                            'identity_verification_status': None,
+                           'verification_form_status': 'terms_confirmed',
                            'is_document_skipped': False,
                            'citizenship': '',
                            'residency': '',
-                           'addresses': {'BTC': 'aba', 'ETH': 'aaa'},
+                           'btc_address': 'aba',
+                           'eth_address': 'aaa',
                            'jnt_balance': 1.5}
+
+    resp = client.put('/api/account/',
+                      {'first_name': 'John',
+                       'last_name': 'Smith',
+                       'citizenship': 'UK',
+                       'residency': 'UK',
+                       'date_of_birth': '1999-12-22',
+                       })
+    assert resp.status_code == 200
+    assert resp.json()['verification_form_status'] == 'personal_data_filled'
+
+    resp = client.put('/api/account/', {'is_document_skipped': True})
+    assert resp.status_code == 200
+    assert resp.json()['verification_form_status'] == 'passport_skipped'
+
+    resp = client.put('/api/account/', {'document_url': 'http://qwe.rt'})
+    assert resp.status_code == 200
+    assert resp.json()['verification_form_status'] == 'passport_uploaded'
 
 
 def test_get_raised_tokens_empty(client, users, settings):
