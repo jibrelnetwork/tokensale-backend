@@ -1,5 +1,5 @@
-import logging 
-from datetime import datetime 
+import logging
+from datetime import datetime
 
 from django.db.models import Sum
 from django.conf import settings
@@ -13,7 +13,7 @@ from rest_auth.serializers import PasswordResetSerializer, PasswordResetForm
 from rest_framework import serializers, exceptions
 import requests
 
-from jco.api.models import Transaction, Address, Account, Jnt, Withdraw, PresaleJnt
+from jco.api.models import Transaction, Address, Account, Jnt, Withdraw, PresaleJnt, is_user_email_confirmed
 from jco.commonutils import person_verify
 from jco.commonutils import ga_integration
 from jco.appdb.models import TransactionStatus
@@ -31,13 +31,14 @@ class AccountSerializer(serializers.ModelSerializer):
     jnt_balance = serializers.SerializerMethodField()
     identity_verification_status = serializers.SerializerMethodField()
     addresses = serializers.SerializerMethodField()
+    is_email_confirmed = serializers.SerializerMethodField()
 
     class Meta:
         model = Account
         fields = ('username', 'first_name', 'last_name', 'date_of_birth', 'country',
                   'citizenship', 'residency', 'terms_confirmed', 'document_url', 'document_type',
                   'is_identity_verified', 'jnt_balance', 'identity_verification_status',
-                  'addresses', 'is_document_skipped')
+                  'addresses', 'is_document_skipped', 'is_email_confirmed')
         read_only_fields = ('is_identity_verified', 'jnt_balance')
 
     def get_username(self, obj):
@@ -62,6 +63,9 @@ class AccountSerializer(serializers.ModelSerializer):
     def get_addresses(self, obj):
         addresses = Address.objects.filter(user=obj.user).all()
         return {a.type: a.address for a in addresses}
+
+    def get_is_email_confirmed(self, obj):
+        return is_user_email_confirmed(obj.user)
 
 
 class AddressSerializer(serializers.ModelSerializer):

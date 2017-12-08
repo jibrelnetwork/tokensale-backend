@@ -121,6 +121,7 @@ def test_get_account_empty(client, users):
                            'is_document_skipped': False,
                            'citizenship': '',
                            'residency': '',
+                           'is_email_confirmed': False,
                            'addresses': {},
                            'jnt_balance': 0}
 
@@ -151,6 +152,7 @@ def test_update_account(client, users, transactions):
                            'is_document_skipped': False,
                            'citizenship': '',
                            'residency': '',
+                           'is_email_confirmed': False,
                            'addresses': {'BTC': 'aba', 'ETH': 'aaa'},
                            'jnt_balance': 1.5}
 
@@ -201,6 +203,8 @@ def test_get_withdraw_address(client, users):
 
 
 def test_put_withdraw_address_empty(client, users):
+    EmailAddress.objects.filter(email='user1@main.com').update(verified=True)
+
     client.authenticate('user1@main.com', 'password1')
     resp = client.get('/api/withdraw-address/')
     assert resp.status_code == 200
@@ -211,7 +215,20 @@ def test_put_withdraw_address_empty(client, users):
     assert resp.status_code == 400
 
 
+def test_put_withdraw_address_email_not_confirmed(client, users):
+    client.authenticate('user1@main.com', 'password1')
+    resp = client.get('/api/withdraw-address/')
+    assert resp.status_code == 200
+    assert resp.json() == {'address': None}
+    resp = client.put('/api/withdraw-address/',
+                      {'address': '0x3BA2E2565dB2c018aDd0b24483fE99fC2cCCDa8e'})
+    assert resp.status_code == 403
+    assert resp.json() == {'detail': 'You email address is not confirmed yet'}
+
+
 def test_put_withdraw_address_validate(client, users):
+    EmailAddress.objects.filter(email='user1@main.com').update(verified=True)
+
     client.authenticate('user1@main.com', 'password1')
     resp = client.get('/api/withdraw-address/')
     assert resp.status_code == 200
@@ -236,6 +253,8 @@ def test_put_withdraw_address_validate(client, users):
 
 def test_withdraw_jnt(client, users, addresses, jnt, settings):
     settings.WITHDRAW_AVAILABLE_SINCE = datetime.now()
+    EmailAddress.objects.filter(email='user1@main.com').update(verified=True)
+
     client.authenticate('user1@main.com', 'password1')
     models.Account.objects.create(withdraw_address='aaaxxx', user=users[0])
     resp = client.post('/api/withdraw-jnt/')
@@ -259,6 +278,20 @@ def test_registration(client):
     assert resp.status_code == 201
     account = models.Account.objects.get(user__username=user_data['email'])
     assert account.tracking == user_data['tracking']
+    assert 'key' in resp.json()
+
+    assert EmailAddress.objects.get(email=user_data['email']).verified is False
+
+    nots = models.Notification.objects.filter(email=user_data['email']).all()
+    assert len(nots) == 1
+    assert nots[0].type == models.NotificationType.account_created
+
+    data = {'key': nots[0].meta['activate_url'].split('/')[-1]}
+    resp = client.post(
+        '/auth/registration/verify-email/', json=data)
+
+    assert resp.status_code == 200
+    assert EmailAddress.objects.get(email=user_data['email']).verified is True
 
 
 def test_registration_emplty_tracking(client):
