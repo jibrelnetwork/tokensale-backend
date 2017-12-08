@@ -160,7 +160,7 @@ class EthAddressView(GenericAPIView):
 
     def put(self, request):
         if is_user_email_confirmed(request.user) is False:
-            resp = {'detail': _('You email address is not confirmed yet')}
+            resp = {'detail': _('Your email address is not confirmed yet')}
             return Response(resp, status=403)
 
         account = self.ensure_account(request)
@@ -186,7 +186,7 @@ class WithdrawView(APIView):
                             status=400)
 
         if is_user_email_confirmed(request.user) is False:
-            resp = {'detail': _('You email address is not confirmed yet')}
+            resp = {'detail': _('Your email address is not confirmed yet')}
             return Response(resp, status=403)
 
         result = commands.add_withdraw_jnt(request.user.pk)
