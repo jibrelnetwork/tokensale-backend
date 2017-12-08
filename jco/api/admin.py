@@ -187,6 +187,7 @@ class AccountAdmin(admin.ModelAdmin):
 @admin.register(Transaction)
 class TransactionAdmin(admin.ModelAdmin):
     list_display = ['transaction_id', 'value', 'mined', 'address']
+    raw_id_fields = ("address",)
 
 
 @admin.register(Withdraw)
@@ -197,6 +198,7 @@ class WithdrawAdmin(admin.ModelAdmin):
 @admin.register(Address)
 class AddressAdmin(admin.ModelAdmin):
     list_display = ['address', 'type', 'is_usable', 'user']
+    search_fields = ['user__username', 'address']
 
 
 @admin.register(Jnt)
