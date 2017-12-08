@@ -125,6 +125,38 @@ def test_get_account_empty(client, users):
                            'jnt_balance': 0}
 
 
+def test_account_verification_statuses(client, accounts):
+    accounts[1].is_document_skipped = True
+    accounts[2].is_identity_verified = True
+    accounts[3].is_identity_verification_declined = True
+    accounts[4].document_url = 'aaa'
+
+    accounts[1].save()
+    accounts[2].save()
+    accounts[3].save()
+    accounts[4].save()
+
+    client.authenticate('user1@main.com', 'password1')
+    resp = client.get('/api/account/')
+    assert resp.json()['identity_verification_status'] is None
+
+    client.authenticate('user2@main.com', 'password2')
+    resp = client.get('/api/account/')
+    assert resp.json()['identity_verification_status'] == 'Pending'
+
+    client.authenticate('user3@main.com', 'password3')
+    resp = client.get('/api/account/')
+    assert resp.json()['identity_verification_status'] == 'Approved'
+
+    client.authenticate('user4@main.com', 'password4')
+    resp = client.get('/api/account/')
+    assert resp.json()['identity_verification_status'] == 'Declined'
+
+    client.authenticate('user5@main.com', 'password5')
+    resp = client.get('/api/account/')
+    assert resp.json()['identity_verification_status'] == 'Preliminarily Approved'
+
+
 def test_update_account(client, users, transactions):
     models.Jnt.objects.create(
         purchase_id='1',
