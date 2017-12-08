@@ -24,7 +24,7 @@ def users():
         EmailAddress.objects.create(user=user,
                                     email=user.username,
                                     primary=True,
-                                    verified=True)
+                                    verified=False)
     return users
 
 

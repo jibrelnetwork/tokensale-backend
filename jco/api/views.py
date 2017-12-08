@@ -23,6 +23,7 @@ from jco.api.serializers import (
     TransactionSerializer,
     WithdrawSerializer,
     PresaleJntSerializer,
+    is_user_email_confirmed,
 )
 from jco.api import tasks
 from jco.appprocessor import commands
@@ -158,13 +159,17 @@ class EthAddressView(GenericAPIView):
         return Response(data)
 
     def put(self, request):
+        if is_user_email_confirmed(request.user) is False:
+            resp = {'detail': _('Your email address is not confirmed yet')}
+            return Response(resp, status=403)
+
         account = self.ensure_account(request)
         serializer = EthAddressSerializer(data=request.data)
         if serializer.is_valid():
             account.withdraw_address = serializer.data['address']
             account.save()
             return Response(serializer.data)
-        return Response({'address':  [_('Invalid Ethereum address')]}, status=400)
+        return Response({'address': [_('Invalid Ethereum address')]}, status=400)
 
 
 class WithdrawView(APIView):
@@ -179,6 +184,11 @@ class WithdrawView(APIView):
         if not request.user.account.withdraw_address:
             return Response({'detail': _('No Withdraw address in your account data.')},
                             status=400)
+
+        if is_user_email_confirmed(request.user) is False:
+            resp = {'detail': _('Your email address is not confirmed yet')}
+            return Response(resp, status=403)
+
         result = commands.add_withdraw_jnt(request.user.pk)
         if result is True:
             return Response({'detail': _('JNT withdrawal is scheduled.')})
