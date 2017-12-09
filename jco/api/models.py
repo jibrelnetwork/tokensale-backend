@@ -1,4 +1,5 @@
 import logging
+import uuid
 
 from allauth.account.models import EmailAddress
 from django.db import models, transaction
@@ -259,6 +260,26 @@ class Affiliate(models.Model):
 
     class Meta:
         db_table = 'affiliate'
+
+
+def get_document_filename_extension(filename):
+    if len(filename.split(".")) > 1:
+        return filename.split(".")[-1]
+    else:
+        return "unknown"
+
+
+def unique_document_filename(document, filename):
+    extension = get_document_filename_extension(filename)
+    return "{}.{}".format(uuid.uuid4(), extension)
+
+
+class Document(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL)
+    image = models.ImageField('uploaded document', upload_to=unique_document_filename)  # stores the uploaded documents
+
+    class Meta:
+        db_table = 'document'
 
 
 def is_user_email_confirmed(user):

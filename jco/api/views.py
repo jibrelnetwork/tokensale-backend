@@ -11,6 +11,7 @@ from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
 from rest_framework_extensions.cache.decorators import cache_response
+from rest_framework.parsers import JSONParser, FormParser, MultiPartParser
 
 from allauth.account.models import EmailAddress
 from allauth.account.utils import send_email_confirmation
@@ -23,6 +24,7 @@ from jco.api.serializers import (
     TransactionSerializer,
     WithdrawSerializer,
     PresaleJntSerializer,
+    DocumentSerializer,
     is_user_email_confirmed,
 )
 from jco.api import tasks
@@ -193,3 +195,30 @@ class WithdrawView(APIView):
         if result is True:
             return Response({'detail': _('JNT withdrawal is scheduled.')})
         return Response({'detail': _('JNT withdrawal is failed.')}, status=500)
+
+
+class DocumentView(APIView):
+    """
+    View set document.
+
+    * Requires token authentication.
+
+    post:
+    Creates a document for current user.
+    """
+
+    authentication_classes = (authentication.TokenAuthentication,)
+    serializer_class = DocumentSerializer
+    parser_classes = (JSONParser, FormParser, MultiPartParser,)
+
+    def post(self, request, *args, **kwargs):
+        try:
+            account = request.user.account
+        except ObjectDoesNotExist:
+            return Response({'success': False, 'error': [_('No such account')]}, status=400)
+
+        serializer = DocumentSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(account)
+            return Response({'success': True}, 201)
+        return Response({'success': False, 'error': [_('An upload has failed')]}, status=500)

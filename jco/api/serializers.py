@@ -1,19 +1,22 @@
 import logging
 from datetime import datetime
 
+from django.db import transaction
 from django.db.models import Sum
 from django.conf import settings
 from django.contrib.auth import get_user_model, authenticate
 from django.utils.translation import ugettext_lazy as _
+from django.contrib.sites.models import Site
 from allauth.account import app_settings as allauth_settings
 from allauth.utils import email_address_exists
 from allauth.account.adapter import get_adapter
 from allauth.account.utils import setup_user_email
 from rest_auth.serializers import PasswordResetSerializer, PasswordResetForm
 from rest_framework import serializers, exceptions
+from rest_framework.fields import CurrentUserDefault
 import requests
 
-from jco.api.models import Transaction, Address, Account, Jnt, Withdraw, PresaleJnt, is_user_email_confirmed
+from jco.api.models import Transaction, Address, Account, Jnt, Withdraw, PresaleJnt, is_user_email_confirmed, Document
 from jco.commonutils import person_verify
 from jco.commonutils import ga_integration
 from jco.appdb.models import TransactionStatus, CurrencyType
@@ -463,3 +466,19 @@ class EthAddressSerializer(serializers.Serializer):
 
         attrs['address'] = address
         return attrs
+
+
+class DocumentSerializer(serializers.Serializer):
+    image = serializers.ImageField(required=True)
+
+    class Meta:
+        model = Document
+        fields = ('image',)
+
+    def save(self, account):
+        current_site = Site.objects.get_current()
+
+        with transaction.atomic():
+            document = Document.objects.create(user=account.user, **self.validated_data)
+            account.document_url = "https://{}{}".format(current_site.domain, document.image.url)
+            account.save()
