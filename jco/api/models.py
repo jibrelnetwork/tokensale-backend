@@ -276,7 +276,7 @@ def unique_document_filename(document, filename):
 
 class Document(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL)
-    image = models.ImageField('uploaded document', upload_to=unique_document_filename)  # stores the uploaded documents
+    image = models.FileField('uploaded document', upload_to=unique_document_filename)  # stores the uploaded documents
 
     class Meta:
         db_table = 'document'
