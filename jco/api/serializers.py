@@ -469,7 +469,7 @@ class EthAddressSerializer(serializers.Serializer):
 
 
 class DocumentSerializer(serializers.Serializer):
-    image = serializers.ImageField(required=True)
+    image = serializers.FileField(required=True)
 
     class Meta:
         model = Document
