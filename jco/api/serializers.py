@@ -16,7 +16,10 @@ from rest_framework import serializers, exceptions
 from rest_framework.fields import CurrentUserDefault
 import requests
 
-from jco.api.models import Transaction, Address, Account, Jnt, Withdraw, PresaleJnt, is_user_email_confirmed, Document
+from jco.api.models import (
+    Transaction, Address, Account, Jnt, Withdraw, PresaleJnt, is_user_email_confirmed, Document,
+    get_document_filename_extension
+)
 from jco.commonutils import person_verify
 from jco.commonutils import ga_integration
 from jco.appdb.models import TransactionStatus, CurrencyType
@@ -481,4 +484,5 @@ class DocumentSerializer(serializers.Serializer):
         with transaction.atomic():
             document = Document.objects.create(user=account.user, **self.validated_data)
             account.document_url = "https://{}{}".format(current_site.domain, document.image.url)
+            account.document_type = get_document_filename_extension(document.image.filename)
             account.save()
