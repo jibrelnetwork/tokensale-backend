@@ -485,4 +485,8 @@ class DocumentSerializer(serializers.Serializer):
             document = Document.objects.create(user=account.user, **self.validated_data)
             account.document_url = "https://{}{}".format(current_site.domain, document.image.url)
             account.document_type = get_document_filename_extension(document.image.name)
+
             account.save()
+
+        if (account.document_url and not account.onfido_check_id) or account.is_document_skipped:
+            Address.assign_pair_to_user(account.user)
