@@ -483,6 +483,6 @@ class DocumentSerializer(serializers.Serializer):
 
         with transaction.atomic():
             document = Document.objects.create(user=account.user, **self.validated_data)
-            account.document_url = "https://{}{}".format(current_site.domain, document.image.url)
+            account.document_url = "https://{}{}".format("saleapi.jibrel.network", document.image.url)
             account.document_type = get_document_filename_extension(document.image.name)
             account.save()
