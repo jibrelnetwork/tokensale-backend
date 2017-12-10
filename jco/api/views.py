@@ -221,4 +221,4 @@ class DocumentView(APIView):
         if serializer.is_valid():
             serializer.save(account)
             return Response({'success': True}, 201)
-        return Response({'success': False, 'error': [_('An upload has failed')]}, status=500)
+        return Response({'success': False, 'error': [_('An upload has failed')]}, status=400)

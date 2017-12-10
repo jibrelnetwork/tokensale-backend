@@ -122,6 +122,9 @@ class Address(models.Model):
         with transaction.atomic():
             eth_addr = (cls.objects.select_for_update()
                         .filter(type=CurrencyType.eth, user=None, is_usable=True).first())
+            if not eth_addr:
+                logger.error('No more addresses')
+                return False
             eth_addr.user = user
             eth_addr.save()
             logger.info('ETH Address %s is assigned to user %s', eth_addr.address, user.username)
@@ -276,7 +279,7 @@ def unique_document_filename(document, filename):
 
 class Document(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL)
-    image = models.ImageField('uploaded document', upload_to=unique_document_filename)  # stores the uploaded documents
+    image = models.FileField('uploaded document', upload_to=unique_document_filename)  # stores the uploaded documents
 
     class Meta:
         db_table = 'document'
