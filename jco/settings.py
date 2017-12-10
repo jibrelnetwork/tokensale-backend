@@ -163,6 +163,9 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = here('uploaded_media')
 
 
+FILE_UPLOAD_PERMISSIONS = 0o644
+
+
 EMAIL_HOST = 'smtp.mailgun.org'
 EMAIL_PORT = 587
 EMAIL_HOST_USER = 'postmaster@mailgun.jibrel.network'
