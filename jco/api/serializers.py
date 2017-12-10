@@ -20,6 +20,7 @@ from jco.api.models import (
     Transaction, Address, Account, Jnt, Withdraw, PresaleJnt, is_user_email_confirmed, Document,
     get_document_filename_extension
 )
+from jco.api import tasks
 from jco.commonutils import person_verify
 from jco.commonutils import ga_integration
 from jco.appdb.models import TransactionStatus, CurrencyType
@@ -485,4 +486,12 @@ class DocumentSerializer(serializers.Serializer):
             document = Document.objects.create(user=account.user, **self.validated_data)
             account.document_url = "https://{}{}".format("saleapi.jibrel.network", document.image.url)
             account.document_type = get_document_filename_extension(document.image.name)
+
             account.save()
+
+        if (account.document_url and not account.onfido_check_id) or account.is_document_skipped:
+            Address.assign_pair_to_user(account.user)
+            
+        if account.document_url and not account.onfido_check_id:
+            ga_integration.on_status_registration_complete(account)
+            tasks.verify_user.delay(account.user.pk)
