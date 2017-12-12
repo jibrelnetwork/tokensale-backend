@@ -33,6 +33,7 @@ class AffiliateEvent:
 
 
 class TransactionStatus:
+    not_confirmed = 'not_confirmed'
     pending = 'pending'
     fail = 'fail'
     success = 'success'
@@ -488,7 +489,7 @@ class Withdraw(db.Model):
     created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     mined = db.Column(db.DateTime, nullable=True)
     block_height = db.Column(db.Integer, nullable=True)
-    status = db.Column(db.String(10), nullable=False, default=TransactionStatus.pending)
+    status = db.Column(db.String(10), nullable=False, default=TransactionStatus.not_confirmed)
     meta = db.Column(JSONB, nullable=False, default=lambda: {})
     user_id = db.Column(db.Integer, db.ForeignKey('auth_user.id'), unique=False)
 

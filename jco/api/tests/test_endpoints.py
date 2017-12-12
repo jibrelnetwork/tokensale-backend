@@ -287,14 +287,36 @@ def test_put_withdraw_address_validate(client, users):
 def test_withdraw_jnt(client, users, addresses, jnt, settings):
     settings.WITHDRAW_AVAILABLE_SINCE = datetime.now()
     client.authenticate('user1@main.com', 'password1')
-    models.Account.objects.create(withdraw_address='aaaxxx', user=users[0])
+    account = models.Account.objects.create(withdraw_address='aaaxxx', user=users[0])
+    assert account.get_jnt_balance() == 30
     resp = client.post('/api/withdraw-jnt/')
     assert resp.status_code == 200
-    assert resp.json() == {'detail': 'JNT withdrawal is scheduled.'}
+    assert resp.json() == {'detail': 'JNT withdrawal is requested. Check you email for confirmation.'}
 
-    withdrawals = models.Withdraw.objects.filter(to='aaaxxx').all()
+    op = models.Operation.objects.first()
+    withdrawals = models.Withdraw.objects.all()
+
+    assert op.operation == models.Operation.OP_WITHDRAW_JNT
+    assert op.params == {'address': 'aaaxxx',
+                         'jnt_amount': withdrawals[0].value,
+                         'withdraw_id': withdrawals[0].pk}
+    assert op.user == users[0]
+
     assert len(withdrawals) == 1
-    assert withdrawals[0].value == 60
+    assert withdrawals[0].user == users[0]
+    assert withdrawals[0].value == 30
+    assert withdrawals[0].to == account.withdraw_address
+    assert withdrawals[0].status == models.TransactionStatus.not_confirmed
+    assert account.get_jnt_balance() == 0
+
+    nots = models.Notification.objects.filter(email=users[0].username).all()
+    assert len(nots) == 1
+    assert nots[0].type == models.NotificationType.withdrawal_request
+    url = nots[0].meta['confirm_url']
+    op_id = url.split('/')[-2]
+    token = url.split('/')[-1]
+    assert str(op.pk) == op_id
+    op.validate_token(token)
 
 
 def test_registration(client):
@@ -323,3 +345,85 @@ def test_registration_emplty_tracking(client):
     assert resp.status_code == 201
     account = models.Account.objects.get(user__username=user_data['email'])
     assert account.tracking == {}
+
+
+def test_change_withdraw_address_request(client, accounts):
+    client.authenticate('user1@main.com', 'password1')
+    data = {'address': '0x3BA2E2565dB2c018aDd0b24483fE99fC2cCCDa8e'}
+    resp = client.put('/api/withdraw-address/', data)
+    assert resp.status_code == 200
+    op = models.Operation.objects.first()
+    assert op.operation == models.Operation.OP_CHANGE_ADDRESS
+    assert op.params == data
+    assert op.user == accounts[0].user
+    assert models.Account.objects.get(pk=accounts[0].pk).withdraw_address is None
+
+    nots = models.Notification.objects.filter(email=accounts[0].user.username).all()
+    assert len(nots) == 1
+    assert nots[0].type == models.NotificationType.withdraw_address_change_request
+    url = nots[0].meta['confirm_url']
+    op_id = url.split('/')[-2]
+    token = url.split('/')[-1]
+    assert str(op.pk) == op_id
+    op.validate_token(token)
+
+
+def test_operation_confirm_change_address_ok(client, users, accounts):
+    client.authenticate('user1@main.com', 'password1')
+    params = {'address': '0x3BA2E2565dB2c018aDd0b24483fE99fC2cCCDa8e'}
+    op = models.Operation.objects.create(
+        operation=models.Operation.OP_CHANGE_ADDRESS,
+        user=users[0],
+        params=params
+    )
+    data = {
+        'operation_id': str(op.pk),
+        'token': op.key
+    }
+    resp = client.post('/api/withdraw-address/confirm/', data)
+    accounts[0].refresh_from_db()
+    op.refresh_from_db()
+    assert resp.status_code == 200
+    assert accounts[0].withdraw_address == params['address']
+    assert op.confirmed_at is not None
+
+    accounts[0].withdraw_address = '0x123'
+    accounts[0].save()
+    resp = client.post('/api/withdraw-address/confirm/', data)
+    assert resp.status_code == 500
+    accounts[0].refresh_from_db()
+    assert accounts[0].withdraw_address == '0x123'
+
+
+def test_operation_confirm_withdraw_jnt_ok(client, users, accounts, settings):
+    settings.WITHDRAW_AVAILABLE_SINCE = datetime.now()
+    client.authenticate('user1@main.com', 'password1')
+    withdraw = models.Withdraw.objects.create(
+        user=users[0],
+        value=123,
+        to='0x3BA2E2565dB2c018aDd0b24483fE99fC2cCCDa8e',
+        created=datetime.now()
+    )
+    params = {'address': '0x3BA2E2565dB2c018aDd0b24483fE99fC2cCCDa8e',
+              'withdraw_id': withdraw.pk,
+              'jnt_amount': withdraw.value}
+    op = models.Operation.objects.create(
+        operation=models.Operation.OP_WITHDRAW_JNT,
+        user=users[0],
+        params=params
+    )
+    data = {
+        'operation_id': str(op.pk),
+        'token': op.key
+    }
+
+    assert withdraw.status == models.TransactionStatus.not_confirmed
+    resp = client.post('/api/withdraw-jnt/confirm/', data)
+    withdraw.refresh_from_db()
+    assert resp.status_code == 200
+    assert withdraw.status == models.TransactionStatus.pending
+
+    resp = client.post('/api/withdraw-address/confirm/', data)
+    assert resp.status_code == 500
+    withdraw.refresh_from_db()
+    assert withdraw.status == models.TransactionStatus.pending

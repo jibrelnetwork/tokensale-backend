@@ -14,7 +14,16 @@ from rest_framework_extensions.cache.decorators import cache_response
 
 from allauth.account.models import EmailAddress
 from allauth.account.utils import send_email_confirmation
-from jco.api.models import Transaction, Address, Account, get_raised_tokens, Withdraw, PresaleJnt
+from jco.api.models import (
+    Transaction,
+    Address,
+    Account,
+    get_raised_tokens,
+    Withdraw,
+    PresaleJnt,
+    Operation,
+    OperationError
+)
 from jco.api.serializers import (
     AccountSerializer,
     AddressSerializer,
@@ -161,15 +170,19 @@ class EthAddressView(GenericAPIView):
         account = self.ensure_account(request)
         serializer = EthAddressSerializer(data=request.data)
         if serializer.is_valid():
-            account.withdraw_address = serializer.data['address']
-            account.save()
+            operation = Operation.objects.create(
+                operation=Operation.OP_CHANGE_ADDRESS,
+                user=request.user,
+                params=serializer.data
+            )
+            operation.request_confirmation()
             return Response(serializer.data)
-        return Response({'address':  [_('Invalid Ethereum address')]}, status=400)
+        return Response({'address': [_('Invalid Ethereum address')]}, status=400)
 
 
-class WithdrawView(APIView):
+class WithdrawRequestView(APIView):
     """
-    Withdraw JNT tokens to user's eth address
+    Request JNT withdrawal link to send via email
     """
     def post(self, request):
         if datetime.now() < settings.WITHDRAW_AVAILABLE_SINCE:
@@ -179,7 +192,51 @@ class WithdrawView(APIView):
         if not request.user.account.withdraw_address:
             return Response({'detail': _('No Withdraw address in your account data.')},
                             status=400)
-        result = commands.add_withdraw_jnt(request.user.pk)
-        if result is True:
-            return Response({'detail': _('JNT withdrawal is scheduled.')})
-        return Response({'detail': _('JNT withdrawal is failed.')}, status=500)
+        withdraw_id = commands.add_withdraw_jnt(request.user.pk)
+        withdraw = Withdraw.objects.get(pk=withdraw_id)
+        params = {
+            'address': request.user.account.withdraw_address,
+            'jnt_amount': withdraw.value,
+            'withdraw_id': withdraw.pk,
+        }
+        operation = Operation.objects.create(
+            operation=Operation.OP_WITHDRAW_JNT,
+            user=request.user,
+            params=params
+        )
+        operation.request_confirmation()
+        return Response({'detail': _('JNT withdrawal is requested. Check you email for confirmation.')})
+
+
+class WithdrawConfirmView(APIView):
+    """
+    Confirm JNT withdrawal
+    """
+    def post(self, request):
+        if datetime.now() < settings.WITHDRAW_AVAILABLE_SINCE:
+            return Response({'detail': _('Withdraw will be available after {}'.format(settings.WITHDRAW_AVAILABLE_SINCE))},
+                            status=403)
+
+        operation = Operation.objects.get(pk=request.POST['operation_id'])
+        try:
+            operation.perform(request.POST['token'])
+        except OperationError:
+            return Response({'detail': _('JNT withdrawal is failed.')}, status=500)
+        # if not request.user.account.withdraw_address:
+        #     return Response({'detail': _('No Withdraw address in your account data.')},
+        #                     status=400)
+        return Response({'detail': _('JNT withdrawal successfull.')})
+
+
+class ChangeAddressConfirmView(APIView):
+    """
+    Confirm change withdraw address operation
+    """
+    def post(self, request):
+        operation = Operation.objects.get(pk=request.POST['operation_id'])
+        try:
+            operation.perform(request.POST['token'])
+        except OperationError:
+            return Response({'detail': _('Your withdrawal address changing is failed')}, 500)
+
+        return Response({'detail': _('Your withdrawal address is changed')})
