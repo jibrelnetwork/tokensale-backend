@@ -33,6 +33,7 @@ from jco.api.serializers import (
     WithdrawSerializer,
     PresaleJntSerializer,
     is_user_email_confirmed,
+    OperationConfirmSerializer,
 )
 from jco.api import tasks
 from jco.appprocessor import commands
@@ -221,6 +222,8 @@ class WithdrawConfirmView(APIView):
     """
     Confirm JNT withdrawal
     """
+    serializer_class = OperationConfirmSerializer
+
     def post(self, request):
         if datetime.now() < settings.WITHDRAW_AVAILABLE_SINCE:
             return Response({'detail': _('Withdraw will be available after {}'.format(settings.WITHDRAW_AVAILABLE_SINCE))},
@@ -245,6 +248,9 @@ class ChangeAddressConfirmView(APIView):
     """
     Confirm change withdraw address operation
     """
+
+    serializer_class = OperationConfirmSerializer
+
     def post(self, request):
         operation = Operation.objects.get(pk=request.POST['operation_id'])
         try:

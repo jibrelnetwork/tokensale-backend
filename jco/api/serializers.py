@@ -458,3 +458,8 @@ class EthAddressSerializer(serializers.Serializer):
 
         attrs['address'] = address
         return attrs
+
+
+class OperationConfirmSerializer(serializers.Serializer):
+    operation_id = serializers.CharField()
+    token = serializers.CharField()
