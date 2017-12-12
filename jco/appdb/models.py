@@ -59,6 +59,7 @@ class NotificationType:
     transaction_received_sold_out = 'transaction_received_sold_out'
     withdrawal_request      = 'withdrawal_request'
     withdrawal_succeeded    = 'withdrawal_succeeded'
+    withdrawal_processed    = 'withdrawal_processed'
 
     presale_account_created    = 'presale_account_created'
 
@@ -98,6 +99,7 @@ NOTIFICATION_KEYS = {
     NotificationType.transaction_received_sold_out: 'transactions_04',
     NotificationType.withdrawal_request: 'transactions_02_01',
     NotificationType.withdrawal_succeeded: 'transactions_03',
+    NotificationType.withdrawal_processed: 'transactions_02_02',
     NotificationType.presale_account_created: 'presale_01',
 }
 
