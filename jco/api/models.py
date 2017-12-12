@@ -322,7 +322,7 @@ class WithdrawJntHandler:
             'withdraw_address': params['address'],
         }
         notify.add_notification(
-            email, type=NotificationType.withdrawal_succeeded, data=data)
+            email, type=NotificationType.withdrawal_processed, data=data)
 
 
 class Operation(models.Model):
