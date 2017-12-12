@@ -218,7 +218,7 @@ class WithdrawRequestView(APIView):
         return Response({'detail': _('JNT withdrawal is requested. Check you email for confirmation.')})
 
 
-class WithdrawConfirmView(APIView):
+class WithdrawConfirmView(GenericAPIView):
     """
     Confirm JNT withdrawal
     """
@@ -244,7 +244,7 @@ class WithdrawConfirmView(APIView):
         return Response({'detail': _('JNT withdrawal successfull.')})
 
 
-class ChangeAddressConfirmView(APIView):
+class ChangeAddressConfirmView(GenericAPIView):
     """
     Confirm change withdraw address operation
     """
