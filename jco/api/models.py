@@ -3,6 +3,7 @@ import uuid
 import binascii
 import os
 
+from allauth.account.models import EmailAddress
 from django.db import models, transaction
 from django.conf import settings
 from django.contrib.postgres.fields import JSONField
@@ -388,3 +389,12 @@ class Operation(models.Model):
 
     def get_handler(self):
         return self.handlers[self.operation]
+
+
+def is_user_email_confirmed(user):
+    try:
+        email = EmailAddress.objects.get(email=user.username)
+        return email.verified
+    except EmailAddress.DoesNotExist:
+        logger.error('No EmailAddress for user %s!!', user.username)
+        return False

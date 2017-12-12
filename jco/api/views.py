@@ -32,6 +32,7 @@ from jco.api.serializers import (
     TransactionSerializer,
     WithdrawSerializer,
     PresaleJntSerializer,
+    is_user_email_confirmed,
 )
 from jco.api import tasks
 from jco.appprocessor import commands
@@ -167,7 +168,10 @@ class EthAddressView(GenericAPIView):
         return Response(data)
 
     def put(self, request):
-        account = self.ensure_account(request)
+        if is_user_email_confirmed(request.user) is False:
+            resp = {'detail': _('You email address is not confirmed yet')}
+            return Response(resp, status=403)
+
         serializer = EthAddressSerializer(data=request.data)
         if serializer.is_valid():
             operation = Operation.objects.create(
@@ -192,6 +196,11 @@ class WithdrawRequestView(APIView):
         if not request.user.account.withdraw_address:
             return Response({'detail': _('No Withdraw address in your account data.')},
                             status=400)
+
+        if is_user_email_confirmed(request.user) is False:
+            resp = {'detail': _('You email address is not confirmed yet')}
+            return Response(resp, status=403)
+
         withdraw_id = commands.add_withdraw_jnt(request.user.pk)
         withdraw = Withdraw.objects.get(pk=withdraw_id)
         params = {
@@ -216,6 +225,10 @@ class WithdrawConfirmView(APIView):
         if datetime.now() < settings.WITHDRAW_AVAILABLE_SINCE:
             return Response({'detail': _('Withdraw will be available after {}'.format(settings.WITHDRAW_AVAILABLE_SINCE))},
                             status=403)
+
+        if is_user_email_confirmed(request.user) is False:
+            resp = {'detail': _('You email address is not confirmed yet')}
+            return Response(resp, status=403)
 
         operation = Operation.objects.get(pk=request.POST['operation_id'])
         try:

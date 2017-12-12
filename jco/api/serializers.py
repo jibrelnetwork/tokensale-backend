@@ -1,5 +1,5 @@
-import logging 
-from datetime import datetime 
+import logging
+from datetime import datetime
 
 from django.db.models import Sum
 from django.conf import settings
@@ -13,7 +13,7 @@ from rest_auth.serializers import PasswordResetSerializer, PasswordResetForm
 from rest_framework import serializers, exceptions
 import requests
 
-from jco.api.models import Transaction, Address, Account, Jnt, Withdraw, PresaleJnt
+from jco.api.models import Transaction, Address, Account, Jnt, Withdraw, PresaleJnt, is_user_email_confirmed
 from jco.commonutils import person_verify
 from jco.commonutils import ga_integration
 from jco.appdb.models import TransactionStatus, CurrencyType
@@ -31,6 +31,7 @@ class AccountSerializer(serializers.ModelSerializer):
     jnt_balance = serializers.SerializerMethodField()
     verification_form_status = serializers.SerializerMethodField()
     identity_verification_status = serializers.SerializerMethodField()
+    is_email_confirmed = serializers.SerializerMethodField()
     btc_address = serializers.SerializerMethodField()
     eth_address = serializers.SerializerMethodField()
 
@@ -39,7 +40,7 @@ class AccountSerializer(serializers.ModelSerializer):
         fields = ('username', 'first_name', 'last_name', 'date_of_birth',
                   'citizenship', 'residency', 'terms_confirmed', 'document_url', 'document_type',
                   'jnt_balance', 'identity_verification_status', 'verification_form_status',
-                  'btc_address', 'eth_address', 'is_document_skipped')
+                  'btc_address', 'eth_address', 'is_document_skipped', 'is_email_confirmed')
         read_only_fields = ('is_identity_verified', 'jnt_balance')
 
     def get_username(self, obj):
@@ -87,6 +88,9 @@ class AccountSerializer(serializers.ModelSerializer):
             user=obj.user, type=CurrencyType.eth).first()
         if address is not None:
             return address.address
+
+    def get_is_email_confirmed(self, obj):
+        return is_user_email_confirmed(obj.user)
 
 
 class AddressSerializer(serializers.ModelSerializer):
