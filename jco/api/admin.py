@@ -209,6 +209,4 @@ class JntAdmin(admin.ModelAdmin):
 
 @admin.register(Operation)
 class OperationAdmin(admin.ModelAdmin):
-    list_display = ['user', 'operation', 'created_at',
-                    'confirmed_at', 'params', 'active', 'created']
-
+    list_display = ['user', 'operation', 'params', 'created_at', 'confirmed_at']
