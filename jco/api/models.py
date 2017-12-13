@@ -398,7 +398,7 @@ class Operation(models.Model):
             self.OP_WITHDRAW_JNT: 'withdraw-confirm',
             self.OP_CHANGE_ADDRESS: 'change-address-confirm',
         }
-        return 'https://{}/#/welcome/{}/{}/{}'.format(
+        return 'https://{}/#/welcome/{}/request/{}/{}'.format(
             site.domain, op_url_map[self.operation], self.pk, self.key)
 
     def get_handler(self):
