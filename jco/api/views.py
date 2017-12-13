@@ -233,14 +233,13 @@ class WithdrawConfirmView(GenericAPIView):
             resp = {'detail': _('You email address is not confirmed yet')}
             return Response(resp, status=403)
 
-        operation = Operation.objects.get(pk=request.POST['operation_id'])
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        operation = Operation.objects.get(pk=serializer.data['operation_id'])
         try:
-            operation.perform(request.POST['token'])
+            operation.perform(serializer.data['token'])
         except OperationError:
             return Response({'detail': _('JNT withdrawal is failed.')}, status=500)
-        # if not request.user.account.withdraw_address:
-        #     return Response({'detail': _('No Withdraw address in your account data.')},
-        #                     status=400)
         return Response({'detail': _('JNT withdrawal successfull.')})
 
 
@@ -252,9 +251,15 @@ class ChangeAddressConfirmView(GenericAPIView):
     serializer_class = OperationConfirmSerializer
 
     def post(self, request):
-        operation = Operation.objects.get(pk=request.POST['operation_id'])
+        if is_user_email_confirmed(request.user) is False:
+            resp = {'detail': _('You email address is not confirmed yet')}
+            return Response(resp, status=403)
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        operation = Operation.objects.get(pk=serializer.data['operation_id'])
         try:
-            operation.perform(request.POST['token'])
+            operation.perform(serializer.data['token'])
         except OperationError:
             return Response({'detail': _('Your withdrawal address changing is failed')}, 500)
 

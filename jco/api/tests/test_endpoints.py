@@ -463,3 +463,41 @@ def test_operation_confirm_withdraw_jnt_ok(client, users, accounts, settings):
     assert resp.status_code == 500
     withdraw.refresh_from_db()
     assert withdraw.status == models.TransactionStatus.pending
+
+
+def test_operation_confirm_withdraw_jnt_email_not_confirmed(client, users, accounts, settings):
+    settings.WITHDRAW_AVAILABLE_SINCE = datetime.now()
+    client.authenticate('user1@main.com', 'password1')
+    data = {}
+    resp = client.post('/api/withdraw-jnt/confirm/', data)
+    assert resp.status_code == 403
+
+
+def test_operation_confirm_withdraw_jnt_invalid_params(client, users, accounts, settings):
+    settings.WITHDRAW_AVAILABLE_SINCE = datetime.now()
+    EmailAddress.objects.filter(email='user1@main.com').update(verified=True)
+    client.authenticate('user1@main.com', 'password1')
+    data = {}
+    resp = client.post('/api/withdraw-jnt/confirm/', data)
+    assert resp.status_code == 400
+    assert resp.json() == {'token': ['This field is required.'],
+                           'operation_id': ['This field is required.']}
+
+
+def test_operation_confirm_change_address_email_not_confirmed(client, users, accounts, settings):
+    settings.WITHDRAW_AVAILABLE_SINCE = datetime.now()
+    client.authenticate('user1@main.com', 'password1')
+    data = {}
+    resp = client.post('/api/withdraw-address/confirm/', data)
+    assert resp.status_code == 403
+
+
+def test_operation_confirm_change_address_invalid_params(client, users, accounts, settings):
+    settings.WITHDRAW_AVAILABLE_SINCE = datetime.now()
+    EmailAddress.objects.filter(email='user1@main.com').update(verified=True)
+    client.authenticate('user1@main.com', 'password1')
+    data = {}
+    resp = client.post('/api/withdraw-address/confirm/', data)
+    assert resp.status_code == 400
+    assert resp.json() == {'token': ['This field is required.'],
+                           'operation_id': ['This field is required.']}
