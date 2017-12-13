@@ -1,6 +1,7 @@
 from datetime import datetime
 from itertools import chain
 from operator import itemgetter
+import logging
 
 from rest_framework.views import APIView
 from rest_framework.generics import GenericAPIView
@@ -38,6 +39,9 @@ from jco.api.serializers import (
 from jco.api import tasks
 from jco.appprocessor import commands
 from jco.commonutils import ga_integration
+
+
+logger = logging.getLogger(__name__)
 
 
 class TransactionsListView(APIView):
@@ -169,19 +173,24 @@ class EthAddressView(GenericAPIView):
         return Response(data)
 
     def put(self, request):
+        logger.info('Request address change for %s', request.user.username)
         if is_user_email_confirmed(request.user) is False:
             resp = {'detail': _('You email address is not confirmed yet')}
+            logger.info('email address is not confirmed for %s, aborting', request.user.username)
             return Response(resp, status=403)
 
         serializer = EthAddressSerializer(data=request.data)
         if serializer.is_valid():
-            operation = Operation.objects.create(
+            operation = Operation.create_operation(
                 operation=Operation.OP_CHANGE_ADDRESS,
                 user=request.user,
                 params=serializer.data
             )
-            operation.request_confirmation()
+            logger.info('Address change for %s: operation #%s created',
+                        request.user.username, operation.pk)
             return Response(serializer.data)
+        logger.info('Invalid Ethereum address %s for %s',
+                    serializer.data.get('address'), request.user.username)
         return Response({'address': [_('Invalid Ethereum address')]}, status=400)
 
 
@@ -190,35 +199,42 @@ class WithdrawRequestView(APIView):
     Request JNT withdrawal link to send via email
     """
     def post(self, request):
+        logger.info('Request JNT withdraw for %s', request.user.username)
         if datetime.now() < settings.WITHDRAW_AVAILABLE_SINCE:
+            logger.info('Request JNT withdraw for %s rejected: date', request.user.username)
             return Response({'detail': _('Withdraw will be available after {}'.format(settings.WITHDRAW_AVAILABLE_SINCE))},
                             status=403)
 
         if not request.user.account.withdraw_address:
+            logger.info('Request JNT withdraw for %s rejected: no address', request.user.username)
             return Response({'detail': _('No Withdraw address in your account data.')},
                             status=400)
 
         if is_user_email_confirmed(request.user) is False:
+            logger.info('Request JNT withdraw for %s rejected: email not confirmed', request.user.username)
             resp = {'detail': _('You email address is not confirmed yet')}
             return Response(resp, status=403)
 
         withdraw_id = commands.add_withdraw_jnt(request.user.pk)
         if not withdraw_id:
+            logger.info('Request JNT withdraw for %s rejected: balance or error', request.user.username)
             resp = {'detail': _('Impossible withdrawal. Check you balance.')}
             return Response(resp, status=400)
 
+        logger.info('JNT Withdraw created: #%s for %s', withdraw_id, request.user.username)
         withdraw = Withdraw.objects.get(pk=withdraw_id)
         params = {
             'address': request.user.account.withdraw_address,
             'jnt_amount': withdraw.value,
             'withdraw_id': withdraw.pk,
         }
-        operation = Operation.objects.create(
+        operation = Operation.create_operation(
             operation=Operation.OP_WITHDRAW_JNT,
             user=request.user,
             params=params
         )
-        operation.request_confirmation()
+        logger.info('JNT withdrawal for %s: operation #%s created',
+                    request.user.username, operation.pk)
         return Response({'detail': _('JNT withdrawal is requested. Check you email for confirmation.')})
 
 

@@ -338,6 +338,18 @@ def test_withdraw_jnt(client, users, addresses, jnt, settings):
     op.validate_token(token)
 
 
+def test_withdraw_jnt_no_jnt(client, users, addresses, jnt, settings):
+    settings.WITHDRAW_AVAILABLE_SINCE = datetime.now()
+    EmailAddress.objects.filter(email='user3@main.com').update(verified=True)
+    account = models.Account.objects.create(withdraw_address='aaaxxx', user=users[2])
+
+    client.authenticate('user3@main.com', 'password3')
+    assert account.get_jnt_balance() == 0
+    resp = client.post('/api/withdraw-jnt/')
+    assert resp.status_code == 400
+    assert resp.json() == {'detail': 'Impossible withdrawal. Check you balance.'}
+
+
 def test_registration(client):
     user_data = {
         'email': 'aa@aa.aa',

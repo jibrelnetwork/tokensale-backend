@@ -292,8 +292,12 @@ class ChangeAddressHandler:
             email, type=NotificationType.withdraw_address_change_request, data=data)
 
     def run(self, user, params):
+        logger.info('Running ChangeAddressHandler for %s', user.username)
+        old_address = user.account.withdraw_address
         user.account.withdraw_address = params['address']
         user.account.save()
+        logger.info('Withdraw address changed for %s: %s -> %s',
+                    user.username, old_address, user.account.withdraw_address)
 
     def notify_completed(self, email, params):
         notify.add_notification(
@@ -312,9 +316,11 @@ class WithdrawJntHandler:
             email, type=NotificationType.withdrawal_request, data=data)
 
     def run(self, user, params):
+        logger.info('Running WithdrawJntHandler for %s', user.username)
         withdraw = Withdraw.objects.get(user=user, pk=params['withdraw_id'])
         withdraw.status = TransactionStatus.pending
         withdraw.save()
+        logger.info('Withdraw #%s for %s is in status pending now', withdraw.pk, user.username)
 
     def notify_completed(self, email, params):
         data = {
@@ -367,6 +373,7 @@ class Operation(models.Model):
             self.user.username, confirmation_url, self.params)
 
     def perform(self, token):
+        logger.info('Performing operation #%s %s for %s', self.pk, self.user.username)
         if self.confirmed_at is not None:
             raise OperationError('This operation has already been completed')
         self.validate_token(token)
@@ -374,9 +381,12 @@ class Operation(models.Model):
         self.confirmed_at = now()
         self.get_handler().notify_completed(self.user.username, self.params)
         self.save()
+        logger.info('Operation succeed #%s %s for %s', self.pk, self.operation, self.user.username)
 
     def validate_token(self, token):
         if self.key != token:
+            logger.info('Invalid token %s, op: #%s %s for %s',
+                        token, self.pk, self.operation, self.user.username)
             raise OperationError('Invalid token')
 
     def generate_token(self):
@@ -389,6 +399,17 @@ class Operation(models.Model):
 
     def get_handler(self):
         return self.handlers[self.operation]
+
+    @classmethod
+    def create_operation(cls, operation, user, params):
+        with transaction.atomic():
+            op = cls.objects.create(
+                operation=operation,
+                user=user,
+                params=params
+            )
+            op.request_confirmation()
+            return op
 
 
 def is_user_email_confirmed(user):
