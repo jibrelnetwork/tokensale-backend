@@ -394,8 +394,12 @@ class Operation(models.Model):
 
     def make_confirmation_url(self):
         site = get_current_site(None)
-        return 'https://{}/#/op-confirm/{}/{}'.format(
-            site.domain, self.pk, self.key)
+        op_url_map = {
+            self.OP_WITHDRAW_JNT: 'withdraw-confirm',
+            self.OP_CHANGE_ADDRESS: 'change-address-confirm',
+        }
+        return 'https://{}/#/welcome/{}/{}/{}'.format(
+            site.domain, op_url_map[self.operation], self.pk, self.key)
 
     def get_handler(self):
         return self.handlers[self.operation]

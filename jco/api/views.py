@@ -245,11 +245,14 @@ class WithdrawConfirmView(GenericAPIView):
     serializer_class = OperationConfirmSerializer
 
     def post(self, request):
+        logger.info('JNT withdraw confirmation for %s', request.user.username)
         if datetime.now() < settings.WITHDRAW_AVAILABLE_SINCE:
+            logger.info('JNT withdraw confirmation for %s rejected: date', request.user.username)
             return Response({'detail': _('Withdraw will be available after {}'.format(settings.WITHDRAW_AVAILABLE_SINCE))},
                             status=403)
 
         if is_user_email_confirmed(request.user) is False:
+            logger.info('JNT withdraw confirmation for %s rejected: email not confirmed', request.user.username)
             resp = {'detail': _('You email address is not confirmed yet')}
             return Response(resp, status=403)
 
@@ -257,8 +260,14 @@ class WithdrawConfirmView(GenericAPIView):
         serializer.is_valid(raise_exception=True)
         operation = Operation.objects.get(pk=serializer.data['operation_id'])
         try:
+            logger.info('JNT withdraw confirmation for %s: performing operation #%s',
+                        request.user.username, operation.pk)
             operation.perform(serializer.data['token'])
+            logger.info('JNT withdraw confirmation for %s: successfull operation #%s',
+                        request.user.username, operation.pk)
         except OperationError:
+            logger.exception('JNT withdraw confirmation for %s: failed operation #%s',
+                        request.user.username, operation.pk)
             return Response({'detail': _('JNT withdrawal is failed.')}, status=500)
         return Response({'detail': _('JNT withdrawal successfull.')})
 
