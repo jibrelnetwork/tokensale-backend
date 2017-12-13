@@ -203,6 +203,10 @@ class WithdrawRequestView(APIView):
             return Response(resp, status=403)
 
         withdraw_id = commands.add_withdraw_jnt(request.user.pk)
+        if not withdraw_id:
+            resp = {'detail': _('Impossible withdrawal. Check you balance.')}
+            return Response(resp, status=400)
+
         withdraw = Withdraw.objects.get(pk=withdraw_id)
         params = {
             'address': request.user.account.withdraw_address,

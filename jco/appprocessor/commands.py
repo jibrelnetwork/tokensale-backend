@@ -1118,7 +1118,7 @@ def withdraw_processing():
 # Persist withdraw operation of JNT to the database
 #
 
-def add_withdraw_jnt(user_id: int) -> Boolean:
+def add_withdraw_jnt(user_id: int) -> Optional[int]:
     # noinspection PyBroadException
     try:
         logging.getLogger(__name__).info("Start persist withdraw operation of JNT to the database. account_id: {}"
@@ -1136,7 +1136,7 @@ def add_withdraw_jnt(user_id: int) -> Boolean:
             logging.getLogger(__name__).error(
                 "Invalid user_id: {}".format(user_id))
             session.rollback()
-            return False
+            return None
 
         total_jnt = session.query(func.coalesce(func.sum(JNT.jnt_value), 0)) \
             .join(Transaction, Transaction.id == JNT.transaction_id) \
@@ -1150,7 +1150,7 @@ def add_withdraw_jnt(user_id: int) -> Boolean:
         withdrawable_balance = session.query(total_jnt - total_withdraw_jnt).one()
         if withdrawable_balance[0] <= 0:
             session.rollback()
-            return False
+            return None
 
         insert_query = insert(Withdraw) \
             .values(user_id=user_id,
@@ -1171,7 +1171,7 @@ def add_withdraw_jnt(user_id: int) -> Boolean:
         logging.getLogger(__name__).error(
             "Failed to persist withdraw operation to the database due to exception:\n{}".format(exception_str))
         session.rollback()
-        return False
+        return None
 
 
 #
