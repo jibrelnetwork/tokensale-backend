@@ -350,7 +350,7 @@ def test_withdraw_jnt_no_jnt(client, users, addresses, jnt, settings):
     assert resp.json() == {'detail': 'Impossible withdrawal. Check you balance.'}
 
 
-def test_registration(client):
+def test_registration(client, addresses):
     user_data = {
         'email': 'aa@aa.aa',
         'password': '123qwerty',
@@ -376,9 +376,10 @@ def test_registration(client):
 
     assert resp.status_code == 200
     assert EmailAddress.objects.get(email=user_data['email']).verified is True
+    assert len(account.user.pay_addresses.all()) == 2
 
 
-def test_registration_emplty_tracking(client):
+def test_registration_emplty_tracking(client, addresses):
     user_data = {
         'email': 'aa@aa.aa',
         'password': '123qwerty',
