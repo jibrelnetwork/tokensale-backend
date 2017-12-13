@@ -18,6 +18,7 @@ from jco.appdb.db import session
 from jco.appdb.models import *
 from jco.commonutils.utils import *
 from jco.commonutils.app_init import initialize_app
+from jco.commonutils.contract import mintJNT
 from jco.appprocessor.affiliate import (
     scan_affiliates,
     check_new_transactions,
@@ -52,6 +53,7 @@ from jco.appprocessor.commands import (
     check_withdraw_addresses,
     get_btc_addresses_with_positive_balance,
     get_eth_addresses_with_positive_balance,
+    check_withdraw_transactions
 )
 
 
@@ -1023,6 +1025,33 @@ class TestCommands(unittest.TestCase):
         self.assertTrue(len(positive_addresses) == 2)
         self.assertEqual(positive_addresses[0].address, '1HEVUxtxGjGnuRT5NsamD6V4RdUduRHqFv')
         self.assertEqual(positive_addresses[1].address, '1FctpG14EZosqFCJCKivKUtFHT7eycRpk7')
+
+
+    def test_check_withdraw_transactions(self):
+        user = create_user("test@test.local", "test@test.local")
+
+        withdraw = Withdraw(transaction_id="0x2cc20c5c74d4ffad4f5414e183fec96556747209164fdafc535ed7f6c32e02ef",
+                            user_id=user.id,
+                            to="0xabcdef",
+                            value=0.001,
+                            status=TransactionStatus.pending)
+
+        session.add(withdraw)
+        try:
+            session.commit()
+        except Exception:
+            exception_str = ''.join(traceback.format_exception(*sys.exc_info()))
+
+        check_withdraw_transactions()
+
+        withdraws = session.query(Withdraw).all()
+
+        self.assertEqual(len(withdraws), 1)
+        self.ssertEqual(withdraws[0].status, TransactionStatus.fail)
+
+    def test_a_mintJNT(self):
+        tx_id = mintJNT("0xa5e03f38d0a6811d38aa1cf1ddb22a5c6cfa0bd2", 0.001)
+        self.assertTrue(not tx_id is None)
 
     def test_aaa_check_new_transactions(self):
         generate_eth_addresses(self.mnemonic, 3)

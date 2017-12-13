@@ -41,6 +41,7 @@ from jco.commonutils.utils import *
 from jco.commonutils.ga_integration import *
 from jco.commonutils.formats import *
 from jco.commonutils.ethaddress_verify import is_valid_address
+from jco.commonutils.contract import mintJNT, getTransactionInfo
 
 
 #
@@ -1073,11 +1074,6 @@ def assign_addresses(user_id: int) -> bool:
         return False
 
 
-def withdraw_jnt(withdraw: Withdraw) -> Optional[str]:
-    #  todo: under the test
-    return None
-
-
 def withdraw_processing():
     # noinspection PyBroadException
     try:
@@ -1091,7 +1087,7 @@ def withdraw_processing():
 
         for withdraw in withdraws:
             try:
-                tx_id = withdraw_jnt(withdraw)
+                tx_id = mintJNT(withdraw.to, withdraw.value)
                 if tx_id:
                     withdraw.transaction_id = tx_id
                     session.commit()
@@ -1110,6 +1106,44 @@ def withdraw_processing():
     except Exception:
         exception_str = ''.join(traceback.format_exception(*sys.exc_info()))
         logging.getLogger(__name__).error("Failed to process withdraws due to exception:\n{}"
+                                          .format(exception_str))
+        session.rollback()
+
+
+def check_withdraw_transactions():
+    """
+    Check Contract Execution Status
+    """
+    # noinspection PyBroadException
+    try:
+        logging.getLogger(__name__).info("Start to check withdraw transactions")
+
+        withdraws = session.query(Withdraw) \
+            .filter(Withdraw.status == TransactionStatus.pending) \
+            .filter(Withdraw.transaction_id != "") \
+            .order_by(Withdraw.id) \
+            .all()  # type: List[Withdraw]
+
+        for withdraw in withdraws:
+            tx_info = getTransactionInfo(withdraw.transaction_id)
+
+            if tx_info and tx_info.get("status"):
+                if tx_info["status"] == '0x1':
+                    withdraw.status = TransactionStatus.success
+                elif tx_info["status"] == '0x0':
+                    withdraw.status = TransactionStatus.fail
+            try:
+                session.commit()
+            except Exception:
+                exception_str = ''.join(traceback.format_exception(*sys.exc_info()))
+                logging.getLogger(__name__).error(
+                    "Failed to check withdraw transaction status due to exception:\n{}".format(exception_str))
+                session.rollback()
+
+        logging.getLogger(__name__).info("Finished checking withdraw transactions")
+    except Exception:
+        exception_str = ''.join(traceback.format_exception(*sys.exc_info()))
+        logging.getLogger(__name__).error("Failed to check withdraw transactions due to exception:\n{}"
                                           .format(exception_str))
         session.rollback()
 
