@@ -212,7 +212,7 @@ class Withdraw(models.Model):
     to = models.CharField(max_length=255)
     value = models.FloatField()
     created = models.DateTimeField()
-    mined = models.DateTimeField(null=True)
+    mined = models.DateTimeField(null=True, blank=True)
     block_height = models.IntegerField(blank=True, null=True)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, models.DO_NOTHING, blank=True, null=True,
                              related_name='withdraws')
