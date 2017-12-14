@@ -1284,8 +1284,8 @@ def send_email_transaction_received_sold_out(email: str, user_id: int, transacti
 
 
 def send_email_withdrawal_request_succeeded(email: str, user_id: int, withdraw: dict) -> bool:
-    return send_email_transaction_received(email=email, user_id=user_id, withdraw=withdraw,
-                                           type=NotificationType.withdrawal_succeeded)
+    return send_email_withdrawal_request(email=email, user_id=user_id, withdraw=withdraw,
+                                         type=NotificationType.withdrawal_succeeded)
 
 
 #
