@@ -279,7 +279,7 @@ class WithdrawConfirmView(GenericAPIView):
             operation.perform(serializer.data['token'])
             logger.info('JNT withdraw confirmation for %s: successfull operation #%s',
                         request.user.username, operation.pk)
-        except OperationError:
+        except Exception:
             logger.exception('JNT withdraw confirmation for %s: failed operation #%s',
                         request.user.username, operation.pk)
             return Response({'detail': _('JNT withdrawal is failed.')}, status=500)
@@ -303,7 +303,8 @@ class ChangeAddressConfirmView(GenericAPIView):
         operation = Operation.objects.get(pk=serializer.data['operation_id'])
         try:
             operation.perform(serializer.data['token'])
-        except OperationError:
+        except Exception:
+            logger.exception('Address change operation failure for %s', request.user.username)
             return Response({'detail': _('Your withdrawal address changing is failed')}, 500)
 
         return Response({'detail': _('Your withdrawal address is changed')})

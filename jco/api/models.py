@@ -394,7 +394,7 @@ class Operation(models.Model):
             self.user.username, confirmation_url, self.params)
 
     def perform(self, token):
-        logger.info('Performing operation #%s %s for %s', self.pk, self.user.username)
+        logger.info('Performing operation #%s %s for %s', self.pk, self.operation, self.user.username)
         if self.confirmed_at is not None:
             raise OperationError('This operation has already been completed')
         self.validate_token(token)
