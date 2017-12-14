@@ -309,7 +309,7 @@ class ChangeAddressHandler:
 
     def send_confirmation_email(self, email, confirmation_url, params):
         data = {'confirm_url': confirmation_url}
-        notify.add_notification(
+        return notify.add_notification(
             email, type=NotificationType.withdraw_address_change_request, data=data)
 
     def run(self, user, params):
@@ -321,7 +321,7 @@ class ChangeAddressHandler:
                     user.username, old_address, user.account.withdraw_address)
 
     def notify_completed(self, email, params):
-        notify.add_notification(
+        return notify.add_notification(
             email, type=NotificationType.withdraw_address_changed)
 
 
@@ -333,13 +333,13 @@ class WithdrawJntHandler:
             'withdraw_jnt_amount': '',
             'withdraw_address': ''
         }
-        notify.add_notification(
+        return notify.add_notification(
             email, type=NotificationType.withdrawal_request, data=data)
 
     def run(self, user, params):
         logger.info('Running WithdrawJntHandler for %s', user.username)
         withdraw = Withdraw.objects.get(user=user, pk=params['withdraw_id'])
-        withdraw.status = TransactionStatus.pending
+        withdraw.status = TransactionStatus.confirmed
         withdraw.save()
         logger.info('Withdraw #%s for %s is in status pending now', withdraw.pk, user.username)
 
@@ -348,7 +348,7 @@ class WithdrawJntHandler:
             'withdraw_jnt_amount': params['jnt_amount'],
             'withdraw_address': params['address'],
         }
-        notify.add_notification(
+        return notify.add_notification(
             email, type=NotificationType.withdrawal_processed, data=data)
 
 
@@ -390,7 +390,7 @@ class Operation(models.Model):
         Request operation confirmation - send email with one-time link for this op
         """
         confirmation_url = self.make_confirmation_url()
-        self.get_handler().send_confirmation_email(
+        return self.get_handler().send_confirmation_email(
             self.user.username, confirmation_url, self.params)
 
     def perform(self, token):
@@ -433,7 +433,9 @@ class Operation(models.Model):
                 user=user,
                 params=params
             )
-            op.request_confirmation()
+            confirm_success = op.request_confirmation()
+            if confirm_success is False:
+                raise OperationError("Confirmation message creation failure")
             return op
 
 

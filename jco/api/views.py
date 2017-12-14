@@ -13,6 +13,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
 from rest_framework_extensions.cache.decorators import cache_response
 from rest_framework.parsers import JSONParser, FormParser, MultiPartParser
+from django.db import transaction
 
 from allauth.account.models import EmailAddress
 from allauth.account.utils import send_email_confirmation
@@ -183,11 +184,16 @@ class EthAddressView(GenericAPIView):
 
         serializer = EthAddressSerializer(data=request.data)
         if serializer.is_valid():
-            operation = Operation.create_operation(
-                operation=Operation.OP_CHANGE_ADDRESS,
-                user=request.user,
-                params=serializer.data
-            )
+            try:
+                operation = Operation.create_operation(
+                    operation=Operation.OP_CHANGE_ADDRESS,
+                    user=request.user,
+                    params=serializer.data
+                )
+            except Exception:
+                logger.exception('Address change failed for %s', request.user.username)
+                return Response({'detail': _('Unexpected error, please try again')}, status=500)
+
             logger.info('Address change for %s: operation #%s created',
                         request.user.username, operation.pk)
             return Response(serializer.data)
@@ -225,16 +231,22 @@ class WithdrawRequestView(APIView):
 
         logger.info('JNT Withdraw created: #%s for %s', withdraw_id, request.user.username)
         withdraw = Withdraw.objects.get(pk=withdraw_id)
-        params = {
-            'address': request.user.account.withdraw_address,
-            'jnt_amount': withdraw.value,
-            'withdraw_id': withdraw.pk,
-        }
-        operation = Operation.create_operation(
-            operation=Operation.OP_WITHDRAW_JNT,
-            user=request.user,
-            params=params
-        )
+
+        try:
+            params = {
+                'address': request.user.account.withdraw_address,
+                'jnt_amount': withdraw.value,
+                'withdraw_id': withdraw.pk,
+            }
+            operation = Operation.create_operation(
+                operation=Operation.OP_WITHDRAW_JNT,
+                user=request.user,
+                params=params
+            )
+        except Exception:
+            logger.exception('Withdraw request failed for %s', request.user.username)
+            return Response({'detail': _('Unexpected error, please try again')}, status=500)
+
         logger.info('JNT withdrawal for %s: operation #%s created',
                     request.user.username, operation.pk)
         return Response({'detail': _('JNT withdrawal is requested. Check you email for confirmation.')})

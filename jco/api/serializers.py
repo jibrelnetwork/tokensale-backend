@@ -147,9 +147,11 @@ class TransactionSerializer(serializers.ModelSerializer):
 
     def get_status(self, obj):
         return {
-            TransactionStatus.pending: 'waiting',
-            TransactionStatus.success: 'complete',
-            TransactionStatus.fail: 'failed',
+            TransactionStatus.not_confirmed: TransactionStatus.not_confirmed,
+            TransactionStatus.confirmed: TransactionStatus.confirmed,
+            TransactionStatus.pending: TransactionStatus.pending,
+            TransactionStatus.success: TransactionStatus.success,
+            TransactionStatus.fail: TransactionStatus.fail,
         }.get(obj.status)
 
     def get_TXtype(self, obj):
@@ -186,9 +188,6 @@ class WithdrawSerializer(TransactionSerializer):
         return obj.value
 
     def get_TXtype(self, obj):
-        return 'ETH'
-
-    def get_TXhash(self, obj):
         return 'ETH'
 
     def get_amount_usd(self, obj):

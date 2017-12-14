@@ -1080,7 +1080,7 @@ def withdraw_processing():
         logging.getLogger(__name__).info("Start to process new withdraws")
 
         withdraws = session.query(Withdraw) \
-            .filter(Withdraw.status == TransactionStatus.pending) \
+            .filter(Withdraw.status == TransactionStatus.confirmed) \
             .filter(or_(Withdraw.transaction_id == "",
                         Withdraw.transaction_id.is_(None))) \
             .order_by(Withdraw.id) \
@@ -1091,6 +1091,7 @@ def withdraw_processing():
                 tx_id = mintJNT(withdraw.to, withdraw.value)
                 if tx_id:
                     withdraw.transaction_id = tx_id
+                    withdraw.status = TransactionStatus.pending
                     session.commit()
                     logging.getLogger(__name__).info(
                             "Process withdraw. withdraw_id: {}".format(withdraw.id))

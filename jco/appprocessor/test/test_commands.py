@@ -1034,7 +1034,7 @@ class TestCommands(unittest.TestCase):
                             user_id=user.id,
                             to="0xabcdef",
                             value=0.001,
-                            status=TransactionStatus.pending)
+                            status=TransactionStatus.confirmed)
 
         session.add(withdraw)
         try:
