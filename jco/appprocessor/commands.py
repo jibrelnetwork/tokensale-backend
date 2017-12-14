@@ -1152,7 +1152,7 @@ def check_withdraw_transactions():
 # Persist withdraw operation of JNT to the database
 #
 
-def add_withdraw_jnt(user_id: int) -> Boolean:
+def add_withdraw_jnt(user_id: int) -> Optional[int]:
     # noinspection PyBroadException
     try:
         logging.getLogger(__name__).info("Start persist withdraw operation of JNT to the database. account_id: {}"
@@ -1170,12 +1170,12 @@ def add_withdraw_jnt(user_id: int) -> Boolean:
             logging.getLogger(__name__).error(
                 "Invalid user_id: {}".format(user_id))
             session.rollback()
-            return False
+            return None
 
         total_jnt = session.query(func.coalesce(func.sum(JNT.jnt_value), 0)) \
             .join(Transaction, Transaction.id == JNT.transaction_id) \
             .join(Address, Address.id == Transaction.address_id) \
-            .filter(Address.id.in_(addresses_ids)).as_scalar()
+            .filter(Address.id.in_(addresses_ids), Transaction.status == TransactionStatus.success).as_scalar()
 
         total_withdraw_jnt = session.query(func.coalesce(func.sum(Withdraw.value), 0)) \
             .filter(Withdraw.to == account.withdraw_address) \
@@ -1184,28 +1184,28 @@ def add_withdraw_jnt(user_id: int) -> Boolean:
         withdrawable_balance = session.query(total_jnt - total_withdraw_jnt).one()
         if withdrawable_balance[0] <= 0:
             session.rollback()
-            return False
+            return None
 
         insert_query = insert(Withdraw) \
             .values(user_id=user_id,
-                    status=TransactionStatus.pending,
+                    status=TransactionStatus.not_confirmed,
                     to=account.withdraw_address,
                     value=total_jnt - total_withdraw_jnt,
                     transaction_id='')
 
-        session.execute(insert_query)
+        result = session.execute(insert_query)
         session.commit()
 
         logging.getLogger(__name__).info("Finished to persist withdraw operation of JNT to the database. account_id: {}"
                                          .format(user_id))
 
-        return True
+        return result.inserted_primary_key[0]
     except Exception:
         exception_str = ''.join(traceback.format_exception(*sys.exc_info()))
         logging.getLogger(__name__).error(
             "Failed to persist withdraw operation to the database due to exception:\n{}".format(exception_str))
         session.rollback()
-        return False
+        return None
 
 
 #

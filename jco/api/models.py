@@ -1,11 +1,16 @@
 import logging
 import uuid
+import binascii
+import os
 
 from allauth.account.models import EmailAddress
 from django.db import models, transaction
 from django.conf import settings
 from django.contrib.postgres.fields import JSONField
 from django.template.loader import render_to_string
+from django.utils.timezone import now
+from django.contrib.auth.tokens import default_token_generator as token_generator
+from django.contrib.sites.shortcuts import get_current_site
 
 from jco.appdb.models import CurrencyType
 from jco.appdb.models import TransactionStatus
@@ -96,6 +101,17 @@ class Account(models.Model):
         notify.send_email_kyc_account_rejected(self.user.email if self.user else None,
                                                self.user.id if self.user else None)
 
+    def get_jnt_balance(self):
+        presale_balance = PresaleJnt.objects.filter(
+            user=self.user).aggregate(models.Sum('jnt_value'))['jnt_value__sum'] or 0
+        jnt_balance = (Jnt.objects.filter(transaction__address__user=self.user,
+                                          transaction__status=TransactionStatus.success)
+                       .aggregate(models.Sum('jnt_value')))['jnt_value__sum'] or 0
+
+        withdraws = Withdraw.objects.filter(
+            user=self.user).aggregate(models.Sum('value'))['value__sum'] or 0
+        return jnt_balance + presale_balance - withdraws
+
     def __str__(self):
         return '{} {}'.format(self.first_name, self.last_name)
 
@@ -173,7 +189,7 @@ class Jnt(models.Model):
     active = models.BooleanField()
     created = models.DateTimeField()
     transaction = models.OneToOneField('Transaction', models.DO_NOTHING,
-                                    unique=True, related_name='jnt')
+                                       unique=True, related_name='jnt')
     meta = JSONField(default={})  # This field type is a guess.
 
     class Meta:
@@ -201,7 +217,7 @@ class Withdraw(models.Model):
     address = models.ForeignKey(Address, models.DO_NOTHING, null=True)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, models.DO_NOTHING, blank=True, null=True,
                              related_name='withdraws')
-    status = models.CharField(max_length=10, default=TransactionStatus.pending)
+    status = models.CharField(max_length=20, default=TransactionStatus.not_confirmed)
     meta = JSONField(default=dict)  # This field type is a guess.
 
     class Meta:
@@ -265,6 +281,11 @@ class Affiliate(models.Model):
         db_table = 'affiliate'
 
 
+class OperationError(Exception):
+    """
+    Operation execution error
+    """
+
 def get_document_filename_extension(filename):
     if len(filename.split(".")) > 1:
         return filename.split(".")[-1]
@@ -283,6 +304,138 @@ class Document(models.Model):
 
     class Meta:
         db_table = 'document'
+
+
+class ChangeAddressHandler:
+
+    def send_confirmation_email(self, email, confirmation_url, params):
+        data = {'confirm_url': confirmation_url}
+        notify.add_notification(
+            email, type=NotificationType.withdraw_address_change_request, data=data)
+
+    def run(self, user, params):
+        logger.info('Running ChangeAddressHandler for %s', user.username)
+        old_address = user.account.withdraw_address
+        user.account.withdraw_address = params['address']
+        user.account.save()
+        logger.info('Withdraw address changed for %s: %s -> %s',
+                    user.username, old_address, user.account.withdraw_address)
+
+    def notify_completed(self, email, params):
+        notify.add_notification(
+            email, type=NotificationType.withdraw_address_changed)
+
+
+class WithdrawJntHandler:
+
+    def send_confirmation_email(self, email, confirmation_url, params):
+        data = {
+            'confirm_url': confirmation_url,
+            'withdraw_jnt_amount': '',
+            'withdraw_address': ''
+        }
+        notify.add_notification(
+            email, type=NotificationType.withdrawal_request, data=data)
+
+    def run(self, user, params):
+        logger.info('Running WithdrawJntHandler for %s', user.username)
+        withdraw = Withdraw.objects.get(user=user, pk=params['withdraw_id'])
+        withdraw.status = TransactionStatus.pending
+        withdraw.save()
+        logger.info('Withdraw #%s for %s is in status pending now', withdraw.pk, user.username)
+
+    def notify_completed(self, email, params):
+        data = {
+            'withdraw_jnt_amount': params['jnt_amount'],
+            'withdraw_address': params['address'],
+        }
+        notify.add_notification(
+            email, type=NotificationType.withdrawal_processed, data=data)
+
+
+class Operation(models.Model):
+    """
+    Some operations are requires email confirmation
+    """
+    OP_CHANGE_ADDRESS = 'change_address'
+    OP_WITHDRAW_JNT = 'withdraw_jnt'
+
+    OP_CHOICES = [
+        (OP_CHANGE_ADDRESS, 'Change Withdraw Address'),
+        (OP_WITHDRAW_JNT, 'Withdraw JNT '),
+    ]
+
+    handlers = {
+        OP_CHANGE_ADDRESS: ChangeAddressHandler(),
+        OP_WITHDRAW_JNT: WithdrawJntHandler(),
+    }
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    key = models.CharField(max_length=40)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL)
+    operation = models.CharField(max_length=20, choices=OP_CHOICES)
+    created_at = models.DateTimeField(auto_now_add=True)
+    confirmed_at = models.DateTimeField(null=True)
+    params = JSONField(default=dict)
+
+    class Meta:
+        db_table = 'operation'
+
+    def save(self, *args, **kwargs):
+        if not self.key:
+            self.key = self.generate_token()
+        return super().save(*args, **kwargs)
+
+    def request_confirmation(self):
+        """
+        Request operation confirmation - send email with one-time link for this op
+        """
+        confirmation_url = self.make_confirmation_url()
+        self.get_handler().send_confirmation_email(
+            self.user.username, confirmation_url, self.params)
+
+    def perform(self, token):
+        logger.info('Performing operation #%s %s for %s', self.pk, self.user.username)
+        if self.confirmed_at is not None:
+            raise OperationError('This operation has already been completed')
+        self.validate_token(token)
+        self.get_handler().run(self.user, self.params)
+        self.confirmed_at = now()
+        self.get_handler().notify_completed(self.user.username, self.params)
+        self.save()
+        logger.info('Operation succeed #%s %s for %s', self.pk, self.operation, self.user.username)
+
+    def validate_token(self, token):
+        if self.key != token:
+            logger.info('Invalid token %s, op: #%s %s for %s',
+                        token, self.pk, self.operation, self.user.username)
+            raise OperationError('Invalid token')
+
+    def generate_token(self):
+        return binascii.hexlify(os.urandom(20)).decode()
+
+    def make_confirmation_url(self):
+        site = get_current_site(None)
+        op_url_map = {
+            self.OP_WITHDRAW_JNT: 'withdraw-confirm',
+            self.OP_CHANGE_ADDRESS: 'change-address-confirm',
+        }
+        return 'https://{}/#/welcome/{}/request/{}/{}'.format(
+            site.domain, op_url_map[self.operation], self.pk, self.key)
+
+    def get_handler(self):
+        return self.handlers[self.operation]
+
+    @classmethod
+    def create_operation(cls, operation, user, params):
+        with transaction.atomic():
+            op = cls.objects.create(
+                operation=operation,
+                user=user,
+                params=params
+            )
+            op.request_confirmation()
+            return op
 
 
 def is_user_email_confirmed(user):

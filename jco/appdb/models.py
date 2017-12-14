@@ -33,6 +33,7 @@ class AffiliateEvent:
 
 
 class TransactionStatus:
+    not_confirmed = 'not_confirmed'
     pending = 'pending'
     fail = 'fail'
     success = 'success'
@@ -58,6 +59,7 @@ class NotificationType:
     transaction_received_sold_out = 'transaction_received_sold_out'
     withdrawal_request      = 'withdrawal_request'
     withdrawal_succeeded    = 'withdrawal_succeeded'
+    withdrawal_processed    = 'withdrawal_processed'
 
     presale_account_created    = 'presale_account_created'
 
@@ -97,6 +99,7 @@ NOTIFICATION_KEYS = {
     NotificationType.transaction_received_sold_out: 'transactions_04',
     NotificationType.withdrawal_request: 'transactions_02_01',
     NotificationType.withdrawal_succeeded: 'transactions_03',
+    NotificationType.withdrawal_processed: 'transactions_02_02',
     NotificationType.presale_account_created: 'presale_01',
 }
 
@@ -488,7 +491,7 @@ class Withdraw(db.Model):
     created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     mined = db.Column(db.DateTime, nullable=True)
     block_height = db.Column(db.Integer, nullable=True)
-    status = db.Column(db.String(10), nullable=False, default=TransactionStatus.pending)
+    status = db.Column(db.String(10), nullable=False, default=TransactionStatus.not_confirmed)
     meta = db.Column(JSONB, nullable=False, default=lambda: {})
     user_id = db.Column(db.Integer, db.ForeignKey('auth_user.id'), unique=False)
 

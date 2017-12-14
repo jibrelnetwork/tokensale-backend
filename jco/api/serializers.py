@@ -329,6 +329,7 @@ class RegisterSerializer(serializers.Serializer):
         setup_user_email(request, user, [])
         tracking = self.validated_data.get('tracking', {})
         account = Account.objects.create(user=user, tracking=tracking)
+        Address.assign_pair_to_user(user)
         ga_integration.on_status_new(account)
         return user
 
@@ -470,6 +471,11 @@ class EthAddressSerializer(serializers.Serializer):
 
         attrs['address'] = address
         return attrs
+
+
+class OperationConfirmSerializer(serializers.Serializer):
+    operation_id = serializers.CharField()
+    token = serializers.CharField()
 
 
 class DocumentSerializer(serializers.Serializer):
