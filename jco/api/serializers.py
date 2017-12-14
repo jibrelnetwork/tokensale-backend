@@ -54,12 +54,7 @@ class AccountSerializer(serializers.ModelSerializer):
         return obj.user.username
 
     def get_jnt_balance(self, obj):
-        presale_balance = PresaleJnt.objects.filter(
-            user=obj.user).aggregate(Sum('jnt_value'))['jnt_value__sum'] or 0
-        jnt_balance = (Jnt.objects.filter(transaction__address__user=obj.user,
-                                          transaction__status=TransactionStatus.success)
-                       .aggregate(Sum('jnt_value')))['jnt_value__sum'] or 0
-        return jnt_balance + presale_balance
+        return obj.get_jnt_balance()
 
     def get_verification_form_status(self, obj):
         def personal_data_filled(obj):
