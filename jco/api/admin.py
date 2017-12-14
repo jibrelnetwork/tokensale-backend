@@ -192,8 +192,8 @@ class TransactionAdmin(admin.ModelAdmin):
 
 @admin.register(Withdraw)
 class WithdrawAdmin(admin.ModelAdmin):
-    list_display = ['transaction_id', 'to', 'value', 'created', 'status']
-    search_fields = ['transaction_id', 'to']
+    list_display = ['user', 'transaction_id', 'to', 'value', 'created', 'status']
+    search_fields = ['transaction_id', 'to', 'user']
 
 
 @admin.register(Address)
