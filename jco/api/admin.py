@@ -14,7 +14,7 @@ from django.contrib.admin import SimpleListFilter
 
 from rest_framework.authtoken.models import Token
 
-from jco.api.models import Address, Account, Transaction, Jnt, Withdraw, Operation
+from jco.api.models import Address, Account, Transaction, Jnt, Withdraw, Operation, Document
 from jco.api import tasks
 from jco.commonutils import ga_integration
 
@@ -210,3 +210,8 @@ class JntAdmin(admin.ModelAdmin):
 @admin.register(Operation)
 class OperationAdmin(admin.ModelAdmin):
     list_display = ['user', 'operation', 'params', 'created_at', 'confirmed_at']
+
+@admin.register(Document)
+class DocumentAdmin(admin.ModelAdmin):
+    list_display = ['user', 'image']
+    search_fields = ['user__username']

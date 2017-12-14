@@ -159,6 +159,11 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = here('static')
+MEDIA_URL = '/media/'
+MEDIA_ROOT = here('uploaded_media')
+
+
+FILE_UPLOAD_PERMISSIONS = 0o644
 
 
 EMAIL_HOST = 'smtp.mailgun.org'

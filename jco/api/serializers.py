@@ -1,19 +1,26 @@
 import logging
 from datetime import datetime
 
+from django.db import transaction
 from django.db.models import Sum
 from django.conf import settings
 from django.contrib.auth import get_user_model, authenticate
 from django.utils.translation import ugettext_lazy as _
+from django.contrib.sites.models import Site
 from allauth.account import app_settings as allauth_settings
 from allauth.utils import email_address_exists
 from allauth.account.adapter import get_adapter
 from allauth.account.utils import setup_user_email
 from rest_auth.serializers import PasswordResetSerializer, PasswordResetForm
 from rest_framework import serializers, exceptions
+from rest_framework.fields import CurrentUserDefault
 import requests
 
-from jco.api.models import Transaction, Address, Account, Jnt, Withdraw, PresaleJnt, is_user_email_confirmed
+from jco.api.models import (
+    Transaction, Address, Account, Jnt, Withdraw, PresaleJnt, is_user_email_confirmed, Document,
+    get_document_filename_extension
+)
+from jco.api import tasks
 from jco.commonutils import person_verify
 from jco.commonutils import ga_integration
 from jco.appdb.models import TransactionStatus, CurrencyType
@@ -47,7 +54,12 @@ class AccountSerializer(serializers.ModelSerializer):
         return obj.user.username
 
     def get_jnt_balance(self, obj):
-        return obj.get_jnt_balance()
+        presale_balance = PresaleJnt.objects.filter(
+            user=obj.user).aggregate(Sum('jnt_value'))['jnt_value__sum'] or 0
+        jnt_balance = (Jnt.objects.filter(transaction__address__user=obj.user,
+                                          transaction__status=TransactionStatus.success)
+                       .aggregate(Sum('jnt_value')))['jnt_value__sum'] or 0
+        return jnt_balance + presale_balance
 
     def get_verification_form_status(self, obj):
         def personal_data_filled(obj):
@@ -464,3 +476,28 @@ class EthAddressSerializer(serializers.Serializer):
 class OperationConfirmSerializer(serializers.Serializer):
     operation_id = serializers.CharField()
     token = serializers.CharField()
+
+
+class DocumentSerializer(serializers.Serializer):
+    image = serializers.FileField(required=True)
+
+    class Meta:
+        model = Document
+        fields = ('image',)
+
+    def save(self, account):
+        current_site = Site.objects.get_current()
+
+        with transaction.atomic():
+            document = Document.objects.create(user=account.user, **self.validated_data)
+            account.document_url = "https://{}{}".format("saleapi.jibrel.network", document.image.url)
+            account.document_type = get_document_filename_extension(document.image.name)
+
+            account.save()
+
+        if (account.document_url and not account.onfido_check_id) or account.is_document_skipped:
+            Address.assign_pair_to_user(account.user)
+            
+        if account.document_url and not account.onfido_check_id:
+            ga_integration.on_status_registration_complete(account)
+            tasks.verify_user.delay(account.user.pk)

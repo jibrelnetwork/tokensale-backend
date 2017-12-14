@@ -138,6 +138,9 @@ class Address(models.Model):
         with transaction.atomic():
             eth_addr = (cls.objects.select_for_update()
                         .filter(type=CurrencyType.eth, user=None, is_usable=True).first())
+            if not eth_addr:
+                logger.error('No more addresses')
+                return False
             eth_addr.user = user
             eth_addr.save()
             logger.info('ETH Address %s is assigned to user %s', eth_addr.address, user.username)
@@ -282,6 +285,25 @@ class OperationError(Exception):
     """
     Operation execution error
     """
+
+def get_document_filename_extension(filename):
+    if len(filename.split(".")) > 1:
+        return filename.split(".")[-1]
+    else:
+        return "unknown"
+
+
+def unique_document_filename(document, filename):
+    extension = get_document_filename_extension(filename)
+    return "{}.{}".format(uuid.uuid4(), extension)
+
+
+class Document(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL)
+    image = models.FileField('uploaded document', upload_to=unique_document_filename)  # stores the uploaded documents
+
+    class Meta:
+        db_table = 'document'
 
 
 class ChangeAddressHandler:

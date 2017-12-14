@@ -18,6 +18,8 @@ urlpatterns = [
 
     url(r'^withdraw-address/$', views.EthAddressView.as_view()),
     url(r'^withdraw-address/confirm/', views.ChangeAddressConfirmView.as_view()),
+
+    url(r'^document/', views.DocumentView.as_view()),
     
     url(r'^withdraw-jnt/$', views.WithdrawRequestView.as_view()),
     url(r'^withdraw-jnt/confirm/', views.WithdrawConfirmView.as_view()),

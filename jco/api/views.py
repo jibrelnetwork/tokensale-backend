@@ -12,6 +12,7 @@ from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
 from rest_framework_extensions.cache.decorators import cache_response
+from rest_framework.parsers import JSONParser, FormParser, MultiPartParser
 
 from allauth.account.models import EmailAddress
 from allauth.account.utils import send_email_confirmation
@@ -33,6 +34,7 @@ from jco.api.serializers import (
     TransactionSerializer,
     WithdrawSerializer,
     PresaleJntSerializer,
+    DocumentSerializer,
     is_user_email_confirmed,
     OperationConfirmSerializer,
 )
@@ -175,7 +177,7 @@ class EthAddressView(GenericAPIView):
     def put(self, request):
         logger.info('Request address change for %s', request.user.username)
         if is_user_email_confirmed(request.user) is False:
-            resp = {'detail': _('You email address is not confirmed yet')}
+            resp = {'detail': _('Your email address is not confirmed yet')}
             logger.info('email address is not confirmed for %s, aborting', request.user.username)
             return Response(resp, status=403)
 
@@ -212,7 +214,7 @@ class WithdrawRequestView(APIView):
 
         if is_user_email_confirmed(request.user) is False:
             logger.info('Request JNT withdraw for %s rejected: email not confirmed', request.user.username)
-            resp = {'detail': _('You email address is not confirmed yet')}
+            resp = {'detail': _('Your email address is not confirmed yet')}
             return Response(resp, status=403)
 
         withdraw_id = commands.add_withdraw_jnt(request.user.pk)
@@ -293,3 +295,29 @@ class ChangeAddressConfirmView(GenericAPIView):
             return Response({'detail': _('Your withdrawal address changing is failed')}, 500)
 
         return Response({'detail': _('Your withdrawal address is changed')})
+
+
+class DocumentView(APIView):
+    """
+    View set document.
+    * Requires token authentication.
+        
+    post:
+    Creates a document for current user.
+    """
+
+    authentication_classes = (authentication.TokenAuthentication,)
+    serializer_class = DocumentSerializer
+    parser_classes = (JSONParser, FormParser, MultiPartParser,)
+
+    def post(self, request, *args, **kwargs):
+        try:
+            account = request.user.account
+        except ObjectDoesNotExist:
+            return Response({'success': False, 'error': [_('No such account')]}, status=400)
+
+        serializer = DocumentSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(account)
+            return Response({'success': True}, 201)
+        return Response({'success': False, 'error': [_('An upload has failed')]}, status=400)
