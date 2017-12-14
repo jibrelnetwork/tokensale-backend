@@ -339,7 +339,7 @@ class WithdrawJntHandler:
     def run(self, user, params):
         logger.info('Running WithdrawJntHandler for %s', user.username)
         withdraw = Withdraw.objects.get(user=user, pk=params['withdraw_id'])
-        withdraw.status = TransactionStatus.pending
+        withdraw.status = TransactionStatus.confirmed
         withdraw.save()
         logger.info('Withdraw #%s for %s is in status pending now', withdraw.pk, user.username)
 

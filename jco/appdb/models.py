@@ -34,6 +34,7 @@ class AffiliateEvent:
 
 class TransactionStatus:
     not_confirmed = 'not_confirmed'
+    confirmed = 'confirmed'
     pending = 'pending'
     fail = 'fail'
     success = 'success'

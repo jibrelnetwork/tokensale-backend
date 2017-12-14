@@ -54,12 +54,7 @@ class AccountSerializer(serializers.ModelSerializer):
         return obj.user.username
 
     def get_jnt_balance(self, obj):
-        presale_balance = PresaleJnt.objects.filter(
-            user=obj.user).aggregate(Sum('jnt_value'))['jnt_value__sum'] or 0
-        jnt_balance = (Jnt.objects.filter(transaction__address__user=obj.user,
-                                          transaction__status=TransactionStatus.success)
-                       .aggregate(Sum('jnt_value')))['jnt_value__sum'] or 0
-        return jnt_balance + presale_balance
+        return obj.get_jnt_balance()
 
     def get_verification_form_status(self, obj):
         def personal_data_filled(obj):
@@ -147,9 +142,11 @@ class TransactionSerializer(serializers.ModelSerializer):
 
     def get_status(self, obj):
         return {
-            TransactionStatus.pending: 'waiting',
-            TransactionStatus.success: 'complete',
-            TransactionStatus.fail: 'failed',
+            TransactionStatus.not_confirmed: TransactionStatus.not_confirmed,
+            TransactionStatus.confirmed: TransactionStatus.confirmed,
+            TransactionStatus.pending: TransactionStatus.pending,
+            TransactionStatus.success: TransactionStatus.success,
+            TransactionStatus.fail: TransactionStatus.fail,
         }.get(obj.status)
 
     def get_TXtype(self, obj):
@@ -186,9 +183,6 @@ class WithdrawSerializer(TransactionSerializer):
         return obj.value
 
     def get_TXtype(self, obj):
-        return 'ETH'
-
-    def get_TXhash(self, obj):
         return 'ETH'
 
     def get_amount_usd(self, obj):
