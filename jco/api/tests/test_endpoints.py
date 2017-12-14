@@ -1,4 +1,5 @@
 from datetime import datetime
+from unittest import mock
 
 import pytest
 from django.test import TestCase
@@ -57,7 +58,7 @@ def test_transactions(client, users, addresses, transactions, jnt):
         created=datetime(2017, 11, 15),
         block_height=200,
         status='success',
-        address=addresses[0]
+        user=users[0],
     )
     client.authenticate('user1@main.com', 'password1')
     resp = client.get('/api/transactions/')
@@ -273,7 +274,7 @@ def test_put_withdraw_address_email_not_confirmed(client, users):
     resp = client.put('/api/withdraw-address/',
                       {'address': '0x3BA2E2565dB2c018aDd0b24483fE99fC2cCCDa8e'})
     assert resp.status_code == 403
-    assert resp.json() == {'detail': 'You email address is not confirmed yet'}
+    assert resp.json() == {'detail': 'Your email address is not confirmed yet'}
 
 
 def test_put_withdraw_address_validate(client, users):
@@ -514,3 +515,38 @@ def test_operation_confirm_change_address_invalid_params(client, users, accounts
     assert resp.status_code == 400
     assert resp.json() == {'token': ['This field is required.'],
                            'operation_id': ['This field is required.']}
+
+
+@mock.patch('jco.appprocessor.notify.api_models')
+def test_change_withdraw_address_request_notify_error(api_models, client, accounts):
+    api_models.Notification.objects.create.side_effect = RuntimeError("DB Error")
+
+    EmailAddress.objects.filter(email='user1@main.com').update(verified=True)
+    client.authenticate('user1@main.com', 'password1')
+    data = {'address': '0x3BA2E2565dB2c018aDd0b24483fE99fC2cCCDa8e'}
+    resp = client.put('/api/withdraw-address/', data)
+    assert resp.status_code == 500
+    assert resp.json() == {'detail': 'Unexpected error, please try again'}
+
+    assert 0 == models.Operation.objects.count()
+    assert 0 == models.Notification.objects.count()
+
+
+@mock.patch('jco.appprocessor.notify.api_models')
+def test_withdraw_jnt_request_notify_error(api_models, client, accounts, settings, jnt):
+    settings.WITHDRAW_AVAILABLE_SINCE = datetime.now()
+    api_models.Notification.objects.create.side_effect = RuntimeError("DB Error")
+    accounts[0].withdraw_address = '0x123'
+    accounts[0].save()
+
+    EmailAddress.objects.filter(email='user1@main.com').update(verified=True)
+    client.authenticate('user1@main.com', 'password1')
+    data = {}
+    resp = client.post('/api/withdraw-jnt/', data)
+
+    assert resp.status_code == 500
+    assert resp.json() == {'detail': 'Unexpected error, please try again'}
+
+    assert 1 == models.Withdraw.objects.count()
+    assert 0 == models.Operation.objects.count()
+    assert 0 == models.Notification.objects.count()
