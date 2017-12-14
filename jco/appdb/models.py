@@ -485,7 +485,7 @@ class Price(db.Model):
 class Withdraw(db.Model):
     # Fields
     id = db.Column(db.Integer, primary_key=True)
-    transaction_id = db.Column(db.String(120), unique=False)
+    transaction_id = db.Column(db.String(120), unique=False, nullable=True)
     to = db.Column(db.String(255), nullable=False, unique=False)
     value = db.Column(db.Float, nullable=False)
     created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)

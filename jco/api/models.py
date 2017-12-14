@@ -208,7 +208,7 @@ def get_raised_tokens():
 
 
 class Withdraw(models.Model):
-    transaction_id = models.CharField(max_length=120)
+    transaction_id = models.CharField(max_length=120, null=True, blank=True)
     to = models.CharField(max_length=255)
     value = models.FloatField()
     created = models.DateTimeField()
