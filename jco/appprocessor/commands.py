@@ -1129,6 +1129,9 @@ def check_withdraw_transactions():
 
             if tx_info and tx_info.get("status"):
                 if tx_info["status"] == '0x1':
+                    send_email_withdrawal_request_succeeded(withdraw.user.email,
+                                                            withdraw.user_id,
+                                                            withdraw.as_dict())
                     withdraw.status = TransactionStatus.success
                 elif tx_info["status"] == '0x0':
                     withdraw.status = TransactionStatus.fail

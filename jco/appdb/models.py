@@ -507,6 +507,7 @@ class Withdraw(db.Model):
             'value': self.value,
             'created': self.created,
             'mined': self.mined,
+            'status': self.status,
         }
 
     def __repr__(self):
