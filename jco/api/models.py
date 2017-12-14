@@ -214,7 +214,6 @@ class Withdraw(models.Model):
     created = models.DateTimeField()
     mined = models.DateTimeField(null=True)
     block_height = models.IntegerField(blank=True, null=True)
-    address = models.ForeignKey(Address, models.DO_NOTHING, null=True)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, models.DO_NOTHING, blank=True, null=True,
                              related_name='withdraws')
     status = models.CharField(max_length=20, default=TransactionStatus.not_confirmed)
