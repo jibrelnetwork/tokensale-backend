@@ -471,12 +471,12 @@ def test_operation_confirm_withdraw_jnt_ok(client, users, accounts, settings):
     resp = client.post('/api/withdraw-jnt/confirm/', data)
     withdraw.refresh_from_db()
     assert resp.status_code == 200
-    assert withdraw.status == models.TransactionStatus.pending
+    assert withdraw.status == models.TransactionStatus.confirmed
 
     resp = client.post('/api/withdraw-address/confirm/', data)
     assert resp.status_code == 500
     withdraw.refresh_from_db()
-    assert withdraw.status == models.TransactionStatus.pending
+    assert withdraw.status == models.TransactionStatus.confirmed
 
 
 def test_operation_confirm_withdraw_jnt_email_not_confirmed(client, users, accounts, settings):
