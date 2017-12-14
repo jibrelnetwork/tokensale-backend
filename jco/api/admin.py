@@ -192,7 +192,8 @@ class TransactionAdmin(admin.ModelAdmin):
 
 @admin.register(Withdraw)
 class WithdrawAdmin(admin.ModelAdmin):
-    list_display = ['transaction_id', 'value', 'mined', 'address']
+    list_display = ['transaction_id', 'to', 'value', 'created', 'status']
+    search_fields = ['transaction_id', 'to']
 
 
 @admin.register(Address)
@@ -210,6 +211,7 @@ class JntAdmin(admin.ModelAdmin):
 @admin.register(Operation)
 class OperationAdmin(admin.ModelAdmin):
     list_display = ['user', 'operation', 'params', 'created_at', 'confirmed_at']
+
 
 @admin.register(Document)
 class DocumentAdmin(admin.ModelAdmin):
