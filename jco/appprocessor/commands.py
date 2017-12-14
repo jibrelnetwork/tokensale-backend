@@ -1081,7 +1081,8 @@ def withdraw_processing():
 
         withdraws = session.query(Withdraw) \
             .filter(Withdraw.status == TransactionStatus.pending) \
-            .filter(Withdraw.transaction_id == "") \
+            .filter(or_(Withdraw.transaction_id == "",
+                        Withdraw.transaction_id.is_(None))) \
             .order_by(Withdraw.id) \
             .all()  # type: List[Withdraw]
 
