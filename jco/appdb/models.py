@@ -155,6 +155,10 @@ class User(db.Model):
                                  back_populates="user",
                                  cascade="all, delete-orphan",
                                  passive_deletes=True)  # type: Affiliate
+    presales = db.relationship('PresaleJnt',
+                                 back_populates="user",
+                                 cascade="all, delete-orphan",
+                                 passive_deletes=True)  # type: PresaleJnt
 
     # Methods
     def __repr__(self):
@@ -199,7 +203,7 @@ class Account(db.Model):
     document_type = db.Column(db.String(20), nullable=False, default='')
     is_document_skipped = db.Column(db.Boolean, nullable=False, default=False)
 
-
+    verification_attempts = db.Column(db.Integer, nullable=False, default=0)
     is_presale_account = db.Column(db.Boolean, nullable=False, default=False)
     tracking = db.Column(JSONB, nullable=False, default=lambda: {})
 
@@ -492,7 +496,7 @@ class Withdraw(db.Model):
     created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     mined = db.Column(db.DateTime, nullable=True)
     block_height = db.Column(db.Integer, nullable=True)
-    status = db.Column(db.String(10), nullable=False, default=TransactionStatus.not_confirmed)
+    status = db.Column(db.String(20), nullable=False, default=TransactionStatus.not_confirmed)
     meta = db.Column(JSONB, nullable=False, default=lambda: {})
     user_id = db.Column(db.Integer, db.ForeignKey('auth_user.id'), unique=False)
 
@@ -637,3 +641,18 @@ class Affiliate(db.Model):
             self.meta = {}
         self.meta[self.meta_key_transaction_id] = value
         flag_modified(self, "meta")
+
+
+class PresaleJnt(db.Model):
+    """
+    JNT from presale round
+    """
+    __tablename__ = 'presale_jnt'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('auth_user.id'), unique=False)
+    jnt_value = db.Column(db.Float, nullable=False)
+    created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    # Relationships
+    user = db.relationship(User, back_populates="presales")  # type: User

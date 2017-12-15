@@ -41,7 +41,7 @@ from jco.commonutils.utils import *
 from jco.commonutils.ga_integration import *
 from jco.commonutils.formats import *
 from jco.commonutils.ethaddress_verify import is_valid_address
-from jco.commonutils.contract import mintJNT, getTransactionInfo
+from jco.commonutils.contract import mintJNT, getTransactionInfo, ETH_CONTRACT__MAX_PENDING_COUNT
 
 
 #
@@ -1079,12 +1079,24 @@ def withdraw_processing():
     try:
         logging.getLogger(__name__).info("Start to process new withdraws")
 
+        pending_withdraws = session.query(Withdraw) \
+            .filter(Withdraw.status == TransactionStatus.pending) \
+            .filter(Withdraw.transaction_id != "") \
+            .order_by(Withdraw.id) \
+            .all()  # type: List[Withdraw]
+
+        _limit_count = ETH_CONTRACT__MAX_PENDING_COUNT - len(pending_withdraws)
+
+        if _limit_count <= 0:
+            logging.getLogger(__name__).info("Finished to process new withdraws. Over the limit.")
+            return
+
         withdraws = session.query(Withdraw) \
             .filter(Withdraw.status == TransactionStatus.confirmed) \
             .filter(or_(Withdraw.transaction_id == "",
                         Withdraw.transaction_id.is_(None))) \
             .order_by(Withdraw.id) \
-            .all()  # type: List[Withdraw]
+            .limit(_limit_count)  # type: List[Withdraw]
 
         for withdraw in withdraws:
             try:
@@ -1178,16 +1190,18 @@ def add_withdraw_jnt(user_id: int) -> Optional[int]:
             return None
 
         total_jnt = session.query(func.coalesce(func.sum(JNT.jnt_value), 0)) \
-            .join(Transaction, Transaction.id == JNT.transaction_id) \
-            .join(Address, Address.id == Transaction.address_id) \
+            .outerjoin(Transaction, Transaction.id == JNT.transaction_id) \
+            .outerjoin(Address, Address.id == Transaction.address_id) \
             .filter(Address.id.in_(addresses_ids), Transaction.status == TransactionStatus.success).as_scalar()
 
-        total_withdraw_jnt = session.query(func.coalesce(func.sum(Withdraw.value), 0)) \
-            .filter(Withdraw.to == account.withdraw_address) \
-            .filter(Withdraw.status != TransactionStatus.fail).as_scalar()
+        total_presale_jnt = session.query(func.coalesce(func.sum(PresaleJnt.jnt_value), 0)) \
+            .filter(PresaleJnt.user_id == user_id).as_scalar()
 
-        withdrawable_balance = session.query(total_jnt - total_withdraw_jnt).one()
-        if withdrawable_balance[0] <= 0:
+        total_withdraw_jnt = session.query(func.coalesce(func.sum(Withdraw.value), 0)) \
+            .filter(Withdraw.user_id == user_id).as_scalar()
+
+        withdrawable_balance = session.query(total_jnt + total_presale_jnt - total_withdraw_jnt).one()
+        if withdrawable_balance[0] <= 0.0:
             session.rollback()
             return None
 
@@ -1195,7 +1209,7 @@ def add_withdraw_jnt(user_id: int) -> Optional[int]:
             .values(user_id=user_id,
                     status=TransactionStatus.not_confirmed,
                     to=account.withdraw_address,
-                    value=total_jnt - total_withdraw_jnt,
+                    value=total_jnt + total_presale_jnt - total_withdraw_jnt,
                     transaction_id='')
 
         result = session.execute(insert_query)

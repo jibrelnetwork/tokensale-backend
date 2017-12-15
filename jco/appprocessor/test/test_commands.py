@@ -84,6 +84,7 @@ class TestCommands(unittest.TestCase):
         session.query(Price).delete()
         session.query(Address).delete()
         session.query(Account).delete()
+        session.query(PresaleJnt).delete()
         session.query(User).delete()
         session.commit()
         pass
@@ -688,6 +689,11 @@ class TestCommands(unittest.TestCase):
         generate_btc_addresses(self.mnemonic, 1)
 
         user = create_user("user1", "user1@local")
+        presale_jnt = PresaleJnt(user_id=user.id,
+                                 jnt_value=1000)
+        session.add(presale_jnt)
+        session.commit()
+
 
         account = Account(fullname="user1",
                           country="country",
@@ -727,13 +733,15 @@ class TestCommands(unittest.TestCase):
                                       value=transaction_value,
                                       address_id=address_eth.id,
                                       mined=transaction_mined,
-                                      block_height=2)
+                                      block_height=2,
+                                      status=TransactionStatus.success)
 
         transaction_btc = Transaction(transaction_id='123asd',
                                       value=transaction_value,
                                       address_id=address_btc.id,
                                       mined=transaction_mined,
-                                      block_height=32)
+                                      block_height=32,
+                                      status=TransactionStatus.success)
 
         jnt = JNT(currency_to_usd_rate=eth_currency_rate,
                     jnt_value=jnt_usd_value / INVESTMENTS__TOKEN_PRICE_IN_USD,
@@ -769,7 +777,7 @@ class TestCommands(unittest.TestCase):
             .one()  # type: tuple[float]
 
         self.assertTrue(withdraw_sum[0] > 0, 'should be non-negative and greater than zero')
-        self.assertAlmostEqual(withdraw_sum[0], jnt.jnt_value + jnt2.jnt_value, places=5, msg='sum of withdraws must be equal to sum of jnts')
+        self.assertAlmostEqual(withdraw_sum[0], jnt.jnt_value + jnt2.jnt_value + presale_jnt.jnt_value, places=5, msg='sum of withdraws must be equal to sum of jnts')
 
         transaction_id = "0xeeaaaddcc"
         transaction_value = 10000 * (10 ** 18)
@@ -780,7 +788,8 @@ class TestCommands(unittest.TestCase):
                                   value=transaction_value,
                                   address_id=address_eth.id,
                                   mined=transaction_mined,
-                                  block_height=2)
+                                  block_height=2,
+                                  status=TransactionStatus.success)
 
         jnt = JNT(currency_to_usd_rate=eth_currency_rate,
                   jnt_value=jnt_usd_value / INVESTMENTS__TOKEN_PRICE_IN_USD,
@@ -802,7 +811,7 @@ class TestCommands(unittest.TestCase):
         jnt_sum = session.query(func.sum(JNT.jnt_value)) \
             .one()  # type: tuple[float]
 
-        self.assertAlmostEqual(withdraw_sum[0], jnt_sum[0], places=5, msg='sum of withdraws must be equal to sum of jnts')
+        self.assertAlmostEqual(withdraw_sum[0], jnt_sum[0] + presale_jnt.jnt_value, places=5, msg='sum of withdraws must be equal to sum of jnts')
 
 
     def test_withdraw_processing(self):
@@ -1049,11 +1058,11 @@ class TestCommands(unittest.TestCase):
         self.assertEqual(len(withdraws), 1)
         self.ssertEqual(withdraws[0].status, TransactionStatus.fail)
 
-    def test_a_mintJNT(self):
+    def test_mintJNT(self):
         tx_id = mintJNT("0xa5e03f38d0a6811d38aa1cf1ddb22a5c6cfa0bd2", 0.001)
         self.assertTrue(not tx_id is None)
 
-    def test_aaa_check_new_transactions(self):
+    def test_check_new_transactions(self):
         generate_eth_addresses(self.mnemonic, 3)
         generate_btc_addresses(self.mnemonic, 3)
 
@@ -1134,7 +1143,7 @@ class TestCommands(unittest.TestCase):
         self.assertEqual(affiliates[1].url,
                          "https://454048.cpa.clicksure.com/postback?transactionRef=0xffaaaddcc1&clickID=abcdf")
 
-    def test_aa_check_new_registartions(self):
+    def test_check_new_registartions(self):
         user1 = create_user("user1", "user1@local")
         user2 = create_user("user2", "user2@local")
         user3 = create_user("user3", "user3@local")
