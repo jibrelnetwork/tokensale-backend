@@ -1201,7 +1201,7 @@ def add_withdraw_jnt(user_id: int) -> Optional[int]:
             .filter(Withdraw.user_id == user_id).as_scalar()
 
         withdrawable_balance = session.query(total_jnt + total_presale_jnt - total_withdraw_jnt).one()
-        if withdrawable_balance[0] <= 0:
+        if withdrawable_balance[0] <= 0.0:
             session.rollback()
             return None
 
@@ -1209,7 +1209,7 @@ def add_withdraw_jnt(user_id: int) -> Optional[int]:
             .values(user_id=user_id,
                     status=TransactionStatus.not_confirmed,
                     to=account.withdraw_address,
-                    value=(total_jnt + total_presale_jnt) - total_withdraw_jnt,
+                    value=total_jnt + total_presale_jnt - total_withdraw_jnt,
                     transaction_id='')
 
         result = session.execute(insert_query)
