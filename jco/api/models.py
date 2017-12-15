@@ -330,8 +330,8 @@ class WithdrawJntHandler:
     def send_confirmation_email(self, email, confirmation_url, params):
         data = {
             'confirm_url': confirmation_url,
-            'withdraw_jnt_amount': '',
-            'withdraw_address': ''
+            'withdraw_jnt_amount': params['jnt_amount'],
+            'withdraw_address': params['address'],
         }
         return notify.add_notification(
             email, type=NotificationType.withdrawal_request, data=data)
