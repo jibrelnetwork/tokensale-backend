@@ -1190,16 +1190,15 @@ def add_withdraw_jnt(user_id: int) -> Optional[int]:
             return None
 
         total_jnt = session.query(func.coalesce(func.sum(JNT.jnt_value), 0)) \
-            .join(Transaction, Transaction.id == JNT.transaction_id) \
-            .join(Address, Address.id == Transaction.address_id) \
+            .outerjoin(Transaction, Transaction.id == JNT.transaction_id) \
+            .outerjoin(Address, Address.id == Transaction.address_id) \
             .filter(Address.id.in_(addresses_ids), Transaction.status == TransactionStatus.success).as_scalar()
 
         total_presale_jnt = session.query(func.coalesce(func.sum(PresaleJnt.jnt_value), 0)) \
             .filter(PresaleJnt.user_id == user_id).as_scalar()
 
         total_withdraw_jnt = session.query(func.coalesce(func.sum(Withdraw.value), 0)) \
-            .filter(Withdraw.to == account.withdraw_address) \
-            .filter(Withdraw.status != TransactionStatus.fail).as_scalar()
+            .filter(Withdraw.user_id == user_id).as_scalar()
 
         withdrawable_balance = session.query(total_jnt + total_presale_jnt - total_withdraw_jnt).one()
         if withdrawable_balance[0] <= 0:
