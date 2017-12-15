@@ -649,6 +649,10 @@ class PresaleJnt(db.Model):
     """
     __tablename__ = 'presale_jnt'
 
+    id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('auth_user.id'), unique=False)
     jnt_value = db.Column(db.Float, nullable=False)
     created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    # Relationships
+    user = db.relationship(User, back_populates="presales")  # type: User
