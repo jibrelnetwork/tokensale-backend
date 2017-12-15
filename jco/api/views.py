@@ -178,7 +178,7 @@ class EthAddressView(GenericAPIView):
     def put(self, request):
         logger.info('Request address change for %s', request.user.username)
         if is_user_email_confirmed(request.user) is False:
-            resp = {'detail': _('Your email address is not confirmed yet')}
+            resp = {'detail': _('Please confirm the e-mail before submitting the Ethereum address')}
             logger.info('email address is not confirmed for %s, aborting', request.user.username)
             return Response(resp, status=403)
 
