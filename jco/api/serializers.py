@@ -335,6 +335,48 @@ UserModel = get_user_model()
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True, allow_blank=False)
     password = serializers.CharField(style={'input_type': 'password'})
+    captcha = serializers.CharField(required=True, write_only=True)
+
+    def validate_captcha(self, captcha_token):
+        if settings.RECAPTCHA_ENABLED is not True:
+            return True
+        try:
+            r = requests.post(
+                RECAPTCA_API_URL,
+                {
+                    'secret': settings.RECAPTCHA_PRIVATE_KEY,
+                    'response': captcha_token
+                },
+                timeout=5
+            )
+            r.raise_for_status()
+        except requests.RequestException as e:
+            raise serializers.ValidationError(
+                _('Connection to reCaptcha server failed. Please try again')
+            )
+
+        json_response = r.json()
+
+        if bool(json_response['success']):
+            return True
+        else:
+            if 'error-codes' in json_response:
+                if 'missing-input-secret' in json_response['error-codes'] or \
+                        'invalid-input-secret' in json_response['error-codes']:
+
+                    logger.error('Invalid reCaptcha secret key detected')
+                    raise serializers.ValidationError(
+                        _('Connection to reCaptcha server failed')
+                    )
+                else:
+                    raise serializers.ValidationError(
+                        _('reCaptcha invalid or expired, try again')
+                    )
+            else:
+                logger.error('No error-codes received from Google reCaptcha server')
+                raise serializers.ValidationError(
+                    _('reCaptcha response from Google not valid, try again')
+                )
 
     def _validate_email(self, email, password):
         user = None
