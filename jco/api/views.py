@@ -220,7 +220,7 @@ class WithdrawRequestView(APIView):
 
         if is_user_email_confirmed(request.user) is False:
             logger.info('Request JNT withdraw for %s rejected: email not confirmed', request.user.username)
-            resp = {'detail': _('Your email address is not confirmed yet')}
+            resp = {'detail': _('Please confirm the e-mail before submitting the Ethereum address')}
             return Response(resp, status=403)
 
         withdraw_id = commands.add_withdraw_jnt(request.user.pk)
