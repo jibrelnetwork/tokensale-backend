@@ -21,6 +21,8 @@ ETH_NETWORK__ID = 3
 ETH_MANAGER__PRIVATE_KEY = "0xf4f9292dbc9757dba9a4038b2bb99455526e4ac8619d8be57e85f6cdbbaba261"
 ETH_MANAGER__ADDRESS = "0x5Ac2ad5954bd3b1de3e92F56ee6Dc47a991301af"
 
+ETH_CONTRACT__MAX_PENDING_COUNT = 50
+ETH_CONTRACT__GAZ_MULTIPLICATOR = 1.2
 ETH_CONTRACT__ADDRESS = "0x1a397557f13c6ad20c9697601e34232dbab006cc"
 ETH_CONTRACT__ABI = b'[{"constant": false, "inputs": [{"name": "_account", "type": "address"},' \
                     b'{"name": "_value", "type": "uint256"}], "name": "mint", "outputs": [], "payable": false,' \
@@ -105,7 +107,7 @@ def mintJNT(to_address: str, value: float) -> str:
                                                  [to_address, _value_wei])
 
         _tx_nonce_latest, _tx_nonce_pending = contract.getNonce(ETH_MANAGER__ADDRESS)
-        _tx_gas_price = contract.getGasPrice()
+        _tx_gas_price = int(contract.getGasPrice() * ETH_CONTRACT__GAZ_MULTIPLICATOR)
         _tx_gas_limit = contract.getGasLimit(ETH_CONTRACT__ADDRESS,
                                              ETH_MANAGER__ADDRESS,
                                              hexidecimal.encode_hex(_tx_data))

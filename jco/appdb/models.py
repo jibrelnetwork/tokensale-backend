@@ -155,6 +155,10 @@ class User(db.Model):
                                  back_populates="user",
                                  cascade="all, delete-orphan",
                                  passive_deletes=True)  # type: Affiliate
+    presales = db.relationship('PresaleJnt',
+                                 back_populates="user",
+                                 cascade="all, delete-orphan",
+                                 passive_deletes=True)  # type: PresaleJnt
 
     # Methods
     def __repr__(self):
@@ -637,3 +641,14 @@ class Affiliate(db.Model):
             self.meta = {}
         self.meta[self.meta_key_transaction_id] = value
         flag_modified(self, "meta")
+
+
+class PresaleJnt(db.Model):
+    """
+    JNT from presale round
+    """
+    __tablename__ = 'presale_jnt'
+
+    user_id = db.Column(db.Integer, db.ForeignKey('auth_user.id'), unique=False)
+    jnt_value = db.Column(db.Float, nullable=False)
+    created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
