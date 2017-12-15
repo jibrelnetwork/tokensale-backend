@@ -1210,7 +1210,7 @@ def add_withdraw_jnt(user_id: int) -> Optional[int]:
             .values(user_id=user_id,
                     status=TransactionStatus.not_confirmed,
                     to=account.withdraw_address,
-                    value=total_jnt + total_presale_jnt - total_withdraw_jnt,
+                    value=(total_jnt + total_presale_jnt) - total_withdraw_jnt,
                     transaction_id='')
 
         result = session.execute(insert_query)
