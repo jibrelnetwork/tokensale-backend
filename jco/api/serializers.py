@@ -337,7 +337,7 @@ class LoginSerializer(serializers.Serializer):
     password = serializers.CharField(style={'input_type': 'password'})
     captcha = serializers.CharField(required=True, write_only=True)
 
-    def _validate_captcha(self, captcha_token):
+    def validate_captcha(self, captcha_token):
         if settings.RECAPTCHA_ENABLED is not True:
             return True
         try:
@@ -417,9 +417,6 @@ class LoginSerializer(serializers.Serializer):
         username = attrs.get('email')
         email = attrs.get('email')
         password = attrs.get('password')
-        captcha = attrs.get('captcha')
-
-        self._validate_captcha(captcha)
 
         user = None
 
