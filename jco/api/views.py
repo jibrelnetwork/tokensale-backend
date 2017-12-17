@@ -307,21 +307,30 @@ class ChangeAddressConfirmView(GenericAPIView):
     """
     Confirm change withdraw address operation
     """
-
+    permission_classes = (permissions.AllowAny,)
     serializer_class = OperationConfirmSerializer
 
     def post(self, request):
-        if is_user_email_confirmed(request.user) is False:
-            resp = {'detail': _('You email address is not confirmed yet')}
-            return Response(resp, status=403)
+        logger.info('Start change address confirmation')
 
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        operation = Operation.objects.get(pk=serializer.data['operation_id'])
+
+        try:
+            operation = Operation.objects.get(pk=serializer.data['operation_id'])
+        except Exception:
+            logger.exception('change address confirmation for %s rejected: operation %s does not exist',
+                         serializer.data['token'], serializer.data['operation_id'])
+            return Response({'detail': _('Your withdrawal address changing is failed')}, status=403)
+
+        if is_user_email_confirmed(operation.user) is False:
+            resp = {'detail': _('You email address is not confirmed yet')}
+            return Response(resp, status=403)
+
         try:
             operation.perform(serializer.data['token'])
         except Exception:
-            logger.exception('Address change operation failure for %s', request.user.username)
+            logger.exception('Address change operation failure for %s', operation.user.username)
             return Response({'detail': _('Your withdrawal address changing is failed')}, 500)
 
         return Response({'detail': _('Your withdrawal address is changed')})
