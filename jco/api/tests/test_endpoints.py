@@ -32,7 +32,7 @@ class ApiClient(RequestsClient):
 
     def authenticate(self, username, password):
         resp = self.post('/auth/login/',
-                         {'email': username, 'password': password})
+                         {'email': username, 'password': password, 'captcha': '123'})
         token = resp.json()['key']
         self.headers = {'Authorization': 'Token ' + token}
 
