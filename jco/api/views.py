@@ -218,6 +218,11 @@ class WithdrawRequestView(APIView):
             return Response({'detail': _('No Withdraw address in your account data.')},
                             status=400)
 
+        if request.user.account.is_identity_verified is False:
+            logger.info('Request JNT withdraw for %s rejected: KYC not verified', request.user.username)
+            resp = {'detail': _('Please confirm your identity to withdraw JNT')}
+            return Response(resp, status=403)
+
         if is_user_email_confirmed(request.user) is False:
             logger.info('Request JNT withdraw for %s rejected: email not confirmed', request.user.username)
             resp = {'detail': _('Your email address is not confirmed yet')}
@@ -268,6 +273,11 @@ class WithdrawConfirmView(GenericAPIView):
         if is_user_email_confirmed(request.user) is False:
             logger.info('JNT withdraw confirmation for %s rejected: email not confirmed', request.user.username)
             resp = {'detail': _('You email address is not confirmed yet')}
+            return Response(resp, status=403)
+
+        if request.user.account.is_identity_verified is False:
+            logger.info('Request JNT withdraw for %s rejected: KYC not verified', request.user.username)
+            resp = {'detail': _('Please confirm your identity to withdraw JNT')}
             return Response(resp, status=403)
 
         serializer = self.get_serializer(data=request.data)
