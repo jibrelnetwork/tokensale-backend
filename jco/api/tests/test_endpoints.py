@@ -70,7 +70,7 @@ def test_transactions(client, users, addresses, transactions, jnt):
          'date': '00:00 11/15/2017',
          'TXtype': 'ETH',
          'TXhash': '3000',
-         'status': 'complete',
+         'status': 'success',
          'amount_usd': None,
          'amount_cryptocurrency': None},
         {'jnt': 10,
@@ -78,7 +78,7 @@ def test_transactions(client, users, addresses, transactions, jnt):
          'date': '00:00 11/14/2017',
          'TXtype': 'ETH',
          'TXhash': '1000',
-         'status': 'complete',
+         'status': 'success',
          'amount_usd': 1,
          'amount_cryptocurrency': 0.5},
         {'jnt': 30,
@@ -86,7 +86,7 @@ def test_transactions(client, users, addresses, transactions, jnt):
          'date': '00:00 11/13/2017',
          'TXtype': 'ETH',
          'TXhash': '1500',
-         'status': 'waiting',
+         'status': 'pending',
          'amount_usd': 3,
          'amount_cryptocurrency': 0.5},
         {'jnt': 20,
@@ -94,7 +94,7 @@ def test_transactions(client, users, addresses, transactions, jnt):
          'date': '12:00 11/12/2017',
          'TXtype': 'BTC',
          'TXhash': '2000',
-         'status': 'complete',
+         'status': 'success',
          'amount_usd': 2,
          'amount_cryptocurrency': 2.5},
     ]
@@ -274,7 +274,7 @@ def test_put_withdraw_address_email_not_confirmed(client, users):
     resp = client.put('/api/withdraw-address/',
                       {'address': '0x3BA2E2565dB2c018aDd0b24483fE99fC2cCCDa8e'})
     assert resp.status_code == 403
-    assert resp.json() == {'detail': 'Your email address is not confirmed yet'}
+    assert resp.json() == {'detail': 'Please confirm the e-mail before submitting the Ethereum address'}
 
 
 def test_put_withdraw_address_validate(client, users):
@@ -307,7 +307,7 @@ def test_withdraw_jnt(client, users, addresses, jnt, settings):
     EmailAddress.objects.filter(email='user1@main.com').update(verified=True)
 
     client.authenticate('user1@main.com', 'password1')
-    account = models.Account.objects.create(withdraw_address='aaaxxx', user=users[0])
+    account = models.Account.objects.create(withdraw_address='aaaxxx', user=users[0], is_identity_verified=True)
     assert account.get_jnt_balance() == 30
     resp = client.post('/api/withdraw-jnt/')
     assert resp.status_code == 200
@@ -342,7 +342,7 @@ def test_withdraw_jnt(client, users, addresses, jnt, settings):
 def test_withdraw_jnt_no_jnt(client, users, addresses, jnt, settings):
     settings.WITHDRAW_AVAILABLE_SINCE = datetime.now()
     EmailAddress.objects.filter(email='user3@main.com').update(verified=True)
-    account = models.Account.objects.create(withdraw_address='aaaxxx', user=users[2])
+    account = models.Account.objects.create(withdraw_address='aaaxxx', user=users[2], is_identity_verified=True)
 
     client.authenticate('user3@main.com', 'password3')
     assert account.get_jnt_balance() == 0
@@ -447,6 +447,9 @@ def test_operation_confirm_change_address_ok(client, users, accounts):
 def test_operation_confirm_withdraw_jnt_ok(client, users, accounts, settings):
     EmailAddress.objects.filter(email='user1@main.com').update(verified=True)
     settings.WITHDRAW_AVAILABLE_SINCE = datetime.now()
+    accounts[0].is_identity_verified = True
+    accounts[0].save()
+
     client.authenticate('user1@main.com', 'password1')
     withdraw = models.Withdraw.objects.create(
         user=users[0],
@@ -482,7 +485,7 @@ def test_operation_confirm_withdraw_jnt_ok(client, users, accounts, settings):
 def test_operation_confirm_withdraw_jnt_email_not_confirmed(client, users, accounts, settings):
     settings.WITHDRAW_AVAILABLE_SINCE = datetime.now()
     client.authenticate('user1@main.com', 'password1')
-    data = {}
+    data = {'token': '123', 'operation_id': 'qwe'}
     resp = client.post('/api/withdraw-jnt/confirm/', data)
     assert resp.status_code == 403
 
@@ -490,6 +493,8 @@ def test_operation_confirm_withdraw_jnt_email_not_confirmed(client, users, accou
 def test_operation_confirm_withdraw_jnt_invalid_params(client, users, accounts, settings):
     settings.WITHDRAW_AVAILABLE_SINCE = datetime.now()
     EmailAddress.objects.filter(email='user1@main.com').update(verified=True)
+    accounts[0].is_identity_verified = True
+    accounts[0].save()
     client.authenticate('user1@main.com', 'password1')
     data = {}
     resp = client.post('/api/withdraw-jnt/confirm/', data)
@@ -501,7 +506,7 @@ def test_operation_confirm_withdraw_jnt_invalid_params(client, users, accounts, 
 def test_operation_confirm_change_address_email_not_confirmed(client, users, accounts, settings):
     settings.WITHDRAW_AVAILABLE_SINCE = datetime.now()
     client.authenticate('user1@main.com', 'password1')
-    data = {}
+    data = {'token': '123', 'operation_id': 'qwe'}
     resp = client.post('/api/withdraw-address/confirm/', data)
     assert resp.status_code == 403
 
@@ -537,6 +542,7 @@ def test_withdraw_jnt_request_notify_error(api_models, client, accounts, setting
     settings.WITHDRAW_AVAILABLE_SINCE = datetime.now()
     api_models.Notification.objects.create.side_effect = RuntimeError("DB Error")
     accounts[0].withdraw_address = '0x123'
+    accounts[0].is_identity_verified = True
     accounts[0].save()
 
     EmailAddress.objects.filter(email='user1@main.com').update(verified=True)
@@ -548,5 +554,24 @@ def test_withdraw_jnt_request_notify_error(api_models, client, accounts, setting
     assert resp.json() == {'detail': 'Unexpected error, please try again'}
 
     assert 1 == models.Withdraw.objects.count()
+    assert 0 == models.Operation.objects.count()
+    assert 0 == models.Notification.objects.count()
+
+
+def test_withdraw_jnt_request_kyc_not_verified(client, accounts, settings, jnt):
+    settings.WITHDRAW_AVAILABLE_SINCE = datetime.now()
+    accounts[0].withdraw_address = '0x123'
+    accounts[0].is_identity_verified = False
+    accounts[0].save()
+
+    EmailAddress.objects.filter(email='user1@main.com').update(verified=True)
+    client.authenticate('user1@main.com', 'password1')
+    data = {}
+    resp = client.post('/api/withdraw-jnt/', data)
+
+    assert resp.status_code == 403
+    assert resp.json() == {'detail': 'Please confirm your identity to withdraw JNT'}
+
+    assert 0 == models.Withdraw.objects.count()
     assert 0 == models.Operation.objects.count()
     assert 0 == models.Notification.objects.count()
