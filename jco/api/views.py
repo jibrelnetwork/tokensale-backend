@@ -288,8 +288,8 @@ class WithdrawConfirmView(GenericAPIView):
             resp = {'detail': _('You email address is not confirmed yet')}
             return Response(resp, status=403)
 
-        if request.user.account.is_identity_verified is False:
-            logger.info('Request JNT withdraw for %s rejected: KYC not verified', request.user.username)
+        if operation.user.account.is_identity_verified is False:
+            logger.info('Request JNT withdraw for %s rejected: KYC not verified', operation.user.username)
             resp = {'detail': _('Please confirm your identity to withdraw JNT')}
             return Response(resp, status=403)
 
