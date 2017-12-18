@@ -506,11 +506,11 @@ def get_btc_investments(address_str: str) -> List[Transaction]:
                 or 'time' not in tx or type(tx['time']) != int or tx['time'] < 1:
             raise ValueError("Wrong TX data in response of Blockchain.info for BTC transactions '{}':\n{}"
                              .format(address_str, tx))
+
         for tx_out in tx['out']:
-            if 'addr' not in tx_out or type(tx_out['addr']) != str or len(tx_out['addr']) < 30 \
-                    or 'value' not in tx_out or type(tx_out['value']) != int or tx_out['value'] < 1:
+            if 'value' not in tx_out or type(tx_out['value']) != int or tx_out['value'] < 0:
                 raise ValueError("Wrong TX output data in response of Blockchain.info for BTC transactions '{}':\n{}"
-                                 .format(address_str, tx_out))
+                                  .format(address_str, tx_out))
 
     latestblock_request = 'https://blockchain.info/latestblock'
     if CRAWLER_PROXY__ENABLED:
@@ -538,7 +538,7 @@ def get_btc_investments(address_str: str) -> List[Transaction]:
     for tx in txlist_response_json['txs']:
         is_investment = False
         for tx_out in tx['out']:
-            if tx_out['addr'].lower() == address_str.lower():
+            if 'addr' in tx_out and type(tx_out['addr']) == str and tx_out['addr'].lower() == address_str.lower():
                 is_investment = True
                 break
         if not is_investment:
@@ -546,7 +546,7 @@ def get_btc_investments(address_str: str) -> List[Transaction]:
 
         tx_hash = tx['hash']
         tx_block_height = int(tx['block_height'])
-        tx_value = sum(tx_out['value'] for tx_out in tx['out'] if tx_out['addr'].lower() == address_str.lower())
+        tx_value = sum(tx_out['value'] for tx_out in tx['out'] if 'addr' in tx_out and tx_out['addr'].lower() == address_str.lower())
         tx_timestamp = datetime.utcfromtimestamp(tx['time'])
 
         if tx_block_height + 3 > latestblock:
