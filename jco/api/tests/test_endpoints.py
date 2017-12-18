@@ -214,7 +214,7 @@ def test_get_raised_tokens_empty(client, users, settings):
     assert resp.json() == {'raised_tokens': settings.RAISED_TOKENS_SHIFT + 0}
 
 
-def test_get_raised_tokens(client, transactions, settings):
+def test_get_raised_tokens(client, users, transactions, settings):
     models.Jnt.objects.create(
         purchase_id='1',
         jnt_value=1.5,
@@ -233,9 +233,34 @@ def test_get_raised_tokens(client, transactions, settings):
         active=True,
         created=datetime.now(),
         transaction=transactions[1])
+    
+    models.PresaleJnt.objects.create(
+        jnt_value=10.00,
+        created=datetime.now(),
+        user=users[0],
+        is_presale_round=True,
+        is_sale_allocation=True,
+    )
+
+    models.PresaleJnt.objects.create(
+        jnt_value=30.00,
+        created=datetime.now(),
+        user=users[1],
+        is_presale_round=False,
+        is_sale_allocation=True,
+    )
+
+    models.PresaleJnt.objects.create(
+        jnt_value=60.00,
+        created=datetime.now(),
+        user=users[1],
+        is_presale_round=False,
+        is_sale_allocation=False,
+    )
+    
     resp = client.get('/api/raised-tokens/')
     assert resp.status_code == 200
-    assert resp.json() == {'raised_tokens': settings.RAISED_TOKENS_SHIFT + 2.25}
+    assert resp.json() == {'raised_tokens': settings.RAISED_TOKENS_SHIFT + 2.25 + 30}
 
 
 def test_get_withdraw_address_empty(client, users):

@@ -11,10 +11,11 @@ from django.middleware.csrf import get_token
 from django.utils.safestring import mark_safe
 from django.http import HttpResponse
 from django.contrib.admin import SimpleListFilter
+from django.utils import timezone
 
 from rest_framework.authtoken.models import Token
 
-from jco.api.models import Address, Account, Transaction, Jnt, Withdraw, Operation, Document
+from jco.api.models import Address, Account, Transaction, Jnt, Withdraw, Operation, Document, PresaleJnt
 from jco.api import tasks
 from jco.commonutils import ga_integration
 
@@ -217,3 +218,18 @@ class OperationAdmin(admin.ModelAdmin):
 class DocumentAdmin(admin.ModelAdmin):
     list_display = ['user', 'image']
     search_fields = ['user__username']
+
+
+@admin.register(PresaleJnt)
+class PresaleJntAdmin(admin.ModelAdmin):
+    list_display = ['user', 'jnt_value', 'created', 'comment', 'is_sale_allocation']
+    search_fields = ['user__username']
+    exclude = ['created', 'is_presale_round']
+
+    def save_model(self, request, obj, form, change):
+        """
+        Given a model instance save it to the database.
+        """
+        obj.created = timezone.now()
+        obj.is_presale_round = False
+        super().save_model(request, obj, form, change)
