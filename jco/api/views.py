@@ -327,7 +327,7 @@ class ChangeAddressConfirmView(GenericAPIView):
             return Response({'detail': _('Your withdrawal address changing is failed')}, status=403)
 
         if is_user_email_confirmed(operation.user) is False:
-            resp = {'detail': _('You email address is not confirmed yet')}
+            resp = {'detail': _('Please confirm the e-mail before submitting new address')}
             return Response(resp, status=403)
 
         try:
