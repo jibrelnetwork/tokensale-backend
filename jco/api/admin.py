@@ -3,6 +3,7 @@ from django.contrib import admin
 from django.utils.html import format_html
 from django.core.urlresolvers import reverse
 from django.shortcuts import redirect, get_object_or_404, render
+from django.utils.crypto import get_random_string
 from django.conf.urls import url
 from django.contrib import messages
 from django.views.decorators.http import require_http_methods
@@ -175,7 +176,7 @@ class AccountAdmin(admin.ModelAdmin):
     def action_reset_password(self, request, queryset):
         accounts = queryset.all()
         for account in accounts:
-            account.user.set_password(None)  # set unusable password
+            account.user.set_password(get_random_string(12))  # set unusable password
             account.user.save()
             serializer = serializers.CustomPasswordResetSerializer(
                 data={'email': account.user.username}, context={'request': request})
