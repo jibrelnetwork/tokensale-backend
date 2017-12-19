@@ -215,6 +215,15 @@ class JntAdmin(admin.ModelAdmin):
 class OperationAdmin(admin.ModelAdmin):
     list_display = ['user', 'operation', 'params', 'created_at', 'confirmed_at']
 
+    actions = ['confirm_operation']
+
+    def confirm_operation(self, request, queryset):
+        operations = queryset.all()
+        for op in operations:
+            op.perform(op.key)
+        op_names = ', '.join(['{}: {}'.format(op.user.username, op.operation) for op in operations])
+        self.message_user(request, "Operations {} was confirmed".format(op_names))
+
 
 @admin.register(Document)
 class DocumentAdmin(admin.ModelAdmin):
