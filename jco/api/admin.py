@@ -16,6 +16,7 @@ from rest_framework.authtoken.models import Token
 
 from jco.api.models import Address, Account, Transaction, Jnt, Withdraw, Operation, Document
 from jco.api import tasks
+from jco.api import serializers
 from jco.commonutils import ga_integration
 
 
@@ -75,6 +76,8 @@ class AccountAdmin(admin.ModelAdmin):
                         'onfido_document_id', 'onfido_applicant_id',
                         'withdraw_address', 'tracking']
 
+    actions = ['action_reset_password']
+
     class Media:
         js = ['https://static.filestackapi.com/v3/filestack.js', 'api/account.js']
 
@@ -88,21 +91,7 @@ class AccountAdmin(admin.ModelAdmin):
     def get_urls(self):
         urls = super().get_urls()
         custom_urls = [
-            # url(
-            #     r'^(?P<account_id>.+)/reset/$',
-            #     self.admin_site.admin_view(self.reset_identity_verification),
-            #     name='account-reset',
-            # ),
-            # url(
-            #     r'^(?P<account_id>.+)/approve/$',
-            #     self.admin_site.admin_view(self.approve_identity_verification),
-            #     name='account-approve',
-            # ),
-            # url(
-            #     r'^(?P<account_id>.+)/decline/$',
-            #     self.admin_site.admin_view(self.decline_identity_verification),
-            #     name='account-decline',
-            # ),
+
             url(
                 r'^(?P<account_id>.+)/action/$',
                 self.admin_site.admin_view(self.account_action),
@@ -182,6 +171,19 @@ class AccountAdmin(admin.ModelAdmin):
             tasks.verify_user.delay(obj.user.pk)
             messages.success(request,
                  mark_safe('Verification <b>Restarted</b> for <b>{}</b> {}'.format(obj, obj.user.username)))
+
+    def action_reset_password(self, request, queryset):
+        accounts = queryset.all()
+        for account in accounts:
+            account.user.set_password(None)  # set unusable password
+            account.user.save()
+            serializer = serializers.CustomPasswordResetSerializer(
+                data={'email': account.user.username}, context={'request': request})
+            serializer.is_valid()
+            serializer.save()
+
+        usernames = ', '.join([a.user.username for a in accounts])
+        self.message_user(request, "Users {}: passwords is dropped, change password emails is sent.".format(usernames))
 
 
 @admin.register(Transaction)
