@@ -225,7 +225,7 @@ def _send_email_sendgrid(sender: str,
             # check that a request is successful
             response.raise_for_status()
 
-            message_id = uuid.uuid4()
+            message_id = str(uuid.uuid4())
 
             break
         except Exception:
