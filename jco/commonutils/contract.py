@@ -28,6 +28,11 @@ ETH_CONTRACT__ABI = b'[{"constant": false, "inputs": [{"name": "_account", "type
                     b'{"name": "_value", "type": "uint256"}], "name": "mint", "outputs": [], "payable": false,' \
                     b'"type": "function"}]'
 
+ETH_JNTVEW__ADDRESS = ""
+ETH_JNTVEW__ABI = b'[{"constant": true, "inputs": [{"name": "_owner", "type": "address"}],' \
+                  b'"name": "balanceOf", "outputs": [{"name": "", "type": "uint256"}],' \
+                  b'"payable": false, "stateMutability": "view", "type": "function"}]'
+
 class Contract:
     def __init__(self, host: str, expectedNetworkId: int):
         self._host = host  # type: str
@@ -91,6 +96,32 @@ class Contract:
 
     def getTransactionReceipt(self, _tx_id: str) -> Optional[dict]:
         return self._ethJsonRpc.eth_getTransactionReceipt(_tx_id)
+
+
+    def call(self, to_address: str, data: Optional[dict]) -> Optional[int]:
+        return self._ethJsonRpc.eth_call(to_address=to_address, data=data)
+
+
+def callBalanceOf(address: str) -> int:
+    try:
+        logging.getLogger(__name__).info("Start callBalanceOf address:{}".format(address))
+
+        contract = Contract(ETH_NODE__ADDRESS, ETH_NETWORK__ID)
+
+        _abi = ETH_JNTVEW__ABI
+        _data = Contract.encodeFunctionTxData(_abi,
+                                              "balanceOf",
+                                              [address])
+
+        balance_of = contract.call(address, _data)
+
+        logging.getLogger(__name__).info("Finished callBalanceOf address:{}".format(address))
+
+        return balance_of
+    except Exception:
+        exception_str = ''.join(traceback.format_exception(*sys.exc_info()))
+        logging.getLogger(__name__).error("Failed mintJNT due to exception:\n{}"
+                                          .format(exception_str))
 
 
 def mintJNT(to_address: str, value: float) -> str:
