@@ -56,6 +56,8 @@ SITE_ID = 1
 
 INSTALLED_APPS = [
     # jco apps
+    'allauth',
+    'allauth.account',
     'jco.api',
  
     # contrib
@@ -70,8 +72,6 @@ INSTALLED_APPS = [
     # 3rd-party apps
     'rest_framework',
     'rest_framework.authtoken',
-    'allauth',
-    'allauth.account',
     'rest_auth.registration',
     'rest_auth',
     'corsheaders',
