@@ -223,10 +223,13 @@ class TransactionAdmin(ReadonlyMixin, admin.ModelAdmin):
     list_select_related = ('address__user__account',)
 
     def account_link(self, obj):
-        html = '<a href="{url}">{username}</>'
-        url = reverse('admin:api_account_change', args=(obj.address.user.account.pk,))
-        username = obj.address.user.username
-        return html.format(url=url, username=username)
+        if obj.address and obj.address.user and obj.address.user.account:
+            html = '<a href="{url}">{username}</>'
+            url = reverse('admin:api_account_change', args=(obj.address.user.account.pk,))
+            username = obj.address.user.username
+            return html.format(url=url, username=username)
+        else:
+            return ''
     account_link.allow_tags = True
 
 
