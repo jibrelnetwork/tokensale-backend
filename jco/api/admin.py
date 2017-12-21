@@ -235,9 +235,10 @@ class TransactionAdmin(ReadonlyMixin, admin.ModelAdmin):
 
 @admin.register(Withdraw)
 class WithdrawAdmin(ReadonlyMixin, admin.ModelAdmin):
-    list_display = ['user', 'transaction_id', 'to', 'value', 'created', 'status', 'account_link']
+    list_display = ['id', 'transaction_id', 'to', 'value', 'created', 'status', 'account_link']
     search_fields = ['transaction_id', 'to', 'user__username']
     list_select_related = ('user__account',)
+    list_filter = ['status']
 
     def account_link(self, obj):
         html = '<a href="{url}">{username}</>'
