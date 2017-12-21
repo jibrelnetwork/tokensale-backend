@@ -12,6 +12,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.middleware.csrf import get_token
 from django.utils.safestring import mark_safe
 from django.http import HttpResponse
+from django.contrib import admin
 from django.contrib.admin import SimpleListFilter
 from django.contrib.admin.utils import flatten_fieldsets
 
@@ -25,6 +26,9 @@ from jco.commonutils import ga_integration
 
 
 logger = logging.getLogger(__name__)
+
+# Globally disable delete selected
+admin.site.disable_action('delete_selected')
 
 
 class FioFilledListFilter(SimpleListFilter):
