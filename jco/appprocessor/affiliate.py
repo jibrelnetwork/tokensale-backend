@@ -20,6 +20,7 @@ def get_affiliate(_account: Account) -> Optional[Tuple[str, str]]:
     clicksureclickid = _account.get_affiliate_clicksureclickid()
     track_id = _account.get_affiliate_track_id()
     actionpay = _account.get_affiliate_actionpay()
+    adpump = _account.get_affiliate_adpump()
 
     if clicksureclickid:
         return (clicksureclickid, AffiliateNetwork.clicksure)
@@ -27,6 +28,8 @@ def get_affiliate(_account: Account) -> Optional[Tuple[str, str]]:
         return (track_id, AffiliateNetwork.runcpa)
     elif actionpay:
         return (actionpay, AffiliateNetwork.actionpay)
+    elif adpump:
+        return (adpump, AffiliateNetwork.adpump)
 
     return None
 
@@ -61,6 +64,20 @@ def get_affiliate_url(_account: Account, _event: str, _transaction: Optional[Tra
             _transaction_id = _transaction.transaction_id
             return "https://x.actionpay.ru/ok/16242.png?actionpay={}&apid={}&price={}" \
                 .format(affiliate_id, _transaction_id, format_coin_value(_transaction.value))
+
+    elif affiliate_network == AffiliateNetwork.adpump:
+        _url = "https://apypx.com/ok/{aim_ID}.png?adpump={adpump_cookie}&apid={ap_id}&price={price}"
+
+        if _event == AffiliateEvent.registration:
+            return _url.format(aim_ID="16347",
+                               adpump_cookie=affiliate_id,
+                               ap_id=''.join(random.choices(string.ascii_lowercase + string.digits, k=12)),
+                               price=0)
+        elif _event == AffiliateEvent.transaction:
+            return _url.format(aim_ID="16348",
+                               adpump_cookie=affiliate_id,
+                               ap_id=_transaction.transaction_id,
+                               price=format_coin_value(_transaction.value))
 
     return ""
 

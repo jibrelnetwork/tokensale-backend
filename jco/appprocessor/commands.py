@@ -349,7 +349,7 @@ def scan_addresses():
         addresses_eth_wo_transaction = session.query(Address) \
             .outerjoin(Account, Account.user_id == Address.user_id) \
             .outerjoin(transaction_counts, transaction_counts.c.address_id == Address.id) \
-            .filter(Account.document_url != "") \
+            .filter(or_(Account.document_url != "", Account.is_document_skipped == True)) \
             .filter(Address.type == CurrencyType.eth) \
             .filter(Address.user_id.isnot(None)) \
             .filter(func.coalesce(transaction_counts.c.count, 0) == 0)\
@@ -360,7 +360,7 @@ def scan_addresses():
         addresses_btc_wo_transaction = session.query(Address) \
             .outerjoin(Account, Account.user_id == Address.user_id) \
             .outerjoin(transaction_counts, transaction_counts.c.address_id == Address.id) \
-            .filter(Account.document_url != "") \
+            .filter(or_(Account.document_url != "", Account.is_document_skipped == True)) \
             .filter(Address.type == CurrencyType.btc) \
             .filter(Address.user_id.isnot(None)) \
             .filter(func.coalesce(transaction_counts.c.count, 0) == 0) \
