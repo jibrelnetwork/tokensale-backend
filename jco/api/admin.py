@@ -1,8 +1,10 @@
+import logging
 from django.contrib import admin
 
 from django.utils.html import format_html
 from django.core.urlresolvers import reverse
 from django.shortcuts import redirect, get_object_or_404, render
+from django.utils.crypto import get_random_string
 from django.conf.urls import url
 from django.contrib import messages
 from django.views.decorators.http import require_http_methods
@@ -10,15 +12,24 @@ from django.views.decorators.csrf import csrf_exempt
 from django.middleware.csrf import get_token
 from django.utils.safestring import mark_safe
 from django.http import HttpResponse
+from django.contrib import admin
 from django.contrib.admin import SimpleListFilter
 from django.utils import timezone
 
+
 from rest_framework.authtoken.models import Token
+from allauth.account.models import EmailAddress
 
 from jco.api.models import Address, Account, Transaction, Jnt, Withdraw, Operation, Document, PresaleJnt
 from jco.api import tasks
+from jco.api import serializers
 from jco.commonutils import ga_integration
 
+
+logger = logging.getLogger(__name__)
+
+# Globally disable delete selected
+admin.site.disable_action('delete_selected')
 
 
 class FioFilledListFilter(SimpleListFilter):
@@ -60,6 +71,23 @@ class FioFilledListFilter(SimpleListFilter):
             return queryset
 
 
+class ReadonlyMixin:
+    """
+    Readonly view for non-superusers
+    """
+
+    def get_readonly_fields(self, request, obj=None):
+        if request.user.is_superuser is False:
+            fields = [f.name for f in self.model._meta.fields]
+            return fields
+        return []
+
+    def save_model(self, request, obj, form, change):
+        if request.user.is_superuser is False:
+            self.message_user(request, "Saving not allowed")
+            return False
+
+
 @admin.register(Account)
 class AccountAdmin(admin.ModelAdmin):
     list_display = ['id', 'username', 'first_name', 'last_name', 'document_thumb',
@@ -76,6 +104,8 @@ class AccountAdmin(admin.ModelAdmin):
                         'onfido_document_id', 'onfido_applicant_id',
                         'withdraw_address', 'tracking']
 
+    actions = ['action_reset_password']
+
     class Media:
         js = ['https://static.filestackapi.com/v3/filestack.js', 'api/account.js']
 
@@ -89,21 +119,7 @@ class AccountAdmin(admin.ModelAdmin):
     def get_urls(self):
         urls = super().get_urls()
         custom_urls = [
-            # url(
-            #     r'^(?P<account_id>.+)/reset/$',
-            #     self.admin_site.admin_view(self.reset_identity_verification),
-            #     name='account-reset',
-            # ),
-            # url(
-            #     r'^(?P<account_id>.+)/approve/$',
-            #     self.admin_site.admin_view(self.approve_identity_verification),
-            #     name='account-approve',
-            # ),
-            # url(
-            #     r'^(?P<account_id>.+)/decline/$',
-            #     self.admin_site.admin_view(self.decline_identity_verification),
-            #     name='account-decline',
-            # ),
+
             url(
                 r'^(?P<account_id>.+)/action/$',
                 self.admin_site.admin_view(self.account_action),
@@ -134,6 +150,7 @@ class AccountAdmin(admin.ModelAdmin):
 
     def reset_identity_verification(self, request, account_id, *args, **kwargs):
         account = get_object_or_404(Account, pk=account_id)
+        logger.info('Manual Identity verification status reset for %s', account.user.username)
         account.reset_verification_state()
         Token.objects.filter(user=account.user).delete()
         messages.success(request,
@@ -158,6 +175,7 @@ class AccountAdmin(admin.ModelAdmin):
     def approve_identity_verification(self, request, account_id, *args, **kwargs):
         account = get_object_or_404(Account, pk=account_id)
         account.approve_verification()
+        logger.info('Manual Identity approve for %s', account.user.username)
         ga_integration.on_status_verified_manual(account)
         messages.success(request,
                          mark_safe('Verification Status <b>Approved</b> for {}'.format(account.user.username)),
@@ -166,6 +184,7 @@ class AccountAdmin(admin.ModelAdmin):
 
     def decline_identity_verification(self, request, account_id, *args, **kwargs):
         account = get_object_or_404(Account, pk=account_id)
+        logger.info('Manual Identity decline for %s', account.user.username)
         account.decline_verification()
         ga_integration.on_status_not_verified_manual(account)
         messages.success(request,
@@ -184,34 +203,111 @@ class AccountAdmin(admin.ModelAdmin):
             messages.success(request,
                  mark_safe('Verification <b>Restarted</b> for <b>{}</b> {}'.format(obj, obj.user.username)))
 
+    def action_reset_password(self, request, queryset):
+        accounts = queryset.all()
+        for account in accounts:
+            logger.info('Manual reset password for %s.', account.user.username)
+            account.user.set_password(get_random_string(12))  # set unusable password
+            account.user.save()
+            serializer = serializers.CustomPasswordResetSerializer(
+                data={'email': account.user.username}, context={'request': request})
+            serializer.is_valid()
+            serializer.save()
+            logger.info('Manual reset password for %s complete.', account.user.username)
+
+        usernames = ', '.join([a.user.username for a in accounts])
+        self.message_user(request, "Users {}: passwords is dropped, change password emails is sent.".format(usernames))
+
 
 @admin.register(Transaction)
-class TransactionAdmin(admin.ModelAdmin):
-    list_display = ['transaction_id', 'value', 'mined', 'address']
+class TransactionAdmin(ReadonlyMixin, admin.ModelAdmin):
+    list_display = ['transaction_id', 'value', 'mined', 'address', 'account_link']
     raw_id_fields = ("address",)
+    search_fields = ['address__user__username', 'address__address',
+                     'transaction_id']
+    list_select_related = ('address__user__account',)
+
+    def account_link(self, obj):
+        if obj.address and obj.address.user and obj.address.user.account:
+            html = '<a href="{url}">{username}</>'
+            url = reverse('admin:api_account_change', args=(obj.address.user.account.pk,))
+            username = obj.address.user.username
+            return html.format(url=url, username=username)
+        else:
+            return ''
+    account_link.allow_tags = True
 
 
 @admin.register(Withdraw)
-class WithdrawAdmin(admin.ModelAdmin):
-    list_display = ['user', 'transaction_id', 'to', 'value', 'created', 'status']
+class WithdrawAdmin(ReadonlyMixin, admin.ModelAdmin):
+    list_display = ['id', 'transaction_id', 'to', 'value', 'created', 'status', 'account_link']
     search_fields = ['transaction_id', 'to', 'user__username']
+    list_select_related = ('user__account',)
+    list_filter = ['status']
+
+    def account_link(self, obj):
+        html = '<a href="{url}">{username}</>'
+        url = reverse('admin:api_account_change', args=(obj.user.account.pk,))
+        username = obj.user.username
+        return html.format(url=url, username=username)
+    account_link.allow_tags = True
 
 
 @admin.register(Address)
-class AddressAdmin(admin.ModelAdmin):
-    list_display = ['address', 'type', 'is_usable', 'user']
+class AddressAdmin(ReadonlyMixin, admin.ModelAdmin):
+    list_display = ['address', 'type', 'is_usable', 'account_link']
     search_fields = ['user__username', 'address']
+    list_select_related = ('user__account',)
+
+    def account_link(self, obj):
+        if obj.user is None:
+            return ''
+        html = '<a href="{url}">{username}</>'
+        url = reverse('admin:api_account_change', args=(obj.user.account.pk,))
+        username = obj.user.username
+        return html.format(url=url, username=username)
+    account_link.allow_tags = True
 
 
 @admin.register(Jnt)
-class JntAdmin(admin.ModelAdmin):
-    list_display = ['purchase_id', 'currency_to_usd_rate', 'usd_value',
-                    'jnt_to_usd_rate', 'jnt_value', 'active', 'created']
+class JntAdmin(ReadonlyMixin, admin.ModelAdmin):
+    list_display = ['jnt_value', 'currency_to_usd_rate', 'usd_value',
+                    'jnt_to_usd_rate', 'active', 'created', 'account_link', 'address_link']
+
+    list_select_related = ('transaction__address__user__account',)
+    search_fields = ['transaction__address__user__username', 'transaction__address__address',
+                     'transaction__transaction_id']
+
+    def account_link(self, obj):
+        html = '<a href="{url}">{username}</>'
+        url = reverse('admin:api_account_change', args=(obj.transaction.address.user.account.pk,))
+        username = obj.transaction.address.user.username
+        return html.format(url=url, username=username)
+    account_link.allow_tags = True
+
+    def address_link(self, obj):
+        html = '<a href="{url}">{address}</>'
+        url = reverse('admin:api_address_change', args=(obj.transaction.address.pk,))
+        address = obj.transaction.address.address
+        return html.format(url=url, address=address)
+    address_link.allow_tags = True
 
 
 @admin.register(Operation)
-class OperationAdmin(admin.ModelAdmin):
+class OperationAdmin(ReadonlyMixin, admin.ModelAdmin):
+    search_fields = ['user__username', 'key']
     list_display = ['user', 'operation', 'params', 'created_at', 'confirmed_at']
+    actions = ['confirm_operation']
+
+    def confirm_operation(self, request, queryset):
+        operations = queryset.all()
+        for op in operations:
+            logger.info('Manual operation confirmation for %s, operation #%s %s', op.user.username, op.pk)
+            op.perform(op.key)
+            logger.info('Manual operation confirmation for %s, operation #%s %s complete.',
+                        op.user.username, op.pk, op.operation)
+        op_names = ', '.join(['{}: {}'.format(op.user.username, op.operation) for op in operations])
+        self.message_user(request, "Operations {} was confirmed".format(op_names))
 
 
 @admin.register(Document)
@@ -233,3 +329,23 @@ class PresaleJntAdmin(admin.ModelAdmin):
         obj.created = timezone.now()
         obj.is_presale_round = False
         super().save_model(request, obj, form, change)
+
+
+admin.site.unregister(EmailAddress)
+
+
+@admin.register(EmailAddress)
+class EmailAddress(ReadonlyMixin, admin.ModelAdmin):
+    list_display = ['user', 'email', 'verified']
+    search_fields = ['email']
+
+    actions = ['verify']
+
+    def verify(self, request, queryset):
+        emails = queryset.all()
+        for email in emails:
+            logger.info('Manual email varification %s', email.email)
+            email.verified = True
+            email.save()
+        op_names = ', '.join([em.email for em in emails])
+        self.message_user(request, "Emails {} was marked as verified".format(op_names))
