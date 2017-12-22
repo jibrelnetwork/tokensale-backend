@@ -19,7 +19,7 @@ from django.contrib.admin.utils import flatten_fieldsets
 from rest_framework.authtoken.models import Token
 from allauth.account.models import EmailAddress
 
-from jco.api.models import Address, Account, Transaction, Jnt, Withdraw, Operation, Document
+from jco.api.models import Address, Account, Transaction, Jnt, Withdraw, Operation, Document, UserJntPrice
 from jco.api import tasks
 from jco.api import serializers
 from jco.commonutils import ga_integration
@@ -312,6 +312,12 @@ class OperationAdmin(ReadonlyMixin, admin.ModelAdmin):
 @admin.register(Document)
 class DocumentAdmin(admin.ModelAdmin):
     list_display = ['user', 'image']
+    search_fields = ['user__username']
+
+
+@admin.register(UserJntPrice)
+class UserJntPriceAdmin(admin.ModelAdmin):
+    list_display = ['pk', 'user', 'value', 'created_at']
     search_fields = ['user__username']
 
 

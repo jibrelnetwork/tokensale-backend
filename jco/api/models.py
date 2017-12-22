@@ -439,6 +439,22 @@ class Operation(models.Model):
             return op
 
 
+class UserJntPrice(models.Model):
+    """
+    # 71 Custom JNT price for user
+    """
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.DO_NOTHING,
+                             related_name='custom_jnt_prices')
+    created_at = models.DateTimeField(auto_now_add=True)
+    value = models.FloatField()
+
+    class Meta:
+        db_table = 'user_jnt_price'
+
+    def __str__(self):
+        return 'Custom Price for {}: {}$/JNT'.format(self.user.username, self.value)
+
+
 def is_user_email_confirmed(user):
     try:
         email = EmailAddress.objects.get(email=user.username)
