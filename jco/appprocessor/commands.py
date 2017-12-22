@@ -257,11 +257,17 @@ def get_eth_addresses_with_positive_balance(addresses: List[Address]) -> List[Ad
             .format(",".join([address.address for address in batch_addresses]), ETHERSCAN_API_KEY)
         url_request = url_base + url_balances
 
-        if CRAWLER_PROXY__ENABLED:
-            balances_response = requests.get(url_request, proxies=proxies)
-        else:
-            balances_response = requests.get(url_request)
-        balances_response.raise_for_status()
+        try:
+            if CRAWLER_PROXY__ENABLED:
+                balances_response = requests.get(url_request, proxies=proxies)
+            else:
+                balances_response = requests.get(url_request)
+
+            balances_response.raise_for_status()
+        except Exception:
+            logging.getLogger(__name__).warning("Bad response from blockexplorer")
+            continue
+
         balances_response_json = balances_response.json()
 
         try:
@@ -306,11 +312,17 @@ def get_btc_addresses_with_positive_balance(addresses: List[Address]) -> List[Ad
         url_balances = 'active={}'.format("|".join([address.address for address in batch_addresses]))
         url_request = url_base + url_balances
 
-        if CRAWLER_PROXY__ENABLED:
-            balances_response = requests.get(url_request, proxies=proxies)
-        else:
-            balances_response = requests.get(url_request)
-        balances_response.raise_for_status()
+        try:
+            if CRAWLER_PROXY__ENABLED:
+                balances_response = requests.get(url_request, proxies=proxies)
+            else:
+                balances_response = requests.get(url_request)
+
+            balances_response.raise_for_status()
+        except Exception:
+            logging.getLogger(__name__).warning("Bad response from blockexplorer")
+            continue
+
         balances_response_json = balances_response.json()
 
         if "addresses" not in balances_response_json \
@@ -337,42 +349,62 @@ def get_btc_addresses_with_positive_balance(addresses: List[Address]) -> List[Ad
 # Scan for the new transactions
 #
 
-def scan_addresses():
+def scan_addresses(*, w_transactions: bool = False,
+                   wo_transactions: bool = False,
+                   address_type: str = '',
+                   is_even_rows: bool = False):
     # noinspection PyBroadException
     try:
-        logging.getLogger(__name__).info("Start to scan for the new transactions")
+        logging.getLogger(__name__).info("Start to scan for the new transactions. w_tr: {}, wo_tr: {}, is_even: {}"
+                                         .format(str(w_transactions), str(wo_transactions), str(is_even_rows)))
 
         transaction_counts = session.query(Transaction.address_id, func.count(Transaction.id).label('count')) \
             .group_by(Transaction.address_id) \
             .subquery()
 
-        addresses_eth_wo_transaction = session.query(Address) \
-            .outerjoin(Account, Account.user_id == Address.user_id) \
-            .outerjoin(transaction_counts, transaction_counts.c.address_id == Address.id) \
-            .filter(or_(Account.document_url != "", Account.is_document_skipped == True)) \
-            .filter(Address.type == CurrencyType.eth) \
-            .filter(Address.user_id.isnot(None)) \
-            .filter(func.coalesce(transaction_counts.c.count, 0) == 0)\
-            .all()  # type: List[Address]
+        addresses_with_transaction = list()
+        addresses_eth_wo_transaction = list()
+        addresses_btc_wo_transaction = list()
 
-        addresses_eth_wo_transaction = get_eth_addresses_with_positive_balance(addresses_eth_wo_transaction)
+        if w_transactions:
+            addresses_with_transaction = session.query(Address) \
+                .outerjoin(transaction_counts, transaction_counts.c.address_id == Address.id) \
+                .filter(Address.user_id.isnot(None)) \
+                .filter(func.coalesce(transaction_counts.c.count, 0) > 0) \
+                .all()  # type: List[Address]
+            logging.getLogger(__name__).info("scan_addresses len(addresses_with_transaction): {}"
+                                             .format(str(len(addresses_with_transaction))))
+        elif wo_transactions:
+            if address_type == CurrencyType.eth:
+                addresses_eth_wo_transaction = session.query(Address) \
+                    .outerjoin(Account, Account.user_id == Address.user_id) \
+                    .outerjoin(transaction_counts, transaction_counts.c.address_id == Address.id) \
+                    .filter(Address.user_id.isnot(None)) \
+                    .filter(or_(Account.document_url != "", Account.is_document_skipped == True)) \
+                    .filter(Address.type == CurrencyType.eth) \
+                    .filter(func.coalesce(transaction_counts.c.count, 0) == 0) \
+                    .filter(Address.id % 2 == 0 if is_even_rows else Address.id % 2 != 0) \
+                    .all()  # type: List[Address]
 
-        addresses_btc_wo_transaction = session.query(Address) \
-            .outerjoin(Account, Account.user_id == Address.user_id) \
-            .outerjoin(transaction_counts, transaction_counts.c.address_id == Address.id) \
-            .filter(or_(Account.document_url != "", Account.is_document_skipped == True)) \
-            .filter(Address.type == CurrencyType.btc) \
-            .filter(Address.user_id.isnot(None)) \
-            .filter(func.coalesce(transaction_counts.c.count, 0) == 0) \
-            .all()  # type: List[Address]
+                logging.getLogger(__name__).info("scan_addresses len(addresses_eth_wo_transaction): {}, is_even_rows: {}"
+                                                 .format(str(len(addresses_eth_wo_transaction)), is_even_rows))
 
-        addresses_btc_wo_transaction = get_btc_addresses_with_positive_balance(addresses_btc_wo_transaction)
+                addresses_eth_wo_transaction = get_eth_addresses_with_positive_balance(addresses_eth_wo_transaction)
+            elif address_type == CurrencyType.btc:
+                addresses_btc_wo_transaction = session.query(Address) \
+                    .outerjoin(Account, Account.user_id == Address.user_id) \
+                    .outerjoin(transaction_counts, transaction_counts.c.address_id == Address.id) \
+                    .filter(or_(Account.document_url != "", Account.is_document_skipped == True)) \
+                    .filter(Address.type == CurrencyType.btc) \
+                    .filter(Address.user_id.isnot(None)) \
+                    .filter(func.coalesce(transaction_counts.c.count, 0) == 0) \
+                    .filter(Address.id % 2 == 0 if is_even_rows else Address.id % 2 != 0) \
+                    .all()  # type: List[Address]
 
-        addresses_with_transaction = session.query(Address) \
-            .outerjoin(transaction_counts, transaction_counts.c.address_id == Address.id) \
-            .filter(Address.user_id.isnot(None)) \
-            .filter(func.coalesce(transaction_counts.c.count, 0) > 0)\
-            .all()  # type: List[Address]
+                logging.getLogger(__name__).info("scan_addresses len(addresses_btc_wo_transaction): {}, is_even_rows: {}"
+                                                 .format(str(len(addresses_btc_wo_transaction)), is_even_rows))
+
+                addresses_btc_wo_transaction = get_btc_addresses_with_positive_balance(addresses_btc_wo_transaction)
 
         addresses = list()
         addresses.extend(addresses_eth_wo_transaction)
