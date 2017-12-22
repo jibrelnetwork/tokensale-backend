@@ -21,6 +21,7 @@ class AffiliateNetwork:
     clicksure = 'clicksure'
     runcpa = 'runcpa'
     actionpay = 'actionpay'
+    adpump = 'adpump'
 
 
 class AffiliateStatus:
@@ -214,6 +215,7 @@ class Account(db.Model):
     tracking_key_affiliate_clicksureclickid = 'clicksureclickid'
     tracking_key_affiliate_track_id = 'track_id'
     tracking_key_affiliate_actionpay = 'actionpay'
+    tracking_key_affiliate_adpump = 'adpump'
 
     # Methods
 
@@ -231,6 +233,11 @@ class Account(db.Model):
         if self.tracking_key_affiliate_actionpay not in self.tracking:
             return None
         return self.tracking[self.tracking_key_affiliate_actionpay]
+
+    def get_affiliate_adpump(self) -> Optional[str]:
+        if self.tracking_key_affiliate_adpump not in self.tracking:
+            return None
+        return self.tracking[self.tracking_key_affiliate_adpump]
 
     def __repr__(self):
         fieldsToPrint = (('id', self.id),

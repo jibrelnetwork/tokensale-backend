@@ -59,7 +59,6 @@ def send_email_template(template_name: str) -> Tuple[bool, Optional[str], Option
     logging.getLogger(__name__).info("Sending email template {}".format(template_name))
 
     success, mail_id = notify._send_email(
-        config.EMAIL_NOTIFICATIONS__SENDER,
         email,
         subject,
         body,

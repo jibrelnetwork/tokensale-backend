@@ -6,6 +6,7 @@ import requests
 import time
 import sys
 import traceback
+import uuid
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Any, Tuple
@@ -110,7 +111,28 @@ def get_failed_mails() -> List[str]:
         return None
 
 
-def _send_email(sender: str,
+def _send_email(recipient: str,
+                email_subject: str,
+                email_body: str,
+                proposal_id: str,
+                *, files: List = ()) -> Tuple[bool, Optional[str]]:
+
+    if any(domain in recipient for domain in config.EMAIL_NOTIFICATIONS__SENDGRID_DOMAINS):
+        return _send_email_sendgrid(config.EMAIL_NOTIFICATIONS__SENDGRID_SENDER,
+                                    recipient,
+                                    email_subject,
+                                    email_body,
+                                    proposal_id)
+    else:
+        return _send_email_mailgun(config.EMAIL_NOTIFICATIONS__MAILGUN_SENDER,
+                                   recipient,
+                                   email_subject,
+                                   email_body,
+                                   proposal_id,
+                                   files=files)
+
+
+def _send_email_mailgun(sender: str,
                 recipient: str,
                 email_subject: str,
                 email_body: str,
@@ -168,6 +190,59 @@ def _send_email(sender: str,
     return success, message_id
 
 
+def _send_email_sendgrid(sender: str,
+                         recipient: str,
+                         email_subject: str,
+                         email_body: str,
+                         proposal_id: str) -> Tuple[bool, Optional[str]]:
+    data = {
+        "from": sender,
+        "to": recipient,
+        "subject": email_subject,
+        "html": email_body
+    }
+
+    template_logo = "jibrel_logo.png"
+    with open(Path(EMAIL_NOTIFICATIONS__TEMPLATES_PATH, template_logo), 'rb') as f:
+        data['files[' + template_logo + ']'] = f.read()
+    data["content[" + template_logo + "]"] = template_logo
+
+    # send data
+    max_attempts = 2
+    success = True
+    message_id = None
+
+    for attempt in range(max_attempts):
+        # noinspection PyBroadException
+        try:
+            response = requests.post(config.SENDGRID__API_MESSAGES_URL,
+                                     data=data,
+                                     headers = {
+                                                "Authorization": "Bearer {}".format(config.SENDGRID__API_KEY),
+                                                "Accept": "*/*"
+                                                }
+                                     )
+            # check that a request is successful
+            response.raise_for_status()
+
+            message_id = str(uuid.uuid4())
+
+            break
+        except Exception:
+            exception_str = ''.join(traceback.format_exception(*sys.exc_info()))
+            if attempt < max_attempts - 1:
+                logging.getLogger(__name__).error(("Failed to send email '{}' to '{}' due to error." +
+                                                   " Sleep and try again.\n{}")
+                                                  .format(proposal_id, recipient, exception_str))
+                time.sleep(20)
+            else:
+                logging.getLogger(__name__).error("Failed to send email '{}' to '{}' due to error. Abort.\n{}"
+                                                  .format(proposal_id, recipient, exception_str))
+                success = False
+
+    return success, message_id
+
+
 #
 # Persist notification to the database
 #
@@ -219,7 +294,6 @@ def send_notification(notification_id):
                          Path(EMAIL_NOTIFICATIONS__TEMPLATES_PATH, "jibrel_logo.png"))])
     logger.info('Sending notification for %s, type %s', notification.email, notification.type)
     return _send_email(
-        config.EMAIL_NOTIFICATIONS__SENDER,
         notification.email,
         subject,
         body,

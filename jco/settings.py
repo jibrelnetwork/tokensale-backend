@@ -56,6 +56,8 @@ SITE_ID = 1
 
 INSTALLED_APPS = [
     # jco apps
+    'allauth',
+    'allauth.account',
     'jco.api',
  
     # contrib
@@ -70,8 +72,6 @@ INSTALLED_APPS = [
     # 3rd-party apps
     'rest_framework',
     'rest_framework.authtoken',
-    'allauth',
-    'allauth.account',
     'rest_auth.registration',
     'rest_auth',
     'corsheaders',
@@ -247,11 +247,13 @@ CELERY_BROKER_URL = "pyamqp://guest:guest@localhost:5672//"
 
 # Email notifications
 EMAIL_NOTIFICATIONS__ENABLED = True
-EMAIL_NOTIFICATIONS__SENDER = 'Jibrel Network <donotreply@mailgun.jibrel.network>'
+EMAIL_NOTIFICATIONS__MAILGUN_SENDER = 'Jibrel Network <donotreply@mailgun.jibrel.network>'
+EMAIL_NOTIFICATIONS__SENDGRID_SENDER = 'Jibrel Network <donotreply@sendgrid.jibrel.network>'
 EMAIL_NOTIFICATIONS__BACKUP_ENABLED = False
 EMAIL_NOTIFICATIONS__BACKUP_SENDER = 'Jibrel Backup <backup@mailgun.jibrel.network>'
 EMAIL_NOTIFICATIONS__BACKUP_ADDRESS = 'salebackup@jibrel.network'
 EMAIL_NOTIFICATIONS__MAX_ATTEMPTS = 3
+EMAIL_NOTIFICATIONS__SENDGRID_DOMAINS = ["yahoo", "sina.cn", "increw.com.au", "moeboard.net", "hanmail.net", "daum.net"]
 
 # Force scanning address
 FORCE_SCANNING_ADDRESS__ENABLED = True
@@ -261,6 +263,10 @@ FORCE_SCANNING_ADDRESS__EMAIL_RECIPIENT = 'Jibrel Presale <presale@jibrel.networ
 MAILGUN__API_KEY = "key-c5a56f1eeaf5a5ada613497ec9e01e86"
 MAILGUN__API_MESSAGES_URL = "https://api.mailgun.net/v3/mailgun.jibrel.network/messages"
 MAILGUN__API_EVENTS_URL = "https://api.mailgun.net/v3/mailgun.jibrel.network/events"
+
+# SendGrid API
+SENDGRID__API_MESSAGES_URL = "https://api.sendgrid.com/api/mail.send.json"
+SENDGRID__API_KEY = ""
 
 # Debug app settings
 DEBUG = False

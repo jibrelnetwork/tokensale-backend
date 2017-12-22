@@ -288,8 +288,8 @@ class WithdrawConfirmView(GenericAPIView):
             resp = {'detail': _('You email address is not confirmed yet')}
             return Response(resp, status=403)
 
-        if request.user.account.is_identity_verified is False:
-            logger.info('Request JNT withdraw for %s rejected: KYC not verified', request.user.username)
+        if operation.user.account.is_identity_verified is False:
+            logger.info('Request JNT withdraw for %s rejected: KYC not verified', operation.user.username)
             resp = {'detail': _('Please confirm your identity to withdraw JNT')}
             return Response(resp, status=403)
 
@@ -327,7 +327,7 @@ class ChangeAddressConfirmView(GenericAPIView):
             return Response({'detail': _('Your withdrawal address changing is failed')}, status=403)
 
         if is_user_email_confirmed(operation.user) is False:
-            resp = {'detail': _('You email address is not confirmed yet')}
+            resp = {'detail': _('Please confirm the e-mail before submitting new address')}
             return Response(resp, status=403)
 
         try:
