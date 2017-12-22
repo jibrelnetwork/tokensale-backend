@@ -203,8 +203,11 @@ def get_raised_tokens():
     """
     Get raised tokens amount
     """
-    return (Jnt.objects.all().aggregate(
-        models.Sum('jnt_value'))['jnt_value__sum'] or 0) + settings.RAISED_TOKENS_SHIFT
+    manual_jnt = (PresaleJnt.objects.filter(is_sale_allocation=True, is_presale_round=False)
+                  .aggregate(models.Sum('jnt_value'))['jnt_value__sum'] or 0)
+    jnt = (Jnt.objects.all().aggregate(
+           models.Sum('jnt_value'))['jnt_value__sum'] or 0)
+    return manual_jnt + jnt + settings.RAISED_TOKENS_SHIFT
 
 
 class Withdraw(models.Model):
@@ -262,6 +265,9 @@ class PresaleJnt(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL)
     jnt_value = models.FloatField()
     created = models.DateTimeField()
+    comment = models.CharField(max_length=32, default='ANGEL ROUND / PRESALE')
+    is_sale_allocation = models.BooleanField()
+    is_presale_round = models.BooleanField()
 
     class Meta:
         db_table = 'presale_jnt'

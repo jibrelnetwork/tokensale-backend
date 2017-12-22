@@ -14,12 +14,24 @@ from django.utils.safestring import mark_safe
 from django.http import HttpResponse
 from django.contrib import admin
 from django.contrib.admin import SimpleListFilter
-from django.contrib.admin.utils import flatten_fieldsets
+from django.utils import timezone
+
 
 from rest_framework.authtoken.models import Token
 from allauth.account.models import EmailAddress
 
-from jco.api.models import Address, Account, Transaction, Jnt, Withdraw, Operation, Document, UserJntPrice
+from jco.api.models import (
+    Address,
+    Account,
+    Document,
+    Jnt,
+    Operation,
+    PresaleJnt,
+    Transaction,
+    UserJntPrice,
+    Withdraw,
+)
+
 from jco.api import tasks
 from jco.api import serializers
 from jco.commonutils import ga_integration
@@ -313,6 +325,21 @@ class OperationAdmin(ReadonlyMixin, admin.ModelAdmin):
 class DocumentAdmin(admin.ModelAdmin):
     list_display = ['user', 'image']
     search_fields = ['user__username']
+
+
+@admin.register(PresaleJnt)
+class PresaleJntAdmin(admin.ModelAdmin):
+    list_display = ['user', 'jnt_value', 'created', 'comment', 'is_sale_allocation']
+    search_fields = ['user__username']
+    exclude = ['created', 'is_presale_round']
+
+    def save_model(self, request, obj, form, change):
+        """
+        Given a model instance save it to the database.
+        """
+        obj.created = timezone.now()
+        obj.is_presale_round = False
+        super().save_model(request, obj, form, change)
 
 
 @admin.register(UserJntPrice)
