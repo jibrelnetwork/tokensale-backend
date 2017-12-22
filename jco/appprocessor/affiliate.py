@@ -99,6 +99,7 @@ def check_new_registartions():
                                        Affiliate.event == _event)) \
             .filter(or_(Account.tracking.has_key(Account.tracking_key_affiliate_track_id),
                         Account.tracking.has_key(Account.tracking_key_affiliate_clicksureclickid),
+                        Account.tracking.has_key(Account.tracking_key_affiliate_adpump),
                         Account.tracking.has_key(Account.tracking_key_affiliate_actionpay))) \
             .filter(Account.is_identity_verified == True) \
             .filter(Affiliate.id.is_(None)) \
@@ -143,6 +144,7 @@ def check_new_transactions():
                                             .astext.cast(sa_Integer) == Transaction.id)) \
             .filter(or_(Account.tracking.has_key(Account.tracking_key_affiliate_track_id),
                         Account.tracking.has_key(Account.tracking_key_affiliate_clicksureclickid),
+                        Account.tracking.has_key(Account.tracking_key_affiliate_adpump),
                         Account.tracking.has_key(Account.tracking_key_affiliate_actionpay))) \
             .filter(Affiliate.id.is_(None)) \
             .all()  # type: List[Tuple[Transaction, Account]]

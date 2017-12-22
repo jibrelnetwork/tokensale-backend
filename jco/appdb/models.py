@@ -160,6 +160,10 @@ class User(db.Model):
                                  back_populates="user",
                                  cascade="all, delete-orphan",
                                  passive_deletes=True)  # type: PresaleJnt
+    custom_jnt_prices = db.relationship('UserJntPrice',
+                                 back_populates="user",
+                                 cascade="all, delete-orphan",
+                                 passive_deletes=True)  # type: UserJntPrice
 
     # Methods
     def __repr__(self):
