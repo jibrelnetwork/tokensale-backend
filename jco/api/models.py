@@ -184,7 +184,9 @@ class Jnt(models.Model):
     purchase_id = models.CharField(unique=True, max_length=64)
     currency_to_usd_rate = models.FloatField()
     usd_value = models.FloatField()
-    jnt_to_usd_rate = models.FloatField()
+    jnt_to_usd_rate = models.FloatField(help_text='If you change this value and save - jnt_value'
+                                                  ' will be recalculated as '
+                                                  'jnt_value = usd_value / jnt_to_usd_rate')
     jnt_value = models.FloatField()
     active = models.BooleanField()
     created = models.DateTimeField()
