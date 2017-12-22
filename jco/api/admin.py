@@ -91,12 +91,14 @@ class ReadonlyMixin:
         if request.user.is_superuser is False:
             fields = [f.name for f in self.model._meta.fields]
             return fields
-        return []
+        return self.readonly_fields
 
     def save_model(self, request, obj, form, change):
         if request.user.is_superuser is False:
             self.message_user(request, "Saving not allowed")
             return False
+        else:
+            super().save_model(request, obj, form, change)
 
 
 @admin.register(Account)
@@ -289,6 +291,9 @@ class JntAdmin(ReadonlyMixin, admin.ModelAdmin):
     search_fields = ['transaction__address__user__username', 'transaction__address__address',
                      'transaction__transaction_id']
 
+    readonly_fields = ['jnt_value', 'currency_to_usd_rate', 'usd_value', 'active', 'created',
+                       'transaction', 'meta', 'purchase_id']
+
     def account_link(self, obj):
         html = '<a href="{url}">{username}</>'
         url = reverse('admin:api_account_change', args=(obj.transaction.address.user.account.pk,))
@@ -302,6 +307,13 @@ class JntAdmin(ReadonlyMixin, admin.ModelAdmin):
         address = obj.transaction.address.address
         return html.format(url=url, address=address)
     address_link.allow_tags = True
+
+    def save_model(self, request, obj, form, change):
+        """
+        Given a model instance save it to the database.
+        """
+        obj.jnt_value = obj.usd_value / obj.jnt_to_usd_rate
+        super().save_model(request, obj, form, change)
 
 
 @admin.register(Operation)
