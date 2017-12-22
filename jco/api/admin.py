@@ -20,7 +20,18 @@ from django.utils import timezone
 from rest_framework.authtoken.models import Token
 from allauth.account.models import EmailAddress
 
-from jco.api.models import Address, Account, Transaction, Jnt, Withdraw, Operation, Document, PresaleJnt
+from jco.api.models import (
+    Address,
+    Account,
+    Document,
+    Jnt,
+    Operation,
+    PresaleJnt,
+    Transaction,
+    UserJntPrice,
+    Withdraw,
+)
+
 from jco.api import tasks
 from jco.api import serializers
 from jco.commonutils import ga_integration
@@ -329,6 +340,12 @@ class PresaleJntAdmin(admin.ModelAdmin):
         obj.created = timezone.now()
         obj.is_presale_round = False
         super().save_model(request, obj, form, change)
+
+
+@admin.register(UserJntPrice)
+class UserJntPriceAdmin(admin.ModelAdmin):
+    list_display = ['pk', 'user', 'value', 'created_at']
+    search_fields = ['user__username']
 
 
 admin.site.unregister(EmailAddress)
