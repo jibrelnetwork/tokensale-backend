@@ -349,14 +349,17 @@ def get_btc_addresses_with_positive_balance(addresses: List[Address]) -> List[Ad
 # Scan for the new transactions
 #
 
-def scan_addresses(*, w_transactions: bool = False,
+def scan_addresses(*, full_scan: bool = False,
+                   w_transactions: bool = False,
                    wo_transactions: bool = False,
                    address_type: str = '',
                    is_even_rows: bool = False):
     # noinspection PyBroadException
     try:
-        logging.getLogger(__name__).info("Start to scan for the new transactions. w_tr: {}, wo_tr: {}, is_even: {}"
-                                         .format(str(w_transactions), str(wo_transactions), str(is_even_rows)))
+        logging.getLogger(__name__).info(
+            "Start to scan for the new transactions. full_scan: {}, w_tr: {}, wo_tr: {}, is_even: {}"
+                .format(str(full_scan), str(w_transactions), str(wo_transactions), str(is_even_rows))
+        )
 
         transaction_counts = session.query(Transaction.address_id, func.count(Transaction.id).label('count')) \
             .group_by(Transaction.address_id) \
@@ -366,7 +369,15 @@ def scan_addresses(*, w_transactions: bool = False,
         addresses_eth_wo_transaction = list()
         addresses_btc_wo_transaction = list()
 
-        if w_transactions:
+        addresses = list()
+        if full_scan:
+            addresses = session.query(Address) \
+                .outerjoin(transaction_counts, transaction_counts.c.address_id == Address.id) \
+                .filter(Address.user_id.isnot(None)) \
+                .all()  # type: List[Address]
+            logging.getLogger(__name__).info("scan_all addresses len(addresses_with_transaction): {}"
+                                             .format(str(len(addresses_with_transaction))))
+        elif w_transactions:
             addresses_with_transaction = session.query(Address) \
                 .outerjoin(transaction_counts, transaction_counts.c.address_id == Address.id) \
                 .filter(Address.user_id.isnot(None)) \
@@ -406,7 +417,7 @@ def scan_addresses(*, w_transactions: bool = False,
 
                 addresses_btc_wo_transaction = get_btc_addresses_with_positive_balance(addresses_btc_wo_transaction)
 
-        addresses = list()
+
         addresses.extend(addresses_eth_wo_transaction)
         addresses.extend(addresses_btc_wo_transaction)
         addresses.extend(addresses_with_transaction)

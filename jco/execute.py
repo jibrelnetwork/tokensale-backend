@@ -48,7 +48,7 @@ def fill_fake_tickers_price(start_offset, end_offset):
 @app.cli.command()
 @initialize_app
 def scan_addresses():
-    return commands.scan_addresses()
+    return commands.scan_addresses(full_scan=True)
 
 
 @app.cli.command()
