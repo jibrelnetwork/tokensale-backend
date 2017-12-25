@@ -435,7 +435,6 @@ class Transaction(db.Model):
 class JNT(db.Model):
     # Fields
     id = db.Column(db.Integer, primary_key=True)
-    purchase_id = db.Column(db.String(64), unique=True, nullable=False)
     currency_to_usd_rate = db.Column(db.Float, nullable=False)
     usd_value = db.Column(db.Float, nullable=False)
     jnt_to_usd_rate = db.Column(db.Float, nullable=False)

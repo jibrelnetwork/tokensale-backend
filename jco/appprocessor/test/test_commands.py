@@ -571,8 +571,7 @@ class TestCommands(unittest.TestCase):
         jnt = JNT(currency_to_usd_rate=eth_currency_rate,
                     jnt_value=jnt_usd_value / INVESTMENTS__TOKEN_PRICE_IN_USD,
                     usd_value=jnt_usd_value,
-                    jnt_to_usd_rate=INVESTMENTS__TOKEN_PRICE_IN_USD,
-                    purchase_id=generate_request_id())
+                    jnt_to_usd_rate=INVESTMENTS__TOKEN_PRICE_IN_USD)
 
         jnt.transaction = transaction_eth
         session.add(transaction_eth)
@@ -582,8 +581,7 @@ class TestCommands(unittest.TestCase):
         jnt2 = JNT(currency_to_usd_rate=btc_currency_rate,
                     jnt_value=jnt_usd_value2 / INVESTMENTS__TOKEN_PRICE_IN_USD,
                     usd_value=jnt_usd_value2,
-                    jnt_to_usd_rate=INVESTMENTS__TOKEN_PRICE_IN_USD,
-                    purchase_id=generate_request_id())
+                    jnt_to_usd_rate=INVESTMENTS__TOKEN_PRICE_IN_USD)
 
         jnt2.transaction = transaction_btc
         session.add(transaction_btc)
@@ -619,8 +617,7 @@ class TestCommands(unittest.TestCase):
         jnt = JNT(currency_to_usd_rate=eth_currency_rate,
                   jnt_value=jnt_usd_value / INVESTMENTS__TOKEN_PRICE_IN_USD,
                   usd_value=jnt_usd_value,
-                  jnt_to_usd_rate=INVESTMENTS__TOKEN_PRICE_IN_USD,
-                  purchase_id=generate_request_id())
+                  jnt_to_usd_rate=INVESTMENTS__TOKEN_PRICE_IN_USD)
 
         jnt.transaction = transaction
         session.add(transaction)
@@ -681,8 +678,7 @@ class TestCommands(unittest.TestCase):
         jnt = JNT(currency_to_usd_rate=eth_currency_rate,
                   jnt_value=jnt_usd_value / INVESTMENTS__TOKEN_PRICE_IN_USD,
                   usd_value=jnt_usd_value,
-                  jnt_to_usd_rate=INVESTMENTS__TOKEN_PRICE_IN_USD,
-                  purchase_id=generate_request_id())
+                  jnt_to_usd_rate=INVESTMENTS__TOKEN_PRICE_IN_USD)
 
         jnt.transaction = transaction
         session.add(transaction)

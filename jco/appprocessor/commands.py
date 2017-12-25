@@ -742,7 +742,6 @@ def calculate_jnt_purchases():
                     session.commit()
 
                 jnt = JNT()
-                jnt.purchase_id = generate_purchase_id()
                 jnt.currency_to_usd_rate = currency_to_usd_rate
                 jnt.usd_value = tx_usd_value
                 jnt.jnt_to_usd_rate = 0.25
