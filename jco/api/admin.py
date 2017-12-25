@@ -257,6 +257,7 @@ class WithdrawAdmin(ReadonlyMixin, admin.ModelAdmin):
     search_fields = ['transaction_id', 'to', 'user__username']
     list_select_related = ('user__account',)
     list_filter = ['status']
+    list_display_links = None
 
     def account_link(self, obj):
         html = '<a href="{url}">{username}</>'
