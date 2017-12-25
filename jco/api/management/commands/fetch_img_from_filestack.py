@@ -1,13 +1,6 @@
-import logging
 
-from django.core.management.base import BaseCommand, CommandError
-from django.contrib.auth import get_user_model
-from django.utils.crypto import get_random_string
-from django.db import transaction
-from django.contrib.auth.tokens import default_token_generator
-from django.utils.http import urlsafe_base64_encode
-from django.utils.encoding import force_bytes
-from django.core.files.base import ContentFile, File
+from django.core.management.base import BaseCommand
+from django.core.files.base import ContentFile
 import requests
 
 from jco.api.models import Account, Document
