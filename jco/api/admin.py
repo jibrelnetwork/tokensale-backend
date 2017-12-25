@@ -285,7 +285,7 @@ class AddressAdmin(ReadonlyMixin, admin.ModelAdmin):
 @admin.register(Jnt)
 class JntAdmin(ReadonlyMixin, admin.ModelAdmin):
     list_display = ['jnt_value', 'currency_to_usd_rate', 'usd_value',
-                    'jnt_to_usd_rate', 'active', 'created', 'account_link', 'address_link']
+                    'jnt_to_usd_rate', 'created', 'account_link', 'address_link']
 
     list_select_related = ('transaction__address__user__account',)
     search_fields = ['transaction__address__user__username', 'transaction__address__address',

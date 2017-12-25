@@ -223,7 +223,8 @@ def test_get_raised_tokens(client, users, transactions, settings):
         jnt_to_usd_rate=1.0,
         active=True,
         created=datetime.now(),
-        transaction=transactions[0])
+        transaction=transactions[0],
+        is_sale_allocation=False)
     models.Jnt.objects.create(
         purchase_id='2',
         jnt_value=0.75,
@@ -260,7 +261,7 @@ def test_get_raised_tokens(client, users, transactions, settings):
     
     resp = client.get('/api/raised-tokens/')
     assert resp.status_code == 200
-    assert resp.json() == {'raised_tokens': settings.RAISED_TOKENS_SHIFT + 2.25 + 30}
+    assert resp.json() == {'raised_tokens': settings.RAISED_TOKENS_SHIFT + 0.75 + 30}
 
 
 def test_get_withdraw_address_empty(client, users):

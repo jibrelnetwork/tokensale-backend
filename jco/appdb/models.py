@@ -210,6 +210,7 @@ class Account(db.Model):
 
     verification_attempts = db.Column(db.Integer, nullable=False, default=0)
     is_presale_account = db.Column(db.Boolean, nullable=False, default=False)
+    is_sale_allocation = db.Column(db.Boolean, nullable=False, default=True)
     tracking = db.Column(JSONB, nullable=False, default=lambda: {})
 
     # Relationships
@@ -441,6 +442,7 @@ class JNT(db.Model):
     jnt_value = db.Column(db.Float, nullable=False)
     active = db.Column(db.Boolean, nullable=False, default=False)
     created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    is_sale_allocation = db.Column(db.Boolean, nullable=False, default=True)
     transaction_id = db.Column(db.Integer, db.ForeignKey('transaction.id'), unique=True, nullable=False)
     meta = db.Column(JSONB, nullable=False, default=lambda: {})
 
@@ -664,6 +666,9 @@ class PresaleJnt(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('auth_user.id'), unique=False)
     jnt_value = db.Column(db.Float, nullable=False)
     created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    comment = db.Column(db.String(32), nullable=False, default='ANGEL ROUND / PRESALE')
+    is_sale_allocation = db.Column(db.Boolean)
+    is_presale_round = db.Column(db.Boolean)
 
     # Relationships
     user = db.relationship(User, back_populates="presales")  # type: User
