@@ -375,8 +375,8 @@ def scan_addresses(*, full_scan: bool = False,
                 .outerjoin(transaction_counts, transaction_counts.c.address_id == Address.id) \
                 .filter(Address.user_id.isnot(None)) \
                 .all()  # type: List[Address]
-            logging.getLogger(__name__).info("scan_all addresses len(addresses_with_transaction): {}"
-                                             .format(str(len(addresses_with_transaction))))
+            logging.getLogger(__name__).info("scan all addresses len(addresses): {}"
+                                             .format(str(len(addresses))))
         elif w_transactions:
             addresses_with_transaction = session.query(Address) \
                 .outerjoin(transaction_counts, transaction_counts.c.address_id == Address.id) \
@@ -706,13 +706,15 @@ def calculate_jnt_purchases():
         #    return
 
         processed_tx_ids = session.query(JNT.transaction_id).subquery()
-        transactions = session.query(Transaction) \
+        records = session.query(Transaction, Account) \
+            .outerjoin(Address, Address.id == Transaction.address_id) \
+            .outerjoin(Account, Account.user_id == Address.user_id) \
             .filter(not_(Transaction.id.in_(processed_tx_ids))) \
             .filter(not_(and_(Transaction.meta.has_key(Transaction.meta_key_skip_jnt_calculation),
                               Transaction.meta[Transaction.meta_key_skip_jnt_calculation].astext.cast(Boolean) == True))) \
-            .all()  # type: List[Transaction]
+            .all()  # type: List[Tuple[Transaction, Account]]
 
-        for tx in transactions:
+        for tx, account in records:
             # noinspection PyBroadException
             try:
                 if tx.mined >= INVESTMENTS__PUBLIC_SALE__END_DATE.replace(tzinfo=tz.FixedOffsetTimezone(offset=0, name=None)):
@@ -746,6 +748,7 @@ def calculate_jnt_purchases():
                 jnt.jnt_to_usd_rate = 0.25
                 jnt.jnt_value = tx_jnt_value
                 jnt.transaction = tx
+                jnt.is_sale_allocation = account.is_sale_allocation if account else True
 
                 session.commit()
 

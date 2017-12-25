@@ -76,11 +76,11 @@ def create_user(user_name, email) -> User:
 
 class TestCommands(unittest.TestCase):
     def clear_all_tables(selfself):
-        session.query(Affiliate).delete()
         session.query(Notification).delete()
         session.query(Withdraw).delete()
         session.query(JNT).delete()
         session.query(Transaction).delete()
+        session.query(Affiliate).delete()
         session.query(Price).delete()
         session.query(Address).delete()
         session.query(Account).delete()
@@ -201,33 +201,6 @@ class TestCommands(unittest.TestCase):
         price = get_ticker_price("eur", CurrencyType.usd, current_time)
         self.assertTrue(price is None, "wrong currencies should not be allowed")
 
-    # def test_send_email_payment_data(self):
-    #     fullname = "John Doe"
-    #     email = "aleksey.selikhov@gmail.com"
-    #     country = "USA"
-    #     citizenship = "USA"
-    #     currency = CurrencyType.eth
-    #     amount = 100000
-
-    #     generate_eth_addresses(self.mnemonic, 1)
-    #     add_proposal(fullname, email, country, citizenship, currency, amount, None)
-
-    #     send_email_payment_data()
-
-    #     proposals = session.query(Proposal) \
-    #         .filter(Proposal.fullname == fullname) \
-    #         .filter(Proposal.email == email) \
-    #         .filter(Proposal.country == country) \
-    #         .filter(Proposal.citizenship == citizenship) \
-    #         .filter(Proposal.currency == currency) \
-    #         .filter(Proposal.amount == amount) \
-    #         .filter(Proposal.created.isnot(None)) \
-    #         .all()  # type: List[Proposal]
-    #     # .filter(Proposal.meta[Proposal.meta_key_notified].astext.cast(Boolean) == True) \
-
-    #     self.assertEqual(len(proposals), 1, "should have notified")
-    #     self.assertIsNotNone(proposals[0].get_mailgun_message_id())
-
     def test_proxies_work(self):
         proxies = get_proxies()
         our_ip_request = requests.get("http://checkip.amazonaws.com/")
@@ -306,59 +279,6 @@ class TestCommands(unittest.TestCase):
         self.assertEqual(eth_transactions[3].mined, datetime(2017, 7, 12, 18, 37, 33))
         self.assertEqual(eth_transactions[3].block_height, 4013231)
 
-    # def test_fill_address_from_proposal(self):
-
-    #     generate_eth_addresses(self.mnemonic, 4)
-
-    #     address_1 = "test1@test.com"
-    #     address_2 = "test2@test.com"
-    #     address_3 = "test3@test.com"
-    #     address_4 = "test4@test.com"
-    #     address_5 = "test5@test.com"
-
-    #     fullname = "John Doe"
-    #     country = "USA"
-    #     citizenship = "USA"
-
-    #     add_proposal(fullname, address_1, country, citizenship, CurrencyType.eth, 100000, None)
-    #     add_proposal(fullname, address_2, country, citizenship, CurrencyType.eth, 100000, None)
-
-    #     proposal_3 = Proposal(fullname=fullname, email=address_3, country=country, citizenship=citizenship,
-    #                           currency=CurrencyType.eth, amount=100000, proposal_id='JNT-PRESALE-REQUEST-1')
-
-    #     proposal_4 = Proposal(fullname=fullname, email=address_4, country=country, citizenship=citizenship,
-    #                           currency=CurrencyType.eth, amount=100000, proposal_id='JNT-PRESALE-REQUEST-2')
-
-    #     proposal_5 = Proposal(fullname=fullname, email=address_5, country=country, citizenship=citizenship,
-    #                           currency=CurrencyType.eth, amount=100000, proposal_id='JNT-PRESALE-REQUEST-3')
-
-    #     proposal_6 = Proposal(fullname=fullname, email=address_5, country="GB", citizenship="GB",
-    #                           currency=CurrencyType.eth, amount=100000, proposal_id='JNT-PRESALE-REQUEST-4')
-
-    #     session.add(proposal_3)
-    #     session.add(proposal_4)
-    #     session.add(proposal_5)
-    #     session.add(proposal_6)
-    #     session.commit()
-
-    #     proposals = session.query(Proposal).all()
-    #     self.assertEqual(len(proposals), 6)
-
-    #     account_1 = Account(fullname=fullname, email=address_3, country=country, citizenship=citizenship)
-    #     account_2 = Account(fullname=fullname, email=address_4, country=country, citizenship=citizenship)
-
-    #     session.add(account_1)
-    #     session.add(account_2)
-    #     session.commit()
-
-    #     accounts = session.query(Account).all()
-    #     self.assertEqual(len(accounts), 4)
-
-    #     fill_address_from_proposal()
-
-    #     accounts = session.query(Account).all()
-    #     self.assertEqual(len(accounts), 5)
-
     def test_scan_addresses(self):
         user = create_user("user1", "user1@local")
 
@@ -390,7 +310,7 @@ class TestCommands(unittest.TestCase):
 
         session.commit()
 
-        scan_addresses()
+        scan_addresses(full_scan=True)
 
         eth_transactions_1 = session.query(Address, Transaction) \
             .filter(Address.id == usable_address_eth.id) \
@@ -435,102 +355,6 @@ class TestCommands(unittest.TestCase):
             .all()
 
         self.assertTrue(len(addresses) == 2, "should have force_scanning")
-
-    #def test_notify_force_scanning_transactions(self):
-    #    usable_address_1 = Address()
-    #    usable_address_1.address = '0x9af2351170ad84cc44549db629bf23c652450f30'
-    #    usable_address_1.type = CurrencyType.eth
-    #    usable_address_1.is_usable = True
-    #    session.add(usable_address_1)
-    #
-    #    usable_address_2 = Address()
-    #    usable_address_2.address = '2FctpG14EZosqFCJCKivKUtFHT7eycRpk8'
-    #    usable_address_2.type = CurrencyType.btc
-    #    usable_address_2.is_usable = True
-    #    session.add(usable_address_2)
-    #
-    #    session.commit()
-    #
-    #    user = User.objects.create_user('user1', 'user1@local', 'password')
-    #    assign_addresses(user.id)
-    #
-    #    nonusable_address_1 = Address()
-    #    nonusable_address_1.address = '0xC28142C80cFFE11086A334402ecFF4517898DCec'
-    #    nonusable_address_1.type = CurrencyType.eth
-    #    nonusable_address_1.is_usable = False
-    #    nonusable_address_1.set_force_scanning(True)
-    #    session.add(nonusable_address_1)
-    #
-    #    addr_new = Address(address="sss",type=CurrencyType.btc,is_usable=True)
-    #    addr_new.set_force_scanning(True)
-    #    addr_new.save()
-    #
-    #    nonusable_address_2 = Address()
-    #    nonusable_address_2.address = '1FctpG14EZosqFCJCKivKUtFHT7eycRpk7'
-    #    nonusable_address_2.type = CurrencyType.btc
-    #    nonusable_address_2.is_usable = False
-    #    nonusable_address_2.meta = '{}'
-    #    session.add(nonusable_address_2)
-    #
-    #    addr_1 = Address(address='',type=CurrencyType.btc,is_usable=False)
-    #    addr_1.set_force_scanning(True)
-    #    old_addresses = session.query(Address).all()
-    #
-    #    session.commit()
-    #
-    #    scan_addresses()
-    #
-    #    notify_force_scanning_transactions()
-    #
-    #    addresses = session.query(Transaction) \
-    #        .filter(Transaction.meta[Transaction.meta_key_notified].astext.cast(Boolean) == False) \
-    #        .all()
-    #
-    #    self.assertTrue(len(addresses) == 0, "all transactions should have notified")
-
-    #def test_chek_mail_delivery(self):
-    #    proposal_1 = Proposal(fullname="John Doe",
-    #                          email="aleksey.selikhov",
-    #                          country="USA",
-    #                          citizenship="USA",
-    #                          currency=CurrencyType.eth,
-    #                          amount=100000,
-    #                          proposal_id="JNT-PRESALE-REQUEST-1")
-    #    proposal_1.set_notified(True)
-    #    proposal_1.set_mailgun_message_id("20171018133300.65429.0E4C7AB4268AB64C@mailgun.jibrel.network")
-    #    session.add(proposal_1)
-    #    session.commit()
-    #
-    #    address_1 = Address(address="0xC28142C80cFFE11086A334402ecFF4517898DCec",
-    #                        type=CurrencyType.eth,
-    #                        is_usable=True,
-    #                        proposal_id=proposal_1.id)
-    #    session.add(address_1)
-    #    session.commit()
-    #
-    #    transaction_1 = Transaction(transaction_id="0xffaaaddcc",
-    #                                value=1000,
-    #                                address_id=address_1.id,
-    #                                mined=datetime.utcnow(),
-    #                                block_height=3)
-    #    transaction_1.set_notified(True)
-    #    transaction_1.set_mailgun_message_id("20171017185500.85006.5524BED71BE6AA6A@mailgun.jibrel.network")
-    #    session.add(transaction_1)
-    #    session.commit()
-    #
-    #    check_mail_delivery()
-    #
-    #    transactions = session.query(Transaction) \
-    #        .filter(Transaction.meta[Transaction.meta_key_mailgun_delivered].astext == "failed") \
-    #        .all()  # type: List[Transaction]
-    #
-    #    self.assertTrue(len(transactions) == 1)
-    #
-    #    proposals = session.query(Proposal) \
-    #        .filter(Transaction.meta[Transaction.meta_key_mailgun_delivered].astext == "failed") \
-    #        .all()  # type: List[Transaction]
-    #
-    #    self.assertTrue(len(proposals) == 1)
 
     def test_get_account_list(self):
         generate_eth_addresses(self.mnemonic, 3)
@@ -690,10 +514,11 @@ class TestCommands(unittest.TestCase):
 
         user = create_user("user1", "user1@local")
         presale_jnt = PresaleJnt(user_id=user.id,
-                                 jnt_value=1000)
+                                 jnt_value=1000,
+                                 is_sale_allocation=False,
+                                 is_presale_round=False)
         session.add(presale_jnt)
         session.commit()
-
 
         account = Account(fullname="user1",
                           country="country",
@@ -866,7 +691,7 @@ class TestCommands(unittest.TestCase):
 
         add_withdraw_jnt(user.id)
 
-        withdraw_processing()
+        #withdraw_processing()
         withdraw = session.query(Withdraw) \
             .filter(Withdraw.transaction_id != "") \
             .filter(Withdraw.transaction_id.isnot(None)) \
@@ -927,47 +752,77 @@ class TestCommands(unittest.TestCase):
         self.assertTrue(len(notifications[0].meta) == 1, "meta should be a nonempty")
         self.assertTrue("test" in notifications[0].meta, "a given key should be exists in a dictionary")
 
-    def test_calculate_jnt_purchases(self):
+    def test_a_calculate_jnt_purchases(self):
         # fetch last prices BTC and ETH
         fetch_tickers_price()
 
-        generate_eth_addresses(self.mnemonic, 1)
-        generate_btc_addresses(self.mnemonic, 1)
+        generate_eth_addresses(self.mnemonic, 2)
+        generate_btc_addresses(self.mnemonic, 2)
 
-        user = create_user("user1", "user1@local")
+        user1 = create_user("user1", "user1@local")
+        user2 = create_user("user2", "user2@local")
 
-        account = Account(fullname="user1", country="country", citizenship="US",
-                          residency="US", withdraw_address="0x12345678", user_id=user.id)
+        account1 = Account(fullname="user1", country="country", citizenship="US",
+                           residency="US", withdraw_address="0x12345678", user_id=user1.id)
 
-        session.add(account)
+        account2 = Account(fullname="user2", country="country", citizenship="US",
+                           residency="US", withdraw_address="0x987654321", user_id=user2.id,
+                           is_sale_allocation=False)
+
+        session.add(account1)
+        session.add(account2)
+
         session.commit()
 
-        assign_addresses(user.id)
+        assign_addresses(user1.id)
+        assign_addresses(user2.id)
 
-        address = session.query(Address) \
-            .filter(Address.user_id == user.id) \
+        address1 = session.query(Address) \
+            .filter(Address.user_id == user1.id) \
             .filter(Address.type == CurrencyType.eth) \
             .one()
 
-        eth_transaction = Transaction(transaction_id="0x731b0381aa22ac16a533af873c525f7d0dc8f934be2ff4de5f4d7a04fed6218a",
-                                      value=2000000,
-                                      address_id=address.id,
-                                      mined=datetime.utcnow(),
-                                      block_height=12)
-        session.add(eth_transaction)
+        address2 = session.query(Address) \
+            .filter(Address.user_id == user2.id) \
+            .filter(Address.type == CurrencyType.eth) \
+            .one()
+
+        eth_transaction1 = Transaction(transaction_id="0x731b0381aa22ac16a533af873c525f7d0dc8f934be2ff4de5f4d7a04fed6218a",
+                                       value=2000000,
+                                       address_id=address1.id,
+                                       mined=datetime.utcnow(),
+                                       block_height=12)
+
+        eth_transaction2 = Transaction(transaction_id="0x831b0381aa22ac16a533af873c525f7d0dc8f934be2ff4de5f4d7a04fed6218a",
+                                       value=2000000,
+                                       address_id=address2.id,
+                                       mined=datetime.utcnow(),
+                                       block_height=12)
+        session.add(eth_transaction1)
+        session.add(eth_transaction2)
         session.commit()
 
         calculate_jnt_purchases()
 
-        jnts = session.query(JNT) \
-            .filter(JNT.transaction_id == eth_transaction.id) \
-            .all()
-        notyfies = session.query(Notification) \
-            .filter(Notification.user_id == user.id) \
+        jnt = session.query(JNT) \
+            .filter(JNT.transaction_id == eth_transaction1.id) \
+            .one()
+        notify = session.query(Notification) \
+            .filter(Notification.user_id == user1.id) \
             .filter(Notification.type == NotificationType.transaction_received) \
-            .all()
+            .one()
 
-        self.assertTrue(len(jnts) == 1 and len(notyfies) == 1)
+        self.assertTrue(jnt and notify and account1.is_sale_allocation and jnt.is_sale_allocation)
+
+        jnt = session.query(JNT) \
+            .filter(JNT.transaction_id == eth_transaction2.id) \
+            .one()
+        notify = session.query(Notification) \
+            .filter(Notification.user_id == user2.id) \
+            .filter(Notification.type == NotificationType.transaction_received) \
+            .one()
+
+        self.assertTrue(jnt and notify and not account2.is_sale_allocation and not jnt.is_sale_allocation)
 
     def test_check_withdraw_addresses(self):
         user = create_user('user1@local', 'user1@local')
@@ -1020,7 +875,6 @@ class TestCommands(unittest.TestCase):
         self.assertEqual(positive_addresses[3].address, '0x410fa2e56e6e802ed65cc60b71d377dcd7fa524f')
 
     def test_get_btc_addresses_with_positive_balance(self):
-
         session.add(Address(address='1HEVUxtxGjGnuRT5NsamD6V4RdUduRHqFv', type=CurrencyType.btc))
         session.commit()
         generate_btc_addresses(self.mnemonic, 19)
@@ -1043,7 +897,7 @@ class TestCommands(unittest.TestCase):
                             user_id=user.id,
                             to="0xabcdef",
                             value=0.001,
-                            status=TransactionStatus.confirmed)
+                            status=TransactionStatus.pending)
 
         session.add(withdraw)
         try:
@@ -1056,11 +910,12 @@ class TestCommands(unittest.TestCase):
         withdraws = session.query(Withdraw).all()
 
         self.assertEqual(len(withdraws), 1)
-        self.ssertEqual(withdraws[0].status, TransactionStatus.fail)
+        self.assertEqual(withdraws[0].status, TransactionStatus.fail)
 
     def test_mintJNT(self):
-        tx_id = mintJNT("0xa5e03f38d0a6811d38aa1cf1ddb22a5c6cfa0bd2", 0.001)
-        self.assertTrue(not tx_id is None)
+        #tx_id = mintJNT("0xa5e03f38d0a6811d38aa1cf1ddb22a5c6cfa0bd2", 0.001)
+        #self.assertTrue(not tx_id is None)
+        pass
 
     def test_check_new_transactions(self):
         generate_eth_addresses(self.mnemonic, 3)

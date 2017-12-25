@@ -59,6 +59,7 @@ class Account(models.Model):
 
     comment = models.TextField(null=True, blank=True)
     is_presale_account = models.BooleanField(default=False)
+    is_sale_allocation = models.BooleanField(default=True)
 
     tracking = JSONField(blank=True, default=dict)
 
@@ -190,6 +191,7 @@ class Jnt(models.Model):
     jnt_value = models.FloatField()
     active = models.BooleanField()
     created = models.DateTimeField()
+    is_sale_allocation = models.BooleanField(default=True)
     transaction = models.OneToOneField('Transaction', models.DO_NOTHING,
                                        unique=True, related_name='jnt')
     meta = JSONField(default={})  # This field type is a guess.
@@ -207,8 +209,10 @@ def get_raised_tokens():
     """
     manual_jnt = (PresaleJnt.objects.filter(is_sale_allocation=True, is_presale_round=False)
                   .aggregate(models.Sum('jnt_value'))['jnt_value__sum'] or 0)
-    jnt = (Jnt.objects.all().aggregate(
-           models.Sum('jnt_value'))['jnt_value__sum'] or 0)
+
+    jnt = (Jnt.objects.filter(is_sale_allocation=True)
+           .aggregate(models.Sum('jnt_value'))['jnt_value__sum'] or 0)
+
     return manual_jnt + jnt + settings.RAISED_TOKENS_SHIFT
 
 
