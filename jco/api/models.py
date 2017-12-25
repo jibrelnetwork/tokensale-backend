@@ -351,9 +351,12 @@ class WithdrawJntHandler:
     def run(self, user, params):
         logger.info('Running WithdrawJntHandler for %s', user.username)
         withdraw = Withdraw.objects.get(user=user, pk=params['withdraw_id'])
-        withdraw.status = TransactionStatus.confirmed
-        withdraw.save()
-        logger.info('Withdraw #%s for %s is in status pending now', withdraw.pk, user.username)
+        if withdraw.status == TransactionStatus.not_confirmed:
+            withdraw.status = TransactionStatus.confirmed
+            withdraw.save()
+            logger.info('Withdraw #%s for %s is in status confirmed now', withdraw.pk, user.username)
+        else:
+            logger.info('Withdraw #%s is already in status %s', withdraw.pk, withdraw.status)
 
     def notify_completed(self, email, params):
         data = {
