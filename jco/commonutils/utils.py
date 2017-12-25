@@ -75,13 +75,3 @@ def checksum_encode(addr): # Takes a 20-byte binary address as input
             o += c.upper() if (v & (2 ** (255 - 4 * i))) else c.lower()
 
     return '0x' + o
-
-
-def generate_request_id() -> str:
-
-    return 'JNT-PRESALE-REQUEST-' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=12))
-
-
-def generate_purchase_id() -> str:
-
-    return 'JNT-PRESALE-PURCHASE-' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=12))

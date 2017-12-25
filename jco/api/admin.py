@@ -293,7 +293,7 @@ class JntAdmin(ReadonlyMixin, admin.ModelAdmin):
                      'transaction__transaction_id']
 
     readonly_fields = ['jnt_value', 'currency_to_usd_rate', 'usd_value', 'active', 'created',
-                       'transaction', 'meta', 'purchase_id']
+                       'transaction', 'meta']
 
     def account_link(self, obj):
         html = '<a href="{url}">{username}</>'
