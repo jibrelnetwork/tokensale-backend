@@ -107,7 +107,6 @@ def transactions(addresses):
 def jnt(transactions):
     return[
         models.Jnt.objects.create(
-            purchase_id='1',
             jnt_value=10,
             currency_to_usd_rate=1.0,
             usd_value=1.0,
@@ -116,7 +115,6 @@ def jnt(transactions):
             created=datetime(2017, 10, 22, 10),
             transaction=transactions[0]),
         models.Jnt.objects.create(
-            purchase_id='2',
             jnt_value=20,
             currency_to_usd_rate=1.0,
             usd_value=2.0,
@@ -125,7 +123,6 @@ def jnt(transactions):
             created=datetime(2017, 10, 22, 11),
             transaction=transactions[1]),
         models.Jnt.objects.create(
-            purchase_id='3',
             jnt_value=30,
             currency_to_usd_rate=1.0,
             usd_value=3.0,
@@ -134,7 +131,6 @@ def jnt(transactions):
             created=datetime(2017, 10, 22, 12),
             transaction=transactions[2]),
         models.Jnt.objects.create(
-            purchase_id='4',
             jnt_value=30,
             currency_to_usd_rate=1.0,
             usd_value=3.0,
