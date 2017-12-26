@@ -663,6 +663,8 @@ class PresaleJnt(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('auth_user.id'), unique=False)
     jnt_value = db.Column(db.Float, nullable=False)
+    currency_to_usd_rate = db.Column(db.Float, nullable=False, default=0)
+    usd_value = db.Column(db.Float, nullable=False, default=0)
     created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     comment = db.Column(db.String(32), nullable=False, default='ANGEL ROUND / PRESALE')
     is_sale_allocation = db.Column(db.Boolean)

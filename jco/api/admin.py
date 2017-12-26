@@ -342,7 +342,7 @@ class DocumentAdmin(admin.ModelAdmin):
 
 @admin.register(PresaleJnt)
 class PresaleJntAdmin(admin.ModelAdmin):
-    list_display = ['user', 'jnt_value', 'created', 'comment', 'is_sale_allocation']
+    list_display = ['user', 'jnt_value', 'currency_to_usd_rate', 'usd_value', 'created', 'comment', 'is_sale_allocation']
     search_fields = ['user__username']
     exclude = ['created', 'is_presale_round']
 
