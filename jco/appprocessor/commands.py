@@ -681,6 +681,18 @@ def get_eth_investments(address_str: str) -> List[Transaction]:
     return tx_list
 
 
+def get_user_custom_price(user_id: int) -> Optional[float]:
+    price = session.query(UserJntPrice) \
+        .filter(UserJntPrice.user_id == user_id) \
+        .order_by(UserJntPrice.created_at.desc()) \
+        .first()  # type: Optional[Tuple[float]]
+
+    if price is None:
+        return None
+    else:
+        return price[0]
+
+
 #
 # Get total JNT tokens
 #
@@ -714,6 +726,8 @@ def calculate_jnt_purchases():
                               Transaction.meta[Transaction.meta_key_skip_jnt_calculation].astext.cast(Boolean) == True))) \
             .all()  # type: List[Tuple[Transaction, Account]]
 
+        jnt_price = 0.25
+
         for tx, account in records:
             # noinspection PyBroadException
             try:
@@ -725,6 +739,8 @@ def calculate_jnt_purchases():
                 #elif tx.mined < INVESTMENTS__PUBLIC_SALE__START_DATE.replace(tzinfo=tz.FixedOffsetTimezone(offset=0, name=None)):
                 #    continue
 
+                custom_jnt_price = get_user_custom_price(tx.address.user_id)
+
                 currency_to_usd_rate = get_ticker_price(tx.address.type, CurrencyType.usd, tx.mined)
                 if currency_to_usd_rate is None:
                     logging.getLogger(__name__).error("Failed to get currency exchange rate. Skip transaction: {}"
@@ -734,7 +750,7 @@ def calculate_jnt_purchases():
                     continue
 
                 tx_usd_value = tx.value * currency_to_usd_rate
-                tx_jnt_value = tx_usd_value / 0.25
+                tx_jnt_value = tx_usd_value / (jnt_price if not custom_jnt_price else custom_jnt_price)
 
                 if get_total_jnt_amount() + tx_jnt_value >= RAISED_TOKENS_SHIFT:
                     send_email_transaction_received_sold_out(tx.address.user.email, tx.address.user_id, tx.as_dict())
@@ -744,7 +760,7 @@ def calculate_jnt_purchases():
                 jnt = JNT()
                 jnt.currency_to_usd_rate = currency_to_usd_rate
                 jnt.usd_value = tx_usd_value
-                jnt.jnt_to_usd_rate = 0.25
+                jnt.jnt_to_usd_rate = jnt_price if not custom_jnt_price else custom_jnt_price
                 jnt.jnt_value = tx_jnt_value
                 jnt.transaction = tx
                 jnt.is_sale_allocation = account.is_sale_allocation if account else True
