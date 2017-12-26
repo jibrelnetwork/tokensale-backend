@@ -212,6 +212,7 @@ ACCOUNT_EMAIL_CONFIRMATION_COOLDOWN = 20
 OLD_PASSWORD_FIELD_ENABLED = True
 
 RAISED_TOKENS_SHIFT = 95000000
+TOKENS__TOTAL_SUPPLY = 200000000
 
 GA_ID = os.environ['GA_ID']
 
@@ -252,6 +253,7 @@ EMAIL_NOTIFICATIONS__SENDGRID_SENDER = 'Jibrel Network <donotreply@sendgrid.jibr
 EMAIL_NOTIFICATIONS__BACKUP_ENABLED = False
 EMAIL_NOTIFICATIONS__BACKUP_SENDER = 'Jibrel Backup <backup@mailgun.jibrel.network>'
 EMAIL_NOTIFICATIONS__BACKUP_ADDRESS = 'salebackup@jibrel.network'
+EMAIL_NOTIFICATIONS__SUPPORT_ADDRESS = 'support@jibrel'
 EMAIL_NOTIFICATIONS__MAX_ATTEMPTS = 3
 EMAIL_NOTIFICATIONS__SENDGRID_DOMAINS = ["yahoo", "sina.cn", "increw.com.au", "moeboard.net", "hanmail.net", "daum.net"]
 
