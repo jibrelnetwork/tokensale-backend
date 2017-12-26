@@ -23,9 +23,11 @@ from allauth.account.views import ConfirmEmailView
 from rest_framework.documentation import include_docs_urls
 from rest_framework.permissions import AllowAny
 from jco.api.views import ResendEmailConfirmationView
+from jco.api.admin import export_csv
 
 
 urlpatterns = [
+    url(r'^admin/export_csv/', export_csv),
     url(r'^admin/', admin.site.urls),
 
     url(r'^docs/', include_docs_urls(title='JCO API', permission_classes=[AllowAny])),
