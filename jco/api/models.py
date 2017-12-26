@@ -269,6 +269,8 @@ class PresaleJnt(models.Model):
     """
     user = models.ForeignKey(settings.AUTH_USER_MODEL)
     jnt_value = models.FloatField()
+    currency_to_usd_rate = models.FloatField(default=0)
+    usd_value = models.FloatField(default=0)
     created = models.DateTimeField()
     comment = models.CharField(max_length=32, default='ANGEL ROUND / PRESALE')
     is_sale_allocation = models.BooleanField()
