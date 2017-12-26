@@ -161,7 +161,6 @@ def test_account_verification_statuses(client, accounts):
 
 def test_update_account(client, users, transactions):
     models.Jnt.objects.create(
-        purchase_id='1',
         jnt_value=1.5,
         currency_to_usd_rate=1.0,
         usd_value=1.0,
@@ -216,7 +215,6 @@ def test_get_raised_tokens_empty(client, users, settings):
 
 def test_get_raised_tokens(client, users, transactions, settings):
     models.Jnt.objects.create(
-        purchase_id='1',
         jnt_value=1.5,
         currency_to_usd_rate=1.0,
         usd_value=1.0,
@@ -226,7 +224,6 @@ def test_get_raised_tokens(client, users, transactions, settings):
         transaction=transactions[0],
         is_sale_allocation=False)
     models.Jnt.objects.create(
-        purchase_id='2',
         jnt_value=0.75,
         currency_to_usd_rate=1.0,
         usd_value=1.0,
