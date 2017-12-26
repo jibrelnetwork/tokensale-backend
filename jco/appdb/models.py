@@ -461,7 +461,6 @@ class JNT(db.Model):
 
     def __repr__(self):
         fieldsToPrint = (('id', self.id),
-                         ('purchase_id', self.purchase_id),
                          ('currency_to_usd_rate', self.currency_to_usd_rate),
                          ('usd_value', self.usd_value),
                          ('jnt_to_usd_rate', self.jnt_to_usd_rate),

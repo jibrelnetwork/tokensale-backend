@@ -199,7 +199,7 @@ class Jnt(models.Model):
         db_table = 'JNT'
 
     def __str__(self):
-        return '{} [{}]'.format(self.purchase_id, self.jnt_value)
+        return '{} [{}]'.format(str(self.created), self.jnt_value)
 
 
 def get_raised_tokens():
