@@ -13,7 +13,7 @@ from sqlalchemy.sql import func
 from sqlalchemy.sql.expression import not_, or_
 
 sys.path.append(os.getcwd())
-from jco.commonconfig.config import FORCE_SCANNING_ADDRESS__ENABLED
+from jco.commonconfig.config import FORCE_SCANNING_ADDRESS__ENABLED, RAISED_TOKENS_SHIFT
 from jco.appdb.db import session
 from jco.appdb.models import *
 from jco.commonutils.utils import *
@@ -53,7 +53,8 @@ from jco.appprocessor.commands import (
     check_withdraw_addresses,
     get_btc_addresses_with_positive_balance,
     get_eth_addresses_with_positive_balance,
-    check_withdraw_transactions
+    check_withdraw_transactions,
+    get_total_jnt_amount
 )
 
 
@@ -1047,6 +1048,110 @@ class TestCommands(unittest.TestCase):
         self.assertEqual(affiliates[0].url,
                          "http://runcpa.com/callbacks/event/s2s-partner/QGcal1rP6kwTYWRtxU_EXiyUQ7sYwCPz/cpl200008/abcdf")
         self.assertTrue("https://451418.cpa.clicksure.com/postback?transactionRef=" in affiliates[1].url)
+
+    def test_a_get_total_jnt_amount(self):
+        total_jnt = get_total_jnt_amount()
+        self.assertTrue(total_jnt == RAISED_TOKENS_SHIFT)
+
+        fetch_tickers_price()
+
+        generate_eth_addresses(self.mnemonic, 2)
+        generate_btc_addresses(self.mnemonic, 2)
+
+        user1 = create_user("user1", "user1@local")
+        user2 = create_user("user2", "user2@local")
+
+        account1 = Account(fullname="user1", country="country", citizenship="US",
+                           residency="US", withdraw_address="0x12345678", user_id=user1.id)
+        account2 = Account(fullname="user2", country="country", citizenship="US",
+                           residency="US", withdraw_address="0x12345678", user_id=user2.id)
+
+        session.add(account1)
+        session.add(account2)
+        session.commit()
+
+        assign_addresses(user1.id)
+        assign_addresses(user2.id)
+
+        address1 = session.query(Address) \
+            .filter(Address.user_id == user1.id) \
+            .filter(Address.type == CurrencyType.eth) \
+            .one()
+        address2 = session.query(Address) \
+            .filter(Address.user_id == user2.id) \
+            .filter(Address.type == CurrencyType.eth) \
+            .one()
+
+        transaction_value1 = 20000 * (10 ** 18)
+        transaction_value2 = 30000 * (10 ** 18)
+        transaction_mined = datetime.utcnow()
+        eth_currency_rate = get_ticker_price(CurrencyType.eth, CurrencyType.usd, transaction_mined)
+
+        self.assertTrue(eth_currency_rate > 0, "eth_currency_rate must be greater than 0")
+
+        jnt_usd_value1 = transaction_value1 * eth_currency_rate / (10 ** 18)
+        jnt_usd_value2 = transaction_value2 * eth_currency_rate / (10 ** 18)
+        jnt_value1 = jnt_usd_value1 / INVESTMENTS__TOKEN_PRICE_IN_USD
+        jnt_value2 = jnt_usd_value2 / INVESTMENTS__TOKEN_PRICE_IN_USD
+
+        self.assertTrue(jnt_usd_value1 > 0, "transaction_usd_value must be greater than 0")
+        self.assertTrue(jnt_usd_value2 > 0, "transaction_usd_value must be greater than 0")
+
+        transaction1 = Transaction(transaction_id="0xffaaaddcc",
+                                   value=transaction_value1,
+                                   address_id=address1.id,
+                                   mined=transaction_mined,
+                                   block_height=2)
+
+        transaction2 = Transaction(transaction_id="0xffaaaddcd",
+                                   value=transaction_value2,
+                                   address_id=address1.id,
+                                   mined=transaction_mined,
+                                   block_height=2)
+
+        session.add(transaction1)
+        session.add(transaction2)
+        session.commit()
+
+        jnt1 = JNT(currency_to_usd_rate=eth_currency_rate,
+                   jnt_value=jnt_value1,
+                   usd_value=jnt_usd_value1,
+                   jnt_to_usd_rate=INVESTMENTS__TOKEN_PRICE_IN_USD,
+                   transaction=transaction1)
+
+        jnt2 = JNT(currency_to_usd_rate=eth_currency_rate,
+                   jnt_value=jnt_value2,
+                   usd_value=jnt_usd_value2,
+                   jnt_to_usd_rate=INVESTMENTS__TOKEN_PRICE_IN_USD,
+                   transaction=transaction2,
+                   is_sale_allocation=False)
+
+        session.add(jnt1)
+        session.add(jnt2)
+        session.commit()
+
+        presale_jnt_value1 = 3000000
+        presale_jnt_value2 = 1500000
+        presale1 = PresaleJnt(user_id=user2.id,
+                              jnt_value=presale_jnt_value1,
+                              currency_to_usd_rate=700,
+                              usd_value=750000,
+                              is_sale_allocation=True,
+                              is_presale_round=False)
+        presale2 = PresaleJnt(user_id=user2.id,
+                              jnt_value=presale_jnt_value2,
+                              currency_to_usd_rate=700,
+                              usd_value=375000,
+                              is_sale_allocation=False,
+                              is_presale_round=True)
+
+        session.add(presale1)
+        session.add(presale2)
+        session.commit()
+
+        total_jnt = get_total_jnt_amount()
+
+        self.assertAlmostEqual(total_jnt, RAISED_TOKENS_SHIFT + presale_jnt_value1 + jnt_value1, places=5)
 
 
 if __name__ == '__main__':
