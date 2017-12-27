@@ -2,6 +2,7 @@ from unittest import mock
 from datetime import datetime, timedelta
 
 import pytest
+import pytz
 
 from jco.api import tasks
 from jco.api import models as m
@@ -115,3 +116,39 @@ def test_retry_uncomplete_verifications(verify_user, accounts, live_server):
         mock.call(accounts[2].user.pk),
         mock.call(accounts[3].user.pk),
     ])
+
+
+def make_operations(user):
+
+    for n in range(1, 7):
+        mocked_dt = datetime(2017, 12, n, tzinfo=pytz.utc)
+        with mock.patch('django.utils.timezone.now', mock.Mock(return_value=mocked_dt)):
+            m.Operation.objects.create(last_notification_sent_at=datetime(2017, 12, n),
+                                       user=user,
+                                       operation=m.Operation.OP_CHANGE_ADDRESS,
+                                       params={'n': n, 't': 0})
+        mocked_dt = datetime(2017, 12, n, 12, tzinfo=pytz.utc)
+        with mock.patch('django.utils.timezone.now', mock.Mock(return_value=mocked_dt)):
+            m.Operation.objects.create(last_notification_sent_at=datetime(2017, 12, n, 12),
+                                       user=user,
+                                       operation=m.Operation.OP_CHANGE_ADDRESS,
+                                       params={'n': n, 't': 12})
+
+
+@mock.patch('jco.api.tasks.timezone')
+@mock.patch.object(m.Operation, 'get_handler')
+def test_resend_emails_for_unconfirmed_operations(mock_get_handler, mock_datetime, users, accounts, live_server):
+    mock_datetime.now.return_value = datetime(2017, 12, 7, tzinfo=pytz.utc)
+    make_operations(users[0])
+    mock_handler = mock.Mock()
+    mock_get_handler.return_value = mock_handler
+    mock_handler.send_confirmation_email.return_value = True
+    tasks.resend_emails_for_unconfirmed_operations()
+    mock_handler.send_confirmation_email.assert_has_calls([
+        mock.call(mock.ANY, mock.ANY, {'n': 2, 't': 12}),
+        mock.call(mock.ANY, mock.ANY, {'n': 3, 't': 0}),
+        mock.call(mock.ANY, mock.ANY, {'n': 3, 't': 12}),
+        mock.call(mock.ANY, mock.ANY, {'n': 4, 't': 0}),
+        mock.call(mock.ANY, mock.ANY, {'n': 4, 't': 12}),
+        mock.call(mock.ANY, mock.ANY, {'n': 5, 't': 12}),
+        ])
