@@ -17,6 +17,8 @@ from django.conf import settings
 from django.conf.urls import url, include
 from django.contrib import admin
 from django.views.generic import TemplateView, RedirectView
+from django.views.defaults import page_not_found
+from django.http import HttpResponseNotFound
 
 
 from allauth.account.views import ConfirmEmailView
@@ -32,9 +34,12 @@ urlpatterns = [
 
     url(r'^docs/', include_docs_urls(title='JCO API', permission_classes=[AllowAny])),
 
+    url(r'^auth/password/change/$', lambda r: HttpResponseNotFound(),
+        name='rest_password_change'),
     url(r'^auth/', include('rest_auth.urls')),
     url(r'^auth/registration/', include('rest_auth.registration.urls')),
     url(r'^auth/registration/confirm-email-resend/', ResendEmailConfirmationView.as_view()),
+
     url(r'^api/', include('jco.api.urls')),
 
     url(r'^password-reset/confirm/$',
