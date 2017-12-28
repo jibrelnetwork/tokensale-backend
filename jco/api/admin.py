@@ -1,18 +1,15 @@
 import logging
-from django.contrib import admin
+from wsgiref.util import FileWrapper
 
+from django.contrib import admin
 from django.utils.html import format_html
 from django.core.urlresolvers import reverse
 from django.shortcuts import redirect, get_object_or_404, render
 from django.utils.crypto import get_random_string
 from django.conf.urls import url
 from django.contrib import messages
-from django.views.decorators.http import require_http_methods
-from django.views.decorators.csrf import csrf_exempt
-from django.middleware.csrf import get_token
 from django.utils.safestring import mark_safe
 from django.http import HttpResponse
-from django.contrib import admin
 from django.contrib.admin import SimpleListFilter
 from django.utils import timezone
 
@@ -34,6 +31,7 @@ from jco.api.models import (
 
 from jco.api import tasks
 from jco.api import serializers
+from jco.api import utils
 from jco.commonutils import ga_integration
 
 
@@ -379,3 +377,12 @@ class EmailAddress(ReadonlyMixin, admin.ModelAdmin):
             email.save()
         op_names = ', '.join([em.email for em in emails])
         self.message_user(request, "Emails {} was marked as verified".format(op_names))
+
+
+def export_csv(request):
+    filename = utils.export_data_to_csv()
+
+    resp = HttpResponse(FileWrapper(open(filename, 'rb')), content_type='application/x-zip-compressed')
+    resp['Content-Disposition'] = 'attachment; filename=export.zip'
+    return resp
+export_csv = admin.site.admin_view(export_csv)
