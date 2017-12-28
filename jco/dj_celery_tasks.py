@@ -113,3 +113,7 @@ def setup_periodic_tasks(sender, **kwargs):
                              api_tasks.retry_uncomplete_verifications,
                              expires=1 * 60,
                              name='retry_uncomplete_verifications')
+    sender.add_periodic_task(crontab(minute=0, hour='*/12'),
+                             api_tasks.resend_emails_for_unconfirmed_operations,
+                             expires=1 * 60,
+                             name='resend_emails_for_unconfirmed_operations')

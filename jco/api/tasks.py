@@ -164,10 +164,10 @@ def process_all_notifications_runner():
 def resend_emails_for_unconfirmed_operations():
     day_ago = timezone.now() - timedelta(days=1)
     two_days_ago = timezone.now() - timedelta(days=2)
-    five_days_ago = timezone.now() - timedelta(days=5)
+    six_days_ago = timezone.now() - timedelta(days=6)
     unconfirmed_ops = Operation.objects.filter(confirmed_at=None, created_at__lt=day_ago,
-                                               created_at__gt=five_days_ago)
-    logger.info('Resend confirmations for %s operations', len(unconfirmed_ops))
+                                               created_at__gt=six_days_ago)
+    logger.info('Resend confirmations for operations')
     for op in unconfirmed_ops:
         one_day_period = op.created_at > two_days_ago and op.last_notification_sent_at < day_ago
         two_days_period = op.created_at < two_days_ago and op.last_notification_sent_at < two_days_ago
