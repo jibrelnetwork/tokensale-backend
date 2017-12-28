@@ -12,7 +12,7 @@ from jco.commonutils import person_verify
 from jco.commonutils import ga_integration
 from jco.appprocessor.app_create import celery_app
 from jco.appprocessor import notify as notify_lib
-from jco.api.models import Account, Notification
+from jco.api.models import Account, Notification, Operation
 
 
 logger = logging.getLogger(__name__)
@@ -158,3 +158,20 @@ def process_all_notifications_runner():
         notification.save()
 
     logger.info('Finished notifications processing')
+
+
+@celery_app.task()
+def resend_emails_for_unconfirmed_operations():
+    day_ago = timezone.now() - timedelta(days=1)
+    two_days_ago = timezone.now() - timedelta(days=2)
+    six_days_ago = timezone.now() - timedelta(days=6)
+    unconfirmed_ops = Operation.objects.filter(confirmed_at=None, created_at__lt=day_ago,
+                                               created_at__gt=six_days_ago)
+    logger.info('Resend confirmations for operations')
+    for op in unconfirmed_ops:
+        one_day_period = op.created_at > two_days_ago and op.last_notification_sent_at < day_ago
+        two_days_period = op.created_at < two_days_ago and op.last_notification_sent_at < two_days_ago
+        if one_day_period or two_days_period:
+            success = op.request_confirmation()
+            logger.info('Resend op confirmation: #%s op: %s for %s. %s.',
+                        op.pk, op.operation, op.user.username, 'Success' if success else 'Fail')

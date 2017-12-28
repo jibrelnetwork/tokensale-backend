@@ -392,6 +392,7 @@ class Operation(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     confirmed_at = models.DateTimeField(null=True)
     params = JSONField(default=dict)
+    last_notification_sent_at = models.DateTimeField(null=True)
 
     class Meta:
         db_table = 'operation'
@@ -406,8 +407,11 @@ class Operation(models.Model):
         Request operation confirmation - send email with one-time link for this op
         """
         confirmation_url = self.make_confirmation_url()
-        return self.get_handler().send_confirmation_email(
+        result = self.get_handler().send_confirmation_email(
             self.user.username, confirmation_url, self.params)
+        self.last_notification_sent_at = now()
+        self.save()
+        return result
 
     def perform(self, token):
         logger.info('Performing operation #%s %s for %s', self.pk, self.operation, self.user.username)
