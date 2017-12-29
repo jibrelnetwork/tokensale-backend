@@ -682,7 +682,7 @@ def get_eth_investments(address_str: str) -> List[Transaction]:
 
 
 def get_user_custom_price(user_id: int) -> Optional[float]:
-    price = session.query(UserJntPrice) \
+    price = session.query(UserJntPrice.value) \
         .filter(UserJntPrice.user_id == user_id) \
         .order_by(UserJntPrice.created_at.desc()) \
         .first()  # type: Optional[Tuple[float]]

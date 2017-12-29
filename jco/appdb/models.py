@@ -679,7 +679,7 @@ class UserJntPrice(db.Model):
     # 71 Custom JNT price for user
     """
     id = db.Column(db.Integer, primary_key=True)
-    user = user_id = db.Column(db.Integer, db.ForeignKey('auth_user.id'), unique=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('auth_user.id'), unique=False)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     value = db.Column(db.Float, nullable=False)
 
