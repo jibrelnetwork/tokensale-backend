@@ -745,9 +745,10 @@ def calculate_jnt_purchases():
                 tx_jnt_value = tx_usd_value / 0.25
 
                 if get_total_jnt_amount() + tx_jnt_value > TOKENS__TOTAL_SUPPLY:
-                    send_email_transaction_received_sold_out(tx.address.user.email, tx.address.user_id, tx.as_dict())
                     tx.set_skip_jnt_calculation(True)
                     session.commit()
+                    if account and account.is_sale_allocation:
+                        send_email_transaction_received_sold_out(tx.address.user.email, tx.address.user_id, tx.as_dict())
                     continue
 
                 jnt = JNT()
