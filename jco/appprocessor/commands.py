@@ -760,7 +760,10 @@ def calculate_jnt_purchases():
                 tx_usd_value = tx.value * currency_to_usd_rate
                 tx_jnt_value = tx_usd_value / (jnt_price if not custom_jnt_price else custom_jnt_price)
 
-                if get_total_jnt_amount() + tx_jnt_value > TOKENS__TOTAL_SUPPLY:
+                if account and account.is_sale_allocation == False:
+                    logging.getLogger(__name__).error("processing tx for special user: {}"
+                                                      .format(account.user_id))
+                elif get_total_jnt_amount() + tx_jnt_value > TOKENS__TOTAL_SUPPLY:
                     tx.set_skip_jnt_calculation(True)
                     session.commit()
                     if account and account.is_sale_allocation:
