@@ -1082,6 +1082,9 @@ class TestCommands(unittest.TestCase):
         custom_price = get_user_custom_price(user.id)
         self.assertEqual(custom_price, 0.1)
 
+    def test_a_get_total_jnt_amount(self):
+        total_jnt = get_total_jnt_amount()
+        self.assertTrue(total_jnt == RAISED_TOKENS_SHIFT)
 
         fetch_tickers_price()
 
