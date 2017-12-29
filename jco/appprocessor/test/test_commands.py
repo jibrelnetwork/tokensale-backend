@@ -54,6 +54,7 @@ from jco.appprocessor.commands import (
     get_btc_addresses_with_positive_balance,
     get_eth_addresses_with_positive_balance,
     check_withdraw_transactions,
+    get_user_custom_price
     get_total_jnt_amount
 )
 
@@ -77,6 +78,7 @@ def create_user(user_name, email) -> User:
 
 class TestCommands(unittest.TestCase):
     def clear_all_tables(selfself):
+        session.query(UserJntPrice).delete()
         session.query(Notification).delete()
         session.query(Withdraw).delete()
         session.query(JNT).delete()
@@ -1048,6 +1050,37 @@ class TestCommands(unittest.TestCase):
         self.assertEqual(affiliates[0].url,
                          "http://runcpa.com/callbacks/event/s2s-partner/QGcal1rP6kwTYWRtxU_EXiyUQ7sYwCPz/cpl200008/abcdf")
         self.assertTrue("https://451418.cpa.clicksure.com/postback?transactionRef=" in affiliates[1].url)
+
+    def test_a_get_custom_price(self):
+        user = create_user("user1", "user1@local")
+
+        custom_price = get_user_custom_price(user.id)
+        self.assertEqual(custom_price, None)
+
+        original_price = 0.25
+        new_price = original_price if not custom_price else custom_price
+        self.assertEqual(new_price, original_price)
+
+        user_jnt_price = UserJntPrice(user_id=user.id,
+                                      value=0.2)
+
+        session.add(user_jnt_price)
+        session.commit()
+
+        custom_price = get_user_custom_price(user.id)
+        self.assertEqual(custom_price, 0.2)
+
+        new_price = original_price if not custom_price else custom_price
+        self.assertEqual(new_price, custom_price)
+
+        user_jnt_price = UserJntPrice(user_id=user.id,
+                                      value=0.1)
+
+        session.add(user_jnt_price)
+        session.commit()
+
+        custom_price = get_user_custom_price(user.id)
+        self.assertEqual(custom_price, 0.1)
 
     def test_a_get_total_jnt_amount(self):
         total_jnt = get_total_jnt_amount()
