@@ -59,6 +59,7 @@ class NotificationType:
     # Transactions
     transaction_received    = 'transaction_received'
     transaction_received_sold_out = 'transaction_received_sold_out'
+    transaction_received_sold_out_admin = 'transaction_received_sold_out_admin'
     withdrawal_request      = 'withdrawal_request'
     withdrawal_succeeded    = 'withdrawal_succeeded'
     withdrawal_processed    = 'withdrawal_processed'
@@ -99,6 +100,7 @@ NOTIFICATION_KEYS = {
 
     NotificationType.transaction_received: 'transactions_01',
     NotificationType.transaction_received_sold_out: 'transactions_04',
+    NotificationType.transaction_received_sold_out_admin: 'transactions_04_admin',
     NotificationType.withdrawal_request: 'transactions_02_01',
     NotificationType.withdrawal_succeeded: 'transactions_03',
     NotificationType.withdrawal_processed: 'transactions_02_02',
@@ -119,6 +121,7 @@ NOTIFICATION_SUBJECTS = {
     'transactions_02_02': 'JNT withdrawal underway',
     'transactions_03': 'Your JNT was transferred successfully!',
     'transactions_04': 'Token sale closed',
+    'transactions_04_admin': 'Token sale closed',
     'presale_01': 'Your Jibrel Network Tokens have arrived!',
 }
 

@@ -35,7 +35,9 @@ from jco.commonconfig.config import (INVESTMENTS__TOKEN_PRICE_IN_USD,
                                      FORCE_SCANNING_ADDRESS__ENABLED,
                                      CHECK_MAIL_DELIVERY__ENABLED,
                                      CHECK_MAIL_DELIVERY__DAYS_DEPTH,
-                                     RAISED_TOKENS_SHIFT)
+                                     RAISED_TOKENS_SHIFT,
+                                     TOKENS__TOTAL_SUPPLY,
+                                     EMAIL_NOTIFICATIONS__SUPPORT_ADDRESS)
 from jco.commonconfig.config import ETHERSCAN_API_KEY, ETHERSCAN_TIMEOUT, BLOCKCHAININFO_TIMEOUT
 from jco.commonutils.utils import *
 from jco.commonutils.ga_integration import *
@@ -697,9 +699,15 @@ def get_user_custom_price(user_id: int) -> Optional[float]:
 # Get total JNT tokens
 #
 def get_total_jnt_amount() -> float:
-    jnt_sum = session.query(func.coalesce(func.sum(JNT.jnt_value), 0)) \
+    total_presale_jnt = session.query(func.coalesce(func.sum(PresaleJnt.jnt_value), 0)) \
+        .filter(PresaleJnt.is_sale_allocation == True).as_scalar()
+
+    total_ico_jnt = session.query(func.coalesce(func.sum(JNT.jnt_value), 0)) \
+        .filter(JNT.is_sale_allocation == True).as_scalar()
+
+    jnt_sum = session.query(total_presale_jnt + total_ico_jnt) \
         .one()  # type: tuple[float]
-    return jnt_sum[0]
+    return RAISED_TOKENS_SHIFT + jnt_sum[0]
 
 
 #
@@ -752,10 +760,12 @@ def calculate_jnt_purchases():
                 tx_usd_value = tx.value * currency_to_usd_rate
                 tx_jnt_value = tx_usd_value / (jnt_price if not custom_jnt_price else custom_jnt_price)
 
-                if get_total_jnt_amount() + tx_jnt_value >= RAISED_TOKENS_SHIFT:
-                    send_email_transaction_received_sold_out(tx.address.user.email, tx.address.user_id, tx.as_dict())
+                if get_total_jnt_amount() + tx_jnt_value > TOKENS__TOTAL_SUPPLY:
                     tx.set_skip_jnt_calculation(True)
                     session.commit()
+                    if account and account.is_sale_allocation:
+                        send_email_transaction_received_sold_out(tx.address.user.email, tx.address.user_id, tx.as_dict())
+                    continue
 
                 jnt = JNT()
                 jnt.currency_to_usd_rate = currency_to_usd_rate
@@ -1356,11 +1366,15 @@ def send_email_withdrawal_request(email: str, user_id: int, withdraw: dict,
 def send_email_transaction_received_sold_out(email: str, user_id: int, transaction: dict) -> bool:
     ctx = {
         'transaction_id': transaction['id'],
+        'account_email': email,
         'transaction_currency_amount': format_coin_value(transaction['value']),
         'transaction_currency_name': transaction['currency'],
     }
 
-    return add_notification(email, user_id=user_id, type=NotificationType.transaction_received_sold_out, data=ctx)
+    success_user = add_notification(email, user_id=user_id, type=NotificationType.transaction_received_sold_out, data=ctx)
+    success_support = add_notification(EMAIL_NOTIFICATIONS__SUPPORT_ADDRESS, user_id=user_id, type=NotificationType.transaction_received_sold_out_admin, data=ctx)
+
+    return success_user and success_support
 
 
 def send_email_withdrawal_request_succeeded(email: str, user_id: int, withdraw: dict) -> bool:
