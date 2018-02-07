@@ -24,9 +24,16 @@ ETH_MANAGER__ADDRESS = ""
 ETH_CONTRACT__MAX_PENDING_COUNT = 50
 ETH_CONTRACT__GAZ_MULTIPLICATOR = 1.2
 ETH_CONTRACT__ADDRESS = ""
-ETH_CONTRACT__ABI = b'[{"constant": false, "inputs": [{"name": "_account", "type": "address"},' \
-                    b'{"name": "_value", "type": "uint256"}], "name": "mint", "outputs": [], "payable": false,' \
-                    b'"type": "function"}]'
+ETH_CONTRACT__ABI = b'[{"constant": false, ' \
+                    b'  "inputs": [{"name": "_account", "type": "address"},' \
+                    b'             {"name": "_value", "type": "uint256"}], ' \
+                    b'  "name": "mint", "outputs": [], "payable": false,' \
+                    b'  "type": "function"},' \
+                    b' {"constant": false, ' \
+                    b'  "inputs": [{"name": "_to", "type": "address"},' \
+                    b'             {"name": "_value", "type": "uint256"}], ' \
+                    b'  "name": "transfer", "outputs": [{"name": "", "type": "bool"}], "payable": false,' \
+                    b'  "type": "function"}]'
 
 class Contract:
     def __init__(self, host: str, expectedNetworkId: int):
@@ -103,7 +110,7 @@ def mintJNT(to_address: str, value: float) -> str:
 
         _abi = ETH_CONTRACT__ABI
         _tx_data = Contract.encodeFunctionTxData(_abi,
-                                                 "mint",
+                                                 "transfer",
                                                  [to_address, _value_wei])
 
         _tx_nonce_latest, _tx_nonce_pending = contract.getNonce(ETH_MANAGER__ADDRESS)

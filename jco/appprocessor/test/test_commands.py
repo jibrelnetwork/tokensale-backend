@@ -54,7 +54,7 @@ from jco.appprocessor.commands import (
     get_btc_addresses_with_positive_balance,
     get_eth_addresses_with_positive_balance,
     check_withdraw_transactions,
-    get_user_custom_price
+    get_user_custom_price,
     get_total_jnt_amount
 )
 
