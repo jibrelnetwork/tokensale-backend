@@ -37,13 +37,14 @@ from jco.commonconfig.config import (INVESTMENTS__TOKEN_PRICE_IN_USD,
                                      CHECK_MAIL_DELIVERY__DAYS_DEPTH,
                                      RAISED_TOKENS_SHIFT,
                                      TOKENS__TOTAL_SUPPLY,
-                                     EMAIL_NOTIFICATIONS__SUPPORT_ADDRESS)
+                                     EMAIL_NOTIFICATIONS__SUPPORT_ADDRESS,
+                                     ETH_CONTRACT__MAX_PENDING_COUNT)
 from jco.commonconfig.config import ETHERSCAN_API_KEY, ETHERSCAN_TIMEOUT, BLOCKCHAININFO_TIMEOUT
 from jco.commonutils.utils import *
 from jco.commonutils.ga_integration import *
 from jco.commonutils.formats import *
 from jco.commonutils.ethaddress_verify import is_valid_address
-from jco.commonutils.contract import mintJNT, getTransactionInfo, ETH_CONTRACT__MAX_PENDING_COUNT
+from jco.commonutils.contract import mintJNT, getTransactionInfo
 
 
 #

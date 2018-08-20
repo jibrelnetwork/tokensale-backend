@@ -10,30 +10,20 @@ import rlp
 from ethereum import transactions
 from ethereum import utils
 from ethereum import abi
-from eth_utils import currency, hexidecimal
+from eth_utils import currency
 
 from jco.commonutils.ethjsonrpc import EthJsonRpc
+from jco.settings import (
+    ETH_NODE__ADDRESS,
+    ETH_NETWORK__ID,
+    ETH_MANAGER__PRIVATE_KEY,
+    ETH_MANAGER__ADDRESS,
+    ETH_CONTRACT__GAS_LIMIT,
+    ETH_CONTRACT__GAZ_MULTIPLICATOR,
+    ETH_CONTRACT__ADDRESS,
+    ETH_CONTRACT__ABI,
+)
 
-
-# Ethereum settings
-ETH_NODE__ADDRESS = ""
-ETH_NETWORK__ID = 3
-ETH_MANAGER__PRIVATE_KEY = ""
-ETH_MANAGER__ADDRESS = ""
-
-ETH_CONTRACT__MAX_PENDING_COUNT = 50
-ETH_CONTRACT__GAZ_MULTIPLICATOR = 1.2
-ETH_CONTRACT__ADDRESS = ""
-ETH_CONTRACT__ABI = b'[{"constant": false, ' \
-                    b'  "inputs": [{"name": "_account", "type": "address"},' \
-                    b'             {"name": "_value", "type": "uint256"}], ' \
-                    b'  "name": "mint", "outputs": [], "payable": false,' \
-                    b'  "type": "function"},' \
-                    b' {"constant": false, ' \
-                    b'  "inputs": [{"name": "_to", "type": "address"},' \
-                    b'             {"name": "_value", "type": "uint256"}], ' \
-                    b'  "name": "transfer", "outputs": [{"name": "", "type": "bool"}], "payable": false,' \
-                    b'  "type": "function"}]'
 
 class Contract:
     def __init__(self, host: str, expectedNetworkId: int):
@@ -115,9 +105,7 @@ def mintJNT(to_address: str, value: float) -> str:
 
         _tx_nonce_latest, _tx_nonce_pending = contract.getNonce(ETH_MANAGER__ADDRESS)
         _tx_gas_price = int(contract.getGasPrice() * ETH_CONTRACT__GAZ_MULTIPLICATOR)
-        _tx_gas_limit = contract.getGasLimit(ETH_CONTRACT__ADDRESS,
-                                             ETH_MANAGER__ADDRESS,
-                                             hexidecimal.encode_hex(_tx_data))
+        _tx_gas_limit = ETH_CONTRACT__GAS_LIMIT
 
         _tx_sign_data = Contract.signTransaction(privateKey=ETH_MANAGER__PRIVATE_KEY,
                                                  to=ETH_CONTRACT__ADDRESS,
@@ -137,7 +125,6 @@ def mintJNT(to_address: str, value: float) -> str:
             return None
 
         logging.getLogger(__name__).info("Finished mintJNT to:{}, value:{}".format(to_address, value))
-
         return _tx_id
     except Exception:
         exception_str = ''.join(traceback.format_exception(*sys.exc_info()))

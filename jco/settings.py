@@ -44,7 +44,8 @@ RAVEN_CONFIG = {
 # See https://docs.djangoproject.com/en/1.11/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = '78fta+ic^6f*a+gngvllkmnmvqu=sdgtn5$*s8e=*li%7sqbs+'
+SECRET_KEY = os.getenv('SECRET_KEY',
+                       '78fta+ic^6f*a+gngvllkmnmvqu=sdgtn5$*s8e=*li%7sqbs+')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -110,7 +111,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'jco.wsgi.application'
 
-JCO_DATABASE_URI = os.environ['JCO_DATABASE_URI']
+JCO_DATABASE_URI = os.getenv('JCO_DATABASE_URI', 'postgres://localhost/jco')
 
 # Database
 # https://docs.djangoproject.com/en/1.11/ref/settings/#databases
@@ -166,13 +167,6 @@ MEDIA_ROOT = here('uploaded_media')
 FILE_UPLOAD_PERMISSIONS = 0o644
 
 
-EMAIL_HOST = 'smtp.mailgun.org'
-EMAIL_PORT = 587
-EMAIL_HOST_USER = 'postmaster@mailgun.jibrel.network'
-EMAIL_HOST_PASSWORD = '13636d38c8761bf4121f961da10e574b'
-EMAIL_USE_TLS = True
-
-
 ACCOUNT_CONFIRM_EMAIL_ON_GET = True
 
 
@@ -196,11 +190,11 @@ REST_AUTH_REGISTER_SERIALIZERS = {
 
 CORS_ORIGIN_ALLOW_ALL = True
 
-ONFIDO_API_KEY = os.environ['ONFIDO_API_KEY']
+ONFIDO_API_KEY = os.getenv('ONFIDO_API_KEY')
 
 
 RECAPTCHA_ENABLED = True
-RECAPTCHA_PRIVATE_KEY = os.environ['RECAPTCHA_PRIVATE_KEY']
+RECAPTCHA_PRIVATE_KEY = os.getenv('RECAPTCHA_PRIVATE_KEY')
 
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_EMAIL_VERIFICATION = 'optional'
@@ -211,7 +205,7 @@ ACCOUNT_ADAPTER = 'jco.api.utils.AccountAdapter'
 ACCOUNT_EMAIL_CONFIRMATION_COOLDOWN = 20
 OLD_PASSWORD_FIELD_ENABLED = True
 
-RAISED_TOKENS_SHIFT = 95000000
+RAISED_TOKENS_SHIFT = 100000000
 TOKENS__TOTAL_SUPPLY = 200000000
 
 GA_ID = os.environ['GA_ID']
@@ -224,20 +218,10 @@ COUNTRIES_NOT_ALLOWED = ['USA']
 #
 #             LEGACY SETTINGS
 #
-# ######################################################################
-
-# DB settings
-DATABASE_HOST = 'localhost'
-DATABASE_NAME = 'jcodb'
-DATABASE_USER = 'jcouser'
-DATABASE_PASS = 'MweVD4wdDPUCC'
+#######################################################################
 
 # Sqlalchemy settings
 SQLALCHEMY_ECHO = True
-# SQLALCHEMY_DATABASE_URI = "postgresql://{DB_USER}:{DB_PASS}@{DB_ADDR}/{DB_NAME}".format(DB_USER=DATABASE_USER,
-#                                                                                         DB_PASS=DATABASE_PASS,
-#                                                                                         DB_ADDR=DATABASE_HOST,
-#                                                                                         DB_NAME=DATABASE_NAME)
 
 # Flask SQLAlchemy
 SQLALCHEMY_TRACK_MODIFICATIONS = False
@@ -262,13 +246,13 @@ FORCE_SCANNING_ADDRESS__ENABLED = True
 FORCE_SCANNING_ADDRESS__EMAIL_RECIPIENT = 'Jibrel Presale <presale@jibrel.network>'
 
 # Mailgun API
-MAILGUN__API_KEY = "key-c5a56f1eeaf5a5ada613497ec9e01e86"
+MAILGUN__API_KEY = os.getenv('MAILGUN_API_KEY', '')
 MAILGUN__API_MESSAGES_URL = "https://api.mailgun.net/v3/mailgun.jibrel.network/messages"
 MAILGUN__API_EVENTS_URL = "https://api.mailgun.net/v3/mailgun.jibrel.network/events"
 
 # SendGrid API
 SENDGRID__API_MESSAGES_URL = "https://api.sendgrid.com/api/mail.send.json"
-SENDGRID__API_KEY = ""
+SENDGRID__API_KEY = os.getenv('SENDGRID_API_KEY', '')
 
 # Debug app settings
 DEBUG = False
@@ -299,8 +283,28 @@ RECAPTCHA__SECRET__KEY = ""
 
 LOGIN_REDIRECT_URL = '/'
 
+# Ethereum settings
+ETH_NODE__ADDRESS = os.getenv('ETH_NODE_ADDRESS', '')
+ETH_NETWORK__ID = int(os.getenv('ETH_NETWORK_ID', 3))
+ETH_MANAGER__PRIVATE_KEY = os.getenv('ETH_MANAGER_PRIVATE_KEY', '')
+ETH_MANAGER__ADDRESS = os.getenv('ETH_MANAGER_ADDRESS', '')
+ETH_CONTRACT__ADDRESS = os.getenv('ETH_CONTRACT_ADDRESS', '')
+ETH_CONTRACT__GAS_LIMIT = 1000000
+ETH_CONTRACT__MAX_PENDING_COUNT = 1
+ETH_CONTRACT__GAZ_MULTIPLICATOR = 1.2
+ETH_CONTRACT__ABI = b'[{"constant": false, ' \
+                    b'  "inputs": [{"name": "_account", "type": "address"},' \
+                    b'             {"name": "_value", "type": "uint256"}], ' \
+                    b'  "name": "mint", "outputs": [], "payable": false,' \
+                    b'  "type": "function"},' \
+                    b' {"constant": false, ' \
+                    b'  "inputs": [{"name": "_to", "type": "address"},' \
+                    b'             {"name": "_value", "type": "uint256"}], ' \
+                    b'  "name": "transfer", "outputs": [{"name": "", "type": "bool"}], "payable": false,' \
+                    b'  "type": "function"}]'
+
 # Blockchain explorers
-ETHERSCAN_API_KEY = "972HXAUQ6WYW6WEQZAN8DKN9BIJBNIT84I"
+ETHERSCAN_API_KEY = os.getenv('ETHERSCAN_API_KEY', '')
 ETHERSCAN_TIMEOUT = 0.1
 BLOCKCHAININFO_TIMEOUT = 0.25
 
@@ -309,8 +313,8 @@ BITFINEX__TIMEOUT = 1
 
 # Proxies
 CRAWLER_PROXY__ENABLED = True
-CRAWLER_PROXY__USER = "mezrinv@gmail.com"
-CRAWLER_PROXY__PASS = "3tuXHTFTj97tY"
+CRAWLER_PROXY__USER = os.getenv('CRAWLER_PROXY_USER', '')
+CRAWLER_PROXY__PASS = os.getenv('CRAWLER_PROXY_PASS', '')
 CRAWLER_PROXY__URLS = [
     "199.115.116.233:1051",
     "199.115.116.233:1052",
@@ -376,10 +380,7 @@ CHECK_MAIL_DELIVERY__DAYS_DEPTH = 4
 
 appLogLevel = logging.DEBUG if DEBUG else logging.INFO
 sqlAlchemyLogLevel = logging.WARNING if DEBUG else logging.ERROR
-# appHandlers = ['handler_file', 'handler_console']
 appHandlers = ['handler_console', 'sentry']
-# if LOGGING__MAILGUN__ENABLED is True and DEBUG is False:
-#     appHandlers.append('handler_mailgun')
 
 mailFormat = '''
 Message type:\t\t%(levelname)s
@@ -406,13 +407,6 @@ LOGGING = {
             },
         },
         'handlers': {
-            # 'handler_file': {
-            #     'formatter': 'formatter_verbose',
-            #     'class': 'logging.handlers.RotatingFileHandler',
-            #     'filename': str(rootLogDir / 'mainapp.log'),
-            #     'maxBytes': 1024 * 1024,
-            #     'backupCount': 1000,
-            # },
             'handler_console': {
                 'formatter': 'formatter_verbose',
                 'class': 'logging.StreamHandler',

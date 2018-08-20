@@ -34,8 +34,7 @@ urlpatterns = [
 
     url(r'^docs/', include_docs_urls(title='JCO API', permission_classes=[AllowAny])),
 
-    url(r'^auth/password/change/$', lambda r: HttpResponseNotFound(),
-        name='rest_password_change'),
+    url(r'^auth/password/change/$', lambda r: HttpResponseNotFound(), name='rest_password_change'),
     url(r'^auth/', include('rest_auth.urls')),
     url(r'^auth/registration/', include('rest_auth.registration.urls')),
     url(r'^auth/registration/confirm-email-resend/', ResendEmailConfirmationView.as_view()),

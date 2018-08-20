@@ -13,8 +13,36 @@ from jco.appprocessor import affiliate
 @celery_app.task()
 @initialize_app
 @locked_task()
-def celery_scan_addresses():
-    return commands.scan_addresses()
+def celery_scan_addresses_w_transactions():
+    return commands.scan_addresses(w_transactions=True)
+
+
+@celery_app.task()
+@initialize_app
+@locked_task()
+def celery_scan_eth_addresses_wo_transactions_even():
+    return commands.scan_addresses(wo_transactions=True, address_type='ETH', is_even_rows=True)
+
+
+@celery_app.task()
+@initialize_app
+@locked_task()
+def celery_scan_eth_addresses_wo_transactions_odd():
+    return commands.scan_addresses(wo_transactions=True, address_type='ETH', is_even_rows=False)
+
+
+@celery_app.task()
+@initialize_app
+@locked_task()
+def celery_scan_btc_addresses_wo_transactions_even():
+    return commands.scan_addresses(wo_transactions=True, address_type='BTC', is_even_rows=True)
+
+
+@celery_app.task()
+@initialize_app
+@locked_task()
+def celery_scan_btc_addresses_wo_transactions_odd():
+    return commands.scan_addresses(wo_transactions=True, address_type='BTC', is_even_rows=False)
 
 
 @celery_app.task()
@@ -87,7 +115,20 @@ def celery_add_withdraw_jnt(*args, **kwargs):
 @celery_app.on_after_finalize.connect
 def setup_periodic_tasks(sender, **kwargs):
     sender.add_periodic_task(crontab(minute='*/30'),
-                             celery_scan_addresses, expires=5 * 60, name='scan_addresses')
+                             celery_scan_addresses_w_transactions, expires=5 * 60, name='celery_scan_addresses_w_transactions')
+
+    sender.add_periodic_task(crontab(minute='*/30'),
+                             celery_scan_eth_addresses_wo_transactions_even, expires=5 * 60, name='celery_scan_eth_addresses_wo_transactions_even')
+
+    sender.add_periodic_task(crontab(minute='*/30'),
+                             celery_scan_eth_addresses_wo_transactions_odd, expires=5 * 60, name='celery_scan_eth_addresses_wo_transactions_odd')
+
+    sender.add_periodic_task(crontab(minute='*/30'),
+                             celery_scan_btc_addresses_wo_transactions_even, expires=5 * 60, name='celery_scan_btc_addresses_wo_transactions_even')
+
+    sender.add_periodic_task(crontab(minute='*/30'),
+                             celery_scan_btc_addresses_wo_transactions_odd, expires=5 * 60, name='celery_scan_btc_addresses_wo_transactions_odd')
+
     sender.add_periodic_task(crontab(minute='*/5'),
                              calculate_jnt_purchases, expires=5 * 60, name='calculate_jnt_purchases')
     sender.add_periodic_task(crontab(minute='*/1'),
@@ -96,10 +137,11 @@ def setup_periodic_tasks(sender, **kwargs):
                              celery_check_affiliate_events, expires=5 * 60, name='celery_check_affiliate_events')
     sender.add_periodic_task(crontab(minute='*/10'),
                              celery_scan_affiliates, expires=5 * 60, name='celery_scan_affiliates')
-    sender.add_periodic_task(crontab(minute='*/10'),
-                             celery_withdraw_processing, expires=5 * 60, name='celery_withdraw_processing')
-    sender.add_periodic_task(crontab(minute='*/10'),
-                             celery_check_withdraw_transactions, expires=5 * 60, name='celery_check_withdraw_transactions')
+    sender.add_periodic_task(30.0,
+                             celery_withdraw_processing, expires=1 * 60, name='celery_withdraw_processing')
+    sender.add_periodic_task(10.0,
+                             celery_check_withdraw_transactions, expires=1 * 60, name='celery_check_withdraw_transactions')
+
 
     sender.add_periodic_task(20,
                              api_tasks.check_user_verification_status_runner,
@@ -113,7 +155,3 @@ def setup_periodic_tasks(sender, **kwargs):
                              api_tasks.retry_uncomplete_verifications,
                              expires=1 * 60,
                              name='retry_uncomplete_verifications')
-    sender.add_periodic_task(crontab(minute=0, hour='*/12'),
-                             api_tasks.resend_emails_for_unconfirmed_operations,
-                             expires=1 * 60,
-                             name='resend_emails_for_unconfirmed_operations')
