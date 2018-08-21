@@ -1,0 +1,20 @@
+uwsgi:
+  master: true
+  http: 0.0.0.0:80
+  enable-threads: true
+
+  chdir: /app
+  module: jco.wsgi:application
+
+  log-format: %(addr) - %(user) [%(ltime)] "%(method) %(uri) %(proto)" %(status) %(size) "%(referer)" "%(uagent)"
+
+  processes: 5
+  max-requests: 5000
+
+  static-map: /static=/app/static/
+  static-map: /media=/app/uploads
+  static-map: /uploads=/app/uploads
+
+  static-skip-ext: .po
+  static-skip-ext: .py
+  static-skip-ext: .pyc
