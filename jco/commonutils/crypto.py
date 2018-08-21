@@ -14,7 +14,7 @@ from two1.bitcoin.utils import rand_bytes
 from two1.crypto.ecdsa_base import Point
 from two1.crypto.ecdsa import ECPointAffine
 from two1.crypto.ecdsa import secp256k1
-from rlp.utils import encode_hex
+from eth_utils import encode_hex
 from Crypto.Hash import keccak
 
 bitcoin_curve = secp256k1()

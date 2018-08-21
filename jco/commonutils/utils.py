@@ -2,7 +2,7 @@ import string
 import random
 from Crypto.Hash import keccak
 from rlp.sedes import big_endian_int
-from rlp.utils import str_to_bytes, encode_hex, decode_hex, ascii_chr
+from ethereum.utils import str_to_bytes, encode_hex, decode_hex, ascii_chr
 
 
 def is_numeric(x):

@@ -111,7 +111,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'jco.wsgi.application'
 
-JCO_DATABASE_URI = os.getenv('JCO_DATABASE_URI', 'postgres://localhost/jco')
+JCO_DATABASE_URI = os.getenv('JCO_DATABASE_URI', '')
 
 # Database
 # https://docs.djangoproject.com/en/1.11/ref/settings/#databases
@@ -228,7 +228,7 @@ SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 # Celery configuration
 CELERY_NAME = "jibrelsalecelery"
-CELERY_BROKER_URL = "pyamqp://guest:guest@localhost:5672//"
+CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "")
 
 # Email notifications
 EMAIL_NOTIFICATIONS__ENABLED = True
@@ -316,6 +316,7 @@ CRAWLER_PROXY__ENABLED = True
 CRAWLER_PROXY__USER = os.getenv('CRAWLER_PROXY_USER', '')
 CRAWLER_PROXY__PASS = os.getenv('CRAWLER_PROXY_PASS', '')
 CRAWLER_PROXY__URLS = [
+    "199.115.116.233:1051",
     "199.115.116.233:1051",
     "199.115.116.233:1052",
     "199.115.116.233:1053",
