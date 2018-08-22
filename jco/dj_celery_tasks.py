@@ -48,8 +48,8 @@ def celery_scan_btc_addresses_wo_transactions_odd():
 @celery_app.task()
 @initialize_app
 @locked_task()
-def calculate_jnt_purchases():
-    return commands.calculate_jnt_purchases()
+def calculate_token_purchases():
+    return commands.calculate_token_purchases()
 
 
 @celery_app.task()
@@ -108,8 +108,8 @@ def celery_get_all_transactions():
 
 @celery_app.task()
 @initialize_app
-def celery_add_withdraw_jnt(*args, **kwargs):
-    return commands.add_withdraw_jnt(*args, **kwargs)
+def celery_add_withdraw_token(*args, **kwargs):
+    return commands.add_withdraw_token(*args, **kwargs)
 
 
 @celery_app.on_after_finalize.connect
@@ -130,7 +130,7 @@ def setup_periodic_tasks(sender, **kwargs):
                              celery_scan_btc_addresses_wo_transactions_odd, expires=5 * 60, name='celery_scan_btc_addresses_wo_transactions_odd')
 
     sender.add_periodic_task(crontab(minute='*/5'),
-                             calculate_jnt_purchases, expires=5 * 60, name='calculate_jnt_purchases')
+                             calculate_token_purchases, expires=5 * 60, name='calculate_token_purchases')
     sender.add_periodic_task(crontab(minute='*/1'),
                              celery_fetch_tickers_price, expires=1 * 60, name='fetch_tickers_price')
     sender.add_periodic_task(crontab(minute='*/10'),

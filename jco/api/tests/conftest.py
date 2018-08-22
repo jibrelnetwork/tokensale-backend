@@ -104,37 +104,37 @@ def transactions(addresses):
 
 
 @pytest.fixture
-def jnt(transactions):
+def token(transactions):
     return[
-        models.Jnt.objects.create(
-            jnt_value=10,
+        models.Token.objects.create(
+            token_value=10,
             currency_to_usd_rate=1.0,
             usd_value=1.0,
-            jnt_to_usd_rate=1.0,
+            token_to_usd_rate=1.0,
             active=True,
             created=datetime(2017, 10, 22, 10),
             transaction=transactions[0]),
-        models.Jnt.objects.create(
-            jnt_value=20,
+        models.Token.objects.create(
+            token_value=20,
             currency_to_usd_rate=1.0,
             usd_value=2.0,
-            jnt_to_usd_rate=1.0,
+            token_to_usd_rate=1.0,
             active=True,
             created=datetime(2017, 10, 22, 11),
             transaction=transactions[1]),
-        models.Jnt.objects.create(
-            jnt_value=30,
+        models.Token.objects.create(
+            token_value=30,
             currency_to_usd_rate=1.0,
             usd_value=3.0,
-            jnt_to_usd_rate=1.0,
+            token_to_usd_rate=1.0,
             active=True,
             created=datetime(2017, 10, 22, 12),
             transaction=transactions[2]),
-        models.Jnt.objects.create(
-            jnt_value=30,
+        models.Token.objects.create(
+            token_value=30,
             currency_to_usd_rate=1.0,
             usd_value=3.0,
-            jnt_to_usd_rate=1.0,
+            token_to_usd_rate=1.0,
             active=True,
             created=datetime(2017, 10, 22, 12),
             transaction=transactions[3]),

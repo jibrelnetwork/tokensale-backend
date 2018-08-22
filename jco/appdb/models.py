@@ -9,7 +9,7 @@ from jco.appdb.db import db
 
 
 class CurrencyType:
-    jnt = 'JNT'
+    token = 'TOKEN'
     btc = 'BTC'
     eth = 'ETH'
     usd = 'USD'
@@ -72,16 +72,16 @@ class NotificationType:
 # account_02_01 = "ETH Address change request"
 # account_02_02 = "Your ETH Address was updated"
 
-# kyc_01 = "Completing your JNT purchase"
+# kyc_01 = "Completing your TOKEN purchase"
 # kyc_02 = "Unable to verify your identity"
 
 # registration_01 = "Verify your email address"
 # registration_02 = "Accessing your Token Sale Dashboard"
 
-# transactions_01 = "Your purchase of ~{{transaction_jnt_amount}} JNT was successful!"
-# transactions_02_01 = "JNT withdrawal request"
-# transactions_02_02 = "JNT withdrawal underway"
-# transactions_03 = "Your JNT was transferred successfully!"
+# transactions_01 = "Your purchase of ~{{transaction_token_amount}} TOKEN was successful!"
+# transactions_02_01 = "TOKEN withdrawal request"
+# transactions_02_02 = "TOKEN withdrawal underway"
+# transactions_03 = "Your TOKEN was transferred successfully!"
 # transactions_04 = "Token sale closed"
 
 
@@ -112,14 +112,14 @@ NOTIFICATION_SUBJECTS = {
     'account_01_02': 'Your password was updated',
     'account_02_01': 'ETH Address change request',
     'account_02_02': 'Your ETH Address was updated',
-    'kyc_01': 'Completing your JNT purchase',
+    'kyc_01': 'Completing your TOKEN purchase',
     'kyc_02': 'Unable to verify your identity',
     'registration_01': 'Verify your email address',
     'registration_02': 'Accessing your Token Sale Dashboard',
-    'transactions_01': 'Your purchase of {transaction_jnt_amount} JNT was successful!',
-    'transactions_02_01': 'JNT withdrawal request',
-    'transactions_02_02': 'JNT withdrawal underway',
-    'transactions_03': 'Your JNT was transferred successfully!',
+    'transactions_01': 'Your purchase of {transaction_token_amount} TOKEN was successful!',
+    'transactions_02_01': 'TOKEN withdrawal request',
+    'transactions_02_02': 'TOKEN withdrawal underway',
+    'transactions_03': 'Your TOKEN was transferred successfully!',
     'transactions_04': 'Token sale closed',
     'transactions_04_admin': 'Token sale closed',
     'presale_01': 'Your Jibrel Network Tokens have arrived!',
@@ -159,14 +159,14 @@ class User(db.Model):
                                  back_populates="user",
                                  cascade="all, delete-orphan",
                                  passive_deletes=True)  # type: Affiliate
-    presales = db.relationship('PresaleJnt',
+    presales = db.relationship('PresaleToken',
                                  back_populates="user",
                                  cascade="all, delete-orphan",
-                                 passive_deletes=True)  # type: PresaleJnt
-    custom_jnt_prices = db.relationship('UserJntPrice',
+                                 passive_deletes=True)  # type: PresaleToken
+    custom_token_prices = db.relationship('UserTokenPrice',
                                  back_populates="user",
                                  cascade="all, delete-orphan",
-                                 passive_deletes=True)  # type: UserJntPrice
+                                 passive_deletes=True)  # type: UserTokenPrice
 
     # Methods
     def __repr__(self):
@@ -337,18 +337,18 @@ class Transaction(db.Model):
 
     # Relationships
     address = db.relationship(Address, back_populates="transactions")  # type: Address
-    jnt_purchase = db.relationship('JNT',
+    token_purchase = db.relationship('TOKEN',
                                    back_populates="transaction",
                                    cascade="all, delete-orphan",
                                    passive_deletes=True,
-                                   uselist=False)  # type: JNT
+                                   uselist=False)  # type: TOKEN
 
     # Meta keys
     meta_key_notified = 'notified'
     meta_key_failed_notifications = 'failed_notifications'
     meta_key_mailgun_message_id = 'mailgun_message_id'
     meta_key_mailgun_delivered = 'mailgun_delivered'
-    meta_key_skip_jnt_calculation = 'skip_jnt_calculation'
+    meta_key_skip_token_calculation = 'skip_token_calculation'
 
     # Methods
     def as_dict(self):
@@ -409,15 +409,15 @@ class Transaction(db.Model):
         self.meta[self.meta_key_mailgun_delivered] = value
         flag_modified(self, "meta")
 
-    def get_skip_jnt_calculation(self) -> Optional[bool]:
-        if self.meta_key_skip_jnt_calculation not in self.meta:
+    def get_skip_token_calculation(self) -> Optional[bool]:
+        if self.meta_key_skip_token_calculation not in self.meta:
             return None
-        return self.meta[self.meta_key_skip_jnt_calculation]
+        return self.meta[self.meta_key_skip_token_calculation]
 
-    def set_skip_jnt_calculation(self, value: bool):
+    def set_skip_token_calculation(self, value: bool):
         if self.meta is None:
             self.meta = {}
-        self.meta[self.meta_key_skip_jnt_calculation] = value
+        self.meta[self.meta_key_skip_token_calculation] = value
         flag_modified(self, "meta")
 
     def __repr__(self):
@@ -435,13 +435,13 @@ class Transaction(db.Model):
         return '<{}({})>'.format(self.__class__.__name__, argsString)
 
 
-class JNT(db.Model):
+class TOKEN(db.Model):
     # Fields
     id = db.Column(db.Integer, primary_key=True)
     currency_to_usd_rate = db.Column(db.Float, nullable=False)
     usd_value = db.Column(db.Float, nullable=False)
-    jnt_to_usd_rate = db.Column(db.Float, nullable=False)
-    jnt_value = db.Column(db.Float, nullable=False)
+    token_to_usd_rate = db.Column(db.Float, nullable=False)
+    token_value = db.Column(db.Float, nullable=False)
     active = db.Column(db.Boolean, nullable=False, default=False)
     created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     is_sale_allocation = db.Column(db.Boolean, nullable=False, default=True)
@@ -449,15 +449,15 @@ class JNT(db.Model):
     meta = db.Column(JSONB, nullable=False, default=lambda: {})
 
     # Relationships
-    transaction = db.relationship(Transaction, back_populates="jnt_purchase")  # type: Transaction
+    transaction = db.relationship(Transaction, back_populates="token_purchase")  # type: Transaction
 
     # Methods
     def as_dict(self):
         return {
             'id': self.id,
             'usd_value': self.usd_value,
-            'jnt_value': self.jnt_value,
-            'jnt_to_usd_rate': self.jnt_to_usd_rate,
+            'token_value': self.token_value,
+            'token_to_usd_rate': self.token_to_usd_rate,
             'currency_to_usd_rate': self.currency_to_usd_rate,
             'created': self.created,
         }
@@ -466,8 +466,8 @@ class JNT(db.Model):
         fieldsToPrint = (('id', self.id),
                          ('currency_to_usd_rate', self.currency_to_usd_rate),
                          ('usd_value', self.usd_value),
-                         ('jnt_to_usd_rate', self.jnt_to_usd_rate),
-                         ('jnt_value', self.jnt_value),
+                         ('token_to_usd_rate', self.token_to_usd_rate),
+                         ('token_value', self.token_value),
                          ('active', self.active),
                          ('created', self.created),
                          ('transaction_id', self.transaction_id),
@@ -657,15 +657,15 @@ class Affiliate(db.Model):
         flag_modified(self, "meta")
 
 
-class PresaleJnt(db.Model):
+class PresaleToken(db.Model):
     """
-    JNT from presale round
+    TOKEN from presale round
     """
-    __tablename__ = 'presale_jnt'
+    __tablename__ = 'presale_token'
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('auth_user.id'), unique=False)
-    jnt_value = db.Column(db.Float, nullable=False)
+    token_value = db.Column(db.Float, nullable=False)
     currency_to_usd_rate = db.Column(db.Float, nullable=False, default=0)
     usd_value = db.Column(db.Float, nullable=False, default=0)
     created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
@@ -677,9 +677,9 @@ class PresaleJnt(db.Model):
     user = db.relationship(User, back_populates="presales")  # type: User
 
 
-class UserJntPrice(db.Model):
+class UserTokenPrice(db.Model):
     """
-    # 71 Custom JNT price for user
+    # 71 Custom TOKEN price for user
     """
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('auth_user.id'), unique=False)
@@ -687,10 +687,10 @@ class UserJntPrice(db.Model):
     value = db.Column(db.Float, nullable=False)
 
     # Relationships
-    user = db.relationship(User, back_populates="custom_jnt_prices")  # type: User
+    user = db.relationship(User, back_populates="custom_token_prices")  # type: User
 
     class Meta:
-        db_table = 'user_jnt_price'
+        db_table = 'user_token_price'
 
     def __str__(self):
-        return 'Custom Price for {}: {}$/JNT'.format(self.user.username, self.value)
+        return 'Custom Price for {}: {}$/TOKEN'.format(self.user.username, self.value)

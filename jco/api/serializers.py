@@ -17,7 +17,7 @@ from rest_framework.fields import CurrentUserDefault
 import requests
 
 from jco.api.models import (
-    Transaction, Address, Account, Jnt, Withdraw, PresaleJnt, is_user_email_confirmed, Document,
+    Transaction, Address, Account, Token, Withdraw, PresaleToken, is_user_email_confirmed, Document,
     get_document_filename_extension
 )
 from jco.api import tasks
@@ -35,7 +35,7 @@ RECAPTCA_API_URL = 'https://www.google.com/recaptcha/api/siteverify'
 
 class AccountSerializer(serializers.ModelSerializer):
     username = serializers.SerializerMethodField()
-    jnt_balance = serializers.SerializerMethodField()
+    token_balance = serializers.SerializerMethodField()
     verification_form_status = serializers.SerializerMethodField()
     identity_verification_status = serializers.SerializerMethodField()
     is_email_confirmed = serializers.SerializerMethodField()
@@ -46,15 +46,15 @@ class AccountSerializer(serializers.ModelSerializer):
         model = Account
         fields = ('username', 'first_name', 'last_name', 'date_of_birth',
                   'citizenship', 'residency', 'terms_confirmed', 'document_url', 'document_type',
-                  'jnt_balance', 'identity_verification_status', 'verification_form_status',
+                  'token_balance', 'identity_verification_status', 'verification_form_status',
                   'btc_address', 'eth_address', 'is_document_skipped', 'is_email_confirmed')
-        read_only_fields = ('is_identity_verified', 'jnt_balance')
+        read_only_fields = ('is_identity_verified', 'token_balance')
 
     def get_username(self, obj):
         return obj.user.username
 
-    def get_jnt_balance(self, obj):
-        return obj.get_jnt_balance()
+    def get_token_balance(self, obj):
+        return obj.get_token_balance()
 
     def get_verification_form_status(self, obj):
         def personal_data_filled(obj):
@@ -109,7 +109,7 @@ class AddressSerializer(serializers.ModelSerializer):
 class TransactionSerializer(serializers.ModelSerializer):
     """
     {
-        jnt: 10000,
+        token: 10000,
         type: 'outgoing',
         date: '13:30 10/22/2017',
         TXtype: 'BTC',
@@ -120,7 +120,7 @@ class TransactionSerializer(serializers.ModelSerializer):
     """
 
     type = serializers.SerializerMethodField()
-    jnt = serializers.SerializerMethodField()
+    token = serializers.SerializerMethodField()
     status = serializers.SerializerMethodField()
     TXtype = serializers.SerializerMethodField()
     date = serializers.SerializerMethodField()
@@ -131,14 +131,14 @@ class TransactionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Transaction
-        fields = ('jnt', 'status', 'TXtype', 'date', 'type', '_date',
+        fields = ('token', 'status', 'TXtype', 'date', 'type', '_date',
                   'TXhash', 'amount_usd', 'amount_cryptocurrency')
 
     def get_type(self, obj):
         return 'incoming'
 
-    def get_jnt(self, obj):
-        return obj.jnt.jnt_value
+    def get_token(self, obj):
+        return obj.token.token_value
 
     def get_status(self, obj):
         return {
@@ -157,7 +157,7 @@ class TransactionSerializer(serializers.ModelSerializer):
             return datetime.strftime(obj.mined, '%H:%M %m/%d/%Y')
 
     def get_amount_usd(self, obj):
-        return obj.jnt.usd_value
+        return obj.token.usd_value
 
     def get_amount_cryptocurrency(self, obj):
         return obj.value
@@ -169,7 +169,7 @@ class WithdrawSerializer(TransactionSerializer):
 
     class Meta:
         model = Withdraw
-        fields = ('jnt', 'status', 'TXtype', 'date', 'type', '_date',
+        fields = ('token', 'status', 'TXtype', 'date', 'type', '_date',
                   'TXhash', 'amount_usd', 'amount_cryptocurrency')
 
     def get_type(self, obj):
@@ -179,7 +179,7 @@ class WithdrawSerializer(TransactionSerializer):
         if obj.created is not None:
             return datetime.strftime(obj.created, '%H:%M %m/%d/%Y')
 
-    def get_jnt(self, obj):
+    def get_token(self, obj):
         return obj.value
 
     def get_TXtype(self, obj):
@@ -192,14 +192,14 @@ class WithdrawSerializer(TransactionSerializer):
         return None
 
 
-class PresaleJntSerializer(TransactionSerializer):
+class PresaleTokenSerializer(TransactionSerializer):
     _date = serializers.DateTimeField(source='created')
     TXhash = serializers.SerializerMethodField()
     is_presale = serializers.SerializerMethodField()
 
     class Meta:
-        model = PresaleJnt
-        fields = ('jnt', 'status', 'TXtype', 'date', 'type', '_date',
+        model = PresaleToken
+        fields = ('token', 'status', 'TXtype', 'date', 'type', '_date',
                   'TXhash', 'amount_usd', 'amount_cryptocurrency', 'is_presale')
 
     def get_is_presale(self, obj):
@@ -212,8 +212,8 @@ class PresaleJntSerializer(TransactionSerializer):
         if obj.created is not None:
             return datetime.strftime(obj.created, '%H:%M %m/%d/%Y')
 
-    def get_jnt(self, obj):
-        return obj.jnt_value
+    def get_token(self, obj):
+        return obj.token_value
 
     def get_TXtype(self, obj):
         return 'ETH'

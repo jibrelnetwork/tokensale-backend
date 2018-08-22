@@ -21,6 +21,6 @@ urlpatterns = [
 
     url(r'^document/', views.DocumentView.as_view()),
     
-    url(r'^withdraw-jnt/$', views.WithdrawRequestView.as_view()),
-    url(r'^withdraw-jnt/confirm/', views.WithdrawConfirmView.as_view()),
+    url(r'^withdraw-tokens/$', views.WithdrawRequestView.as_view()),
+    url(r'^withdraw-tokens/confirm/', views.WithdrawConfirmView.as_view()),
 ]

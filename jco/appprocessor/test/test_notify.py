@@ -43,17 +43,17 @@ class TestEmailsSending(unittest.TestCase):
     #     t10.address_id = 270
     #     t10.address = p1.address
 
-    #     jnt_purchase_10 = JNT()
-    #     jnt_purchase_10.id = 310
-    #     jnt_purchase_10.purchase_id = generate_purchase_id()
-    #     jnt_purchase_10.currency_to_usd_rate = 298.1876
-    #     jnt_purchase_10.usd_value = t10.value * jnt_purchase_10.currency_to_usd_rate
-    #     jnt_purchase_10.jnt_to_usd_rate = 0.225
-    #     jnt_purchase_10.jnt_value = jnt_purchase_10.usd_value / jnt_purchase_10.jnt_to_usd_rate
-    #     jnt_purchase_10.active = True
-    #     jnt_purchase_10.created = datetime(year=2017, month=10, day=10, hour=10, minute=39, second=51)
-    #     jnt_purchase_10.transaction_id = 310
-    #     jnt_purchase_10.transaction = t10
+    #     token_purchase_10 = TOKEN()
+    #     token_purchase_10.id = 310
+    #     token_purchase_10.purchase_id = generate_purchase_id()
+    #     token_purchase_10.currency_to_usd_rate = 298.1876
+    #     token_purchase_10.usd_value = t10.value * token_purchase_10.currency_to_usd_rate
+    #     token_purchase_10.token_to_usd_rate = 0.225
+    #     token_purchase_10.token_value = token_purchase_10.usd_value / token_purchase_10.token_to_usd_rate
+    #     token_purchase_10.active = True
+    #     token_purchase_10.created = datetime(year=2017, month=10, day=10, hour=10, minute=39, second=51)
+    #     token_purchase_10.transaction_id = 310
+    #     token_purchase_10.transaction = t10
 
     #     #
     #     # Second proposal
@@ -104,17 +104,17 @@ class TestEmailsSending(unittest.TestCase):
     #     t30.address_id = 275
     #     t30.address = p3.address
 
-    #     jnt_purchase_30 = JNT()
-    #     jnt_purchase_30.id = 313
-    #     jnt_purchase_30.purchase_id = generate_purchase_id()
-    #     jnt_purchase_30.currency_to_usd_rate = 315.1
-    #     jnt_purchase_30.usd_value = t30.value * jnt_purchase_30.currency_to_usd_rate
-    #     jnt_purchase_30.jnt_to_usd_rate = 0.225
-    #     jnt_purchase_30.jnt_value = jnt_purchase_30.usd_value / jnt_purchase_30.jnt_to_usd_rate
-    #     jnt_purchase_30.active = True
-    #     jnt_purchase_30.created = datetime(year=2017, month=10, day=10, hour=11, minute=27, second=32)
-    #     jnt_purchase_30.transaction_id = 313
-    #     jnt_purchase_30.transaction = t30
+    #     token_purchase_30 = TOKEN()
+    #     token_purchase_30.id = 313
+    #     token_purchase_30.purchase_id = generate_purchase_id()
+    #     token_purchase_30.currency_to_usd_rate = 315.1
+    #     token_purchase_30.usd_value = t30.value * token_purchase_30.currency_to_usd_rate
+    #     token_purchase_30.token_to_usd_rate = 0.225
+    #     token_purchase_30.token_value = token_purchase_30.usd_value / token_purchase_30.token_to_usd_rate
+    #     token_purchase_30.active = True
+    #     token_purchase_30.created = datetime(year=2017, month=10, day=10, hour=11, minute=27, second=32)
+    #     token_purchase_30.transaction_id = 313
+    #     token_purchase_30.transaction = t30
 
     #     t31 = Transaction()
     #     t31.id = 314
@@ -125,17 +125,17 @@ class TestEmailsSending(unittest.TestCase):
     #     t31.address_id = 275
     #     t31.address = p3.address
 
-    #     jnt_purchase_31 = JNT()
-    #     jnt_purchase_31.id = 314
-    #     jnt_purchase_31.purchase_id = generate_purchase_id()
-    #     jnt_purchase_31.currency_to_usd_rate = 290
-    #     jnt_purchase_31.usd_value = t31.value * jnt_purchase_31.currency_to_usd_rate
-    #     jnt_purchase_31.jnt_to_usd_rate = 0.225
-    #     jnt_purchase_31.jnt_value = jnt_purchase_31.usd_value / jnt_purchase_31.jnt_to_usd_rate
-    #     jnt_purchase_31.active = True
-    #     jnt_purchase_31.created = datetime(year=2017, month=10, day=10, hour=11, minute=46, second=11)
-    #     jnt_purchase_31.transaction_id = 314
-    #     jnt_purchase_31.transaction = t31
+    #     token_purchase_31 = TOKEN()
+    #     token_purchase_31.id = 314
+    #     token_purchase_31.purchase_id = generate_purchase_id()
+    #     token_purchase_31.currency_to_usd_rate = 290
+    #     token_purchase_31.usd_value = t31.value * token_purchase_31.currency_to_usd_rate
+    #     token_purchase_31.token_to_usd_rate = 0.225
+    #     token_purchase_31.token_value = token_purchase_31.usd_value / token_purchase_31.token_to_usd_rate
+    #     token_purchase_31.active = True
+    #     token_purchase_31.created = datetime(year=2017, month=10, day=10, hour=11, minute=46, second=11)
+    #     token_purchase_31.transaction_id = 314
+    #     token_purchase_31.transaction = t31
 
     #     t32 = Transaction()
     #     t32.id = 315
@@ -146,17 +146,17 @@ class TestEmailsSending(unittest.TestCase):
     #     t32.address_id = 275
     #     t32.address = p3.address
 
-    #     jnt_purchase_32 = JNT()
-    #     jnt_purchase_32.id = 315
-    #     jnt_purchase_32.purchase_id = generate_purchase_id()
-    #     jnt_purchase_32.currency_to_usd_rate = 327
-    #     jnt_purchase_32.usd_value = t32.value * jnt_purchase_32.currency_to_usd_rate
-    #     jnt_purchase_32.jnt_to_usd_rate = 0.225
-    #     jnt_purchase_32.jnt_value = jnt_purchase_32.usd_value / jnt_purchase_32.jnt_to_usd_rate
-    #     jnt_purchase_32.active = True
-    #     jnt_purchase_32.created = datetime(year=2017, month=10, day=10, hour=11, minute=46, second=11)
-    #     jnt_purchase_32.transaction_id = 315
-    #     jnt_purchase_32.transaction = t32
+    #     token_purchase_32 = TOKEN()
+    #     token_purchase_32.id = 315
+    #     token_purchase_32.purchase_id = generate_purchase_id()
+    #     token_purchase_32.currency_to_usd_rate = 327
+    #     token_purchase_32.usd_value = t32.value * token_purchase_32.currency_to_usd_rate
+    #     token_purchase_32.token_to_usd_rate = 0.225
+    #     token_purchase_32.token_value = token_purchase_32.usd_value / token_purchase_32.token_to_usd_rate
+    #     token_purchase_32.active = True
+    #     token_purchase_32.created = datetime(year=2017, month=10, day=10, hour=11, minute=46, second=11)
+    #     token_purchase_32.transaction_id = 315
+    #     token_purchase_32.transaction = t32
 
     #     t33 = Transaction()
     #     t33.id = 316
@@ -167,17 +167,17 @@ class TestEmailsSending(unittest.TestCase):
     #     t33.address_id = 275
     #     t33.address = p3.address
 
-    #     jnt_purchase_33 = JNT()
-    #     jnt_purchase_33.id = 316
-    #     jnt_purchase_33.purchase_id = generate_purchase_id()
-    #     jnt_purchase_33.currency_to_usd_rate = 342
-    #     jnt_purchase_33.usd_value = t33.value * jnt_purchase_33.currency_to_usd_rate
-    #     jnt_purchase_33.jnt_to_usd_rate = 0.225
-    #     jnt_purchase_33.jnt_value = jnt_purchase_33.usd_value / jnt_purchase_33.jnt_to_usd_rate
-    #     jnt_purchase_33.active = True
-    #     jnt_purchase_33.created = datetime(year=2017, month=10, day=10, hour=12, minute=16, second=31)
-    #     jnt_purchase_33.transaction_id = 316
-    #     jnt_purchase_33.transaction = t33
+    #     token_purchase_33 = TOKEN()
+    #     token_purchase_33.id = 316
+    #     token_purchase_33.purchase_id = generate_purchase_id()
+    #     token_purchase_33.currency_to_usd_rate = 342
+    #     token_purchase_33.usd_value = t33.value * token_purchase_33.currency_to_usd_rate
+    #     token_purchase_33.token_to_usd_rate = 0.225
+    #     token_purchase_33.token_value = token_purchase_33.usd_value / token_purchase_33.token_to_usd_rate
+    #     token_purchase_33.active = True
+    #     token_purchase_33.created = datetime(year=2017, month=10, day=10, hour=12, minute=16, second=31)
+    #     token_purchase_33.transaction_id = 316
+    #     token_purchase_33.transaction = t33
 
     #     #
     #     # Fourth proposal
@@ -212,17 +212,17 @@ class TestEmailsSending(unittest.TestCase):
     #     t40.address_id = 280
     #     t40.address = p4.address
 
-    #     jnt_purchase_40 = JNT()
-    #     jnt_purchase_40.id = 323
-    #     jnt_purchase_40.purchase_id = generate_purchase_id()
-    #     jnt_purchase_40.currency_to_usd_rate = 317.1234
-    #     jnt_purchase_40.usd_value = t40.value * jnt_purchase_40.currency_to_usd_rate
-    #     jnt_purchase_40.jnt_to_usd_rate = 0.225
-    #     jnt_purchase_40.jnt_value = jnt_purchase_40.usd_value / jnt_purchase_40.jnt_to_usd_rate
-    #     jnt_purchase_40.active = True
-    #     jnt_purchase_40.created = datetime(year=2017, month=10, day=8, hour=17, minute=15, second=34)
-    #     jnt_purchase_40.transaction_id = 323
-    #     jnt_purchase_40.transaction = t40
+    #     token_purchase_40 = TOKEN()
+    #     token_purchase_40.id = 323
+    #     token_purchase_40.purchase_id = generate_purchase_id()
+    #     token_purchase_40.currency_to_usd_rate = 317.1234
+    #     token_purchase_40.usd_value = t40.value * token_purchase_40.currency_to_usd_rate
+    #     token_purchase_40.token_to_usd_rate = 0.225
+    #     token_purchase_40.token_value = token_purchase_40.usd_value / token_purchase_40.token_to_usd_rate
+    #     token_purchase_40.active = True
+    #     token_purchase_40.created = datetime(year=2017, month=10, day=8, hour=17, minute=15, second=34)
+    #     token_purchase_40.transaction_id = 323
+    #     token_purchase_40.transaction = t40
 
     #     #
     #     # send emails

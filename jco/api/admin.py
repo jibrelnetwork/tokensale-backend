@@ -21,11 +21,11 @@ from jco.api.models import (
     Address,
     Account,
     Document,
-    Jnt,
+    Token,
     Operation,
-    PresaleJnt,
+    PresaleToken,
     Transaction,
-    UserJntPrice,
+    UserTokenPrice,
     Withdraw,
 )
 
@@ -281,16 +281,16 @@ class AddressAdmin(ReadonlyMixin, admin.ModelAdmin):
     account_link.allow_tags = True
 
 
-@admin.register(Jnt)
-class JntAdmin(ReadonlyMixin, admin.ModelAdmin):
-    list_display = ['jnt_value', 'currency_to_usd_rate', 'usd_value',
-                    'jnt_to_usd_rate', 'created', 'account_link', 'address_link']
+@admin.register(Token)
+class TokenAdmin(ReadonlyMixin, admin.ModelAdmin):
+    list_display = ['token_value', 'currency_to_usd_rate', 'usd_value',
+                    'token_to_usd_rate', 'created', 'account_link', 'address_link']
 
     list_select_related = ('transaction__address__user__account',)
     search_fields = ['transaction__address__user__username', 'transaction__address__address',
                      'transaction__transaction_id']
 
-    readonly_fields = ['jnt_value', 'currency_to_usd_rate', 'usd_value', 'active', 'created',
+    readonly_fields = ['token_value', 'currency_to_usd_rate', 'usd_value', 'active', 'created',
                        'transaction', 'meta']
 
     def account_link(self, obj):
@@ -311,7 +311,7 @@ class JntAdmin(ReadonlyMixin, admin.ModelAdmin):
         """
         Given a model instance save it to the database.
         """
-        obj.jnt_value = obj.usd_value / obj.jnt_to_usd_rate
+        obj.token_value = obj.usd_value / obj.token_to_usd_rate
         super().save_model(request, obj, form, change)
 
 
@@ -338,9 +338,9 @@ class DocumentAdmin(admin.ModelAdmin):
     search_fields = ['user__username']
 
 
-@admin.register(PresaleJnt)
-class PresaleJntAdmin(admin.ModelAdmin):
-    list_display = ['user', 'jnt_value', 'currency_to_usd_rate', 'usd_value', 'created', 'comment', 'is_sale_allocation']
+@admin.register(PresaleToken)
+class PresaleTokenAdmin(admin.ModelAdmin):
+    list_display = ['user', 'token_value', 'currency_to_usd_rate', 'usd_value', 'created', 'comment', 'is_sale_allocation']
     search_fields = ['user__username']
     exclude = ['created', 'is_presale_round']
 
@@ -353,8 +353,8 @@ class PresaleJntAdmin(admin.ModelAdmin):
         super().save_model(request, obj, form, change)
 
 
-@admin.register(UserJntPrice)
-class UserJntPriceAdmin(admin.ModelAdmin):
+@admin.register(UserTokenPrice)
+class UserTokenPriceAdmin(admin.ModelAdmin):
     list_display = ['pk', 'user', 'value', 'created_at']
     search_fields = ['user__username']
 

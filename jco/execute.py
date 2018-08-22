@@ -53,8 +53,8 @@ def scan_addresses():
 
 @app.cli.command()
 @initialize_app
-def calculate_jnt_purchases():
-    return commands.calculate_jnt_purchases()
+def calculate_token_purchases():
+    return commands.calculate_token_purchases()
 
 
 @app.cli.command()

@@ -1,11 +1,11 @@
 from datetime import datetime
 
 
-def format_jnt_value(value: float) -> str:
+def format_token_value(value: float) -> str:
     return "{0:.0f}".format(int(value))
 
 
-def format_jnt_value_subject(value: float) -> str:
+def format_token_value_subject(value: float) -> str:
     return "{0:.0f}".format(int(value))
 
 
