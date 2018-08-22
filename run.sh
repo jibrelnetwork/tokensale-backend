@@ -12,7 +12,7 @@ if [ "${RUNMODE}" = "app" ]; then
     uwsgi --yaml /app/uwsgi.yml
 elif [ "${RUNMODE}" = "celerybeat" ]; then
     echo "Starting jco-backend-celery-beat service, version: `cat /app/version.txt` on node `hostname`"
-    celery -A jco beat -l info
+    celery -A jco.dj_celery_tasks beat -l info
 elif [ "${RUNMODE}" = "celeryworker" ]; then
     echo "Starting jco-backend-celery-worker service, version: `cat /app/version.txt` on node `hostname`"
     celery -A jco worker -l info

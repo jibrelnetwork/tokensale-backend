@@ -15,14 +15,16 @@ services:
       context: .
     command: app
     environment: &jco_environment_definition
-      DB_HOST: postgres
-      DB_USER: jco
-      DB_PASSWORD: mysecretpassword
-      JCO_DATABASE_URI: postgres://jco:mysecretpassword@postgres/jco
-      CELERY_BROKER_URL: pyamqp://guest:guest@rabbit:5672//
-      SECRET_KEY: GENERATE-YOUR-UNIQUE-SECRET-KEY-64-CHARS-LONG
-      RAVEN_PROJECT_ID: 600330
-      RAVEN_SECRET: bc12312bcb2312b3c12c3b12da8a9cc9:d6bfc155c6bc312cbc412bcb623cb6c3
+      - DB_HOST=postgres
+      - DB_USER=jco
+      - DB_PASSWORD=mysecretpassword
+      - JCO_DATABASE_URI=postgres://jco:mysecretpassword@postgres/jco
+      - CELERY_BROKER_URL=pyamqp://guest:guest@rabbit:5672//
+      - SECRET_KEY=GENERATE-YOUR-UNIQUE-SECRET-KEY-64-CHARS-LONG
+      - RAVEN_PROJECT_ID=600330
+      - RAVEN_SECRET=bc12312bcb2312b3c12c3b12da8a9cc9:d6bfc155c6bc312cbc412bcb623cb6c3
+      - DJANGO_SETTINGS_MODULE=jco.settings
+      - RECAPTCHA_ENABLED=
 
     image: jibrelnetwork/jco-backend:latest
     ports:
