@@ -482,3 +482,14 @@ def is_user_email_confirmed(user):
     except EmailAddress.DoesNotExist:
         logger.error('No EmailAddress for user %s!!', user.username)
         return False
+
+
+class ICOState(models.Model):
+    id = models.CharField(primary_key=True, max_length=20)
+    order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=False)
+    start_date = models.DateTimeField()
+    finish_date = models.DateTimeField()
+
+    class Meta:
+        ordering = ['order']
