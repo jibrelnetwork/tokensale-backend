@@ -21,11 +21,11 @@ EMAIL_NOTIFICATIONS__TEMPLATES_PATH = os.path.join(os.path.dirname(os.path.realp
 logger = logging.getLogger(__name__)
 
 
-def _format_jnt_value(value: float) -> str:
+def _format_token_value(value: float) -> str:
     return "{0:.0f}".format(int(value))
 
 
-def _format_jnt_value_subject(value: float) -> str:
+def _format_token_value_subject(value: float) -> str:
     return "{0:.0f}".format(int(value))
 
 
@@ -328,7 +328,7 @@ def send_email_kyc_account_rejected(email, user_id=None):
     add_notification(email, user_id=user_id, type=NotificationType.kyc_account_rejected, data={})
 
 
-def send_email_presale_account_created(email, user, password_set_url, jnt_amount):
+def send_email_presale_account_created(email, user, password_set_url, token_amount):
     ctx = {'password_set_url': password_set_url,
-           'jnt_amount': '{:.2f}'.format(jnt_amount)}
+           'token_amount': '{:.2f}'.format(token_amount)}
     add_notification(email, user_id=user.pk, type=NotificationType.presale_account_created, data=ctx)

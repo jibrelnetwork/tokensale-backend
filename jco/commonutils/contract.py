@@ -90,9 +90,9 @@ class Contract:
         return self._ethJsonRpc.eth_getTransactionReceipt(_tx_id)
 
 
-def mintJNT(to_address: str, value: float) -> str:
+def mintTOKEN(to_address: str, value: float) -> str:
     try:
-        logging.getLogger(__name__).info("Start mintJNT to:{}, value:{}".format(to_address, value))
+        logging.getLogger(__name__).info("Start mintTOKEN to:{}, value:{}".format(to_address, value))
 
         contract = Contract(ETH_NODE__ADDRESS, ETH_NETWORK__ID)
 
@@ -120,15 +120,15 @@ def mintJNT(to_address: str, value: float) -> str:
             _tx_id = contract.sendRawTransaction(_tx_sign_data)
         except Exception:
             exception_str = ''.join(traceback.format_exception(*sys.exc_info()))
-            logging.getLogger(__name__).error("Failed mintJNT due to exception:\n{}"
+            logging.getLogger(__name__).error("Failed mintTOKEN due to exception:\n{}"
                                               .format(exception_str))
             return None
 
-        logging.getLogger(__name__).info("Finished mintJNT to:{}, value:{}".format(to_address, value))
+        logging.getLogger(__name__).info("Finished mintTOKEN to:{}, value:{}".format(to_address, value))
         return _tx_id
     except Exception:
         exception_str = ''.join(traceback.format_exception(*sys.exc_info()))
-        logging.getLogger(__name__).error("Failed mintJNT due to exception:\n{}"
+        logging.getLogger(__name__).error("Failed mintTOKEN due to exception:\n{}"
                                           .format(exception_str))
         return None
 

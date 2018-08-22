@@ -23,7 +23,7 @@ from jco.api.models import (
     Account,
     get_raised_tokens,
     Withdraw,
-    PresaleJnt,
+    PresaleToken,
     Operation,
     OperationError
 )
@@ -34,7 +34,7 @@ from jco.api.serializers import (
     ResendEmailConfirmationSerializer,
     TransactionSerializer,
     WithdrawSerializer,
-    PresaleJntSerializer,
+    PresaleTokenSerializer,
     DocumentSerializer,
     is_user_email_confirmed,
     OperationConfirmSerializer,
@@ -57,16 +57,16 @@ class TransactionsListView(APIView):
     authentication_classes = (authentication.TokenAuthentication,)
 
     def get(self, request):
-        txs_qs = Transaction.objects.filter(address__user=request.user).exclude(jnt=None)
+        txs_qs = Transaction.objects.filter(address__user=request.user).exclude(token=None)
         withdrawals_qs = Withdraw.objects.filter(user=request.user)
-        presale_jnt_qs = PresaleJnt.objects.filter(user=request.user)
+        presale_token_qs = PresaleToken.objects.filter(user=request.user)
 
         txs = TransactionSerializer(txs_qs, many=True).data
         withdrawals = WithdrawSerializer(withdrawals_qs, many=True).data
-        presale_jnt = PresaleJntSerializer(presale_jnt_qs, many=True).data
+        presale_token = PresaleTokenSerializer(presale_token_qs, many=True).data
 
         result_list = sorted(
-            chain(presale_jnt, txs, withdrawals),
+            chain(presale_token, txs, withdrawals),
             key=lambda t: t.pop('_date'),
             reverse=True)
         return Response(result_list)
@@ -144,7 +144,7 @@ class ResendEmailConfirmationView(GenericAPIView):
 
 class RaisedTokensView(GenericAPIView):
     """
-    Get raised JNT tokens amount
+    Get raised TOKEN tokens amount
     """
 
     permission_classes = (permissions.AllowAny,)
@@ -204,47 +204,47 @@ class EthAddressView(GenericAPIView):
 
 class WithdrawRequestView(APIView):
     """
-    Request JNT withdrawal link to send via email
+    Request TOKEN withdrawal link to send via email
     """
     def post(self, request):
-        logger.info('Request JNT withdraw for %s', request.user.username)
+        logger.info('Request TOKEN withdraw for %s', request.user.username)
         if datetime.now() < settings.WITHDRAW_AVAILABLE_SINCE:
-            logger.info('Request JNT withdraw for %s rejected: date', request.user.username)
+            logger.info('Request TOKEN withdraw for %s rejected: date', request.user.username)
             return Response({'detail': _('Withdraw will be available after {}'.format(settings.WITHDRAW_AVAILABLE_SINCE))},
                             status=403)
 
         if not request.user.account.withdraw_address:
-            logger.info('Request JNT withdraw for %s rejected: no address', request.user.username)
+            logger.info('Request TOKEN withdraw for %s rejected: no address', request.user.username)
             return Response({'detail': _('No Withdraw address in your account data.')},
                             status=400)
 
         if request.user.account.is_identity_verified is False:
-            logger.info('Request JNT withdraw for %s rejected: KYC not verified', request.user.username)
-            resp = {'detail': _('Please confirm your identity to withdraw JNT')}
+            logger.info('Request TOKEN withdraw for %s rejected: KYC not verified', request.user.username)
+            resp = {'detail': _('Please confirm your identity to withdraw TOKEN')}
             return Response(resp, status=403)
 
         if is_user_email_confirmed(request.user) is False:
-            logger.info('Request JNT withdraw for %s rejected: email not confirmed', request.user.username)
+            logger.info('Request TOKEN withdraw for %s rejected: email not confirmed', request.user.username)
             resp = {'detail': _('Your email address is not confirmed yet')}
             return Response(resp, status=403)
 
-        withdraw_id = commands.add_withdraw_jnt(request.user.pk)
+        withdraw_id = commands.add_withdraw_token(request.user.pk)
         if not withdraw_id:
-            logger.info('Request JNT withdraw for %s rejected: balance or error', request.user.username)
+            logger.info('Request TOKEN withdraw for %s rejected: balance or error', request.user.username)
             resp = {'detail': _('Impossible withdrawal. Check you balance.')}
             return Response(resp, status=400)
 
-        logger.info('JNT Withdraw created: #%s for %s', withdraw_id, request.user.username)
+        logger.info('TOKEN Withdraw created: #%s for %s', withdraw_id, request.user.username)
         withdraw = Withdraw.objects.get(pk=withdraw_id)
 
         try:
             params = {
                 'address': request.user.account.withdraw_address,
-                'jnt_amount': withdraw.value,
+                'token_amount': withdraw.value,
                 'withdraw_id': withdraw.pk,
             }
             operation = Operation.create_operation(
-                operation=Operation.OP_WITHDRAW_JNT,
+                operation=Operation.OP_WITHDRAW_TOKEN,
                 user=request.user,
                 params=params
             )
@@ -252,20 +252,20 @@ class WithdrawRequestView(APIView):
             logger.exception('Withdraw request failed for %s', request.user.username)
             return Response({'detail': _('Unexpected error, please try again')}, status=500)
 
-        logger.info('JNT withdrawal for %s: operation #%s created',
+        logger.info('TOKEN withdrawal for %s: operation #%s created',
                     request.user.username, operation.pk)
-        return Response({'detail': _('JNT withdrawal is requested. Check you email for confirmation.')})
+        return Response({'detail': _('TOKEN withdrawal is requested. Check you email for confirmation.')})
 
 
 class WithdrawConfirmView(GenericAPIView):
     """
-    Confirm JNT withdrawal
+    Confirm TOKEN withdrawal
     """
     permission_classes = (permissions.AllowAny,)
     serializer_class = OperationConfirmSerializer
 
     def post(self, request):
-        logger.info('Start JNT withdraw confirmation')
+        logger.info('Start TOKEN withdraw confirmation')
 
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -273,37 +273,37 @@ class WithdrawConfirmView(GenericAPIView):
         try:
             operation = Operation.objects.get(pk=serializer.data['operation_id'])
         except Exception:
-            logger.exception('JNT withdraw confirmation for %s rejected: operation %s does not exist',
+            logger.exception('TOKEN withdraw confirmation for %s rejected: operation %s does not exist',
                          serializer.data['token'], serializer.data['operation_id'])
-            return Response({'detail': _('JNT withdrawal is failed.')}, status=403)
+            return Response({'detail': _('TOKEN withdrawal is failed.')}, status=403)
 
-        logger.info('JNT withdraw confirmation for %s', operation.user.username)
+        logger.info('TOKEN withdraw confirmation for %s', operation.user.username)
         if datetime.now() < settings.WITHDRAW_AVAILABLE_SINCE:
-            logger.info('JNT withdraw confirmation for %s rejected: date', operation.user.username)
+            logger.info('TOKEN withdraw confirmation for %s rejected: date', operation.user.username)
             return Response({'detail': _('Withdraw will be available after {}'.format(settings.WITHDRAW_AVAILABLE_SINCE))},
                             status=403)
 
         if is_user_email_confirmed(operation.user) is False:
-            logger.info('JNT withdraw confirmation for %s rejected: email not confirmed', operation.user.username)
+            logger.info('TOKEN withdraw confirmation for %s rejected: email not confirmed', operation.user.username)
             resp = {'detail': _('You email address is not confirmed yet')}
             return Response(resp, status=403)
 
         if operation.user.account.is_identity_verified is False:
-            logger.info('Request JNT withdraw for %s rejected: KYC not verified', operation.user.username)
-            resp = {'detail': _('Please confirm your identity to withdraw JNT')}
+            logger.info('Request TOKEN withdraw for %s rejected: KYC not verified', operation.user.username)
+            resp = {'detail': _('Please confirm your identity to withdraw TOKEN')}
             return Response(resp, status=403)
 
         try:
-            logger.info('JNT withdraw confirmation for %s: performing operation #%s',
+            logger.info('TOKEN withdraw confirmation for %s: performing operation #%s',
                         operation.user.username, operation.pk)
             operation.perform(serializer.data['token'])
-            logger.info('JNT withdraw confirmation for %s: successfull operation #%s',
+            logger.info('TOKEN withdraw confirmation for %s: successfull operation #%s',
                         operation.user.username, operation.pk)
         except Exception:
-            logger.exception('JNT withdraw confirmation for %s: failed operation #%s',
+            logger.exception('TOKEN withdraw confirmation for %s: failed operation #%s',
                         operation.user.username, operation.pk)
-            return Response({'detail': _('JNT withdrawal is failed.')}, status=500)
-        return Response({'detail': _('JNT withdrawal successfull.')})
+            return Response({'detail': _('TOKEN withdrawal is failed.')}, status=500)
+        return Response({'detail': _('TOKEN withdrawal successfull.')})
 
 
 class ChangeAddressConfirmView(GenericAPIView):

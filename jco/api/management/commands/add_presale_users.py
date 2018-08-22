@@ -13,7 +13,7 @@ from django.utils.encoding import force_bytes
 from allauth.account.adapter import build_absolute_uri
 from allauth.account.models import EmailAddress
 
-from jco.api.models import Account, Address, PresaleJnt
+from jco.api.models import Account, Address, PresaleToken
 from jco.api.tasks import verify_user
 from jco.appprocessor.commands import assign_addresses
 from jco.appprocessor.notify import send_email_presale_account_created
@@ -21,7 +21,7 @@ from jco.appprocessor.notify import send_email_presale_account_created
 
 class Command(BaseCommand):
     """
-    First Name ,First Name,Last name,Birth date,JNT Amount,Email,Country,Passport
+    First Name ,First Name,Last name,Birth date,TOKEN Amount,Email,Country,Passport
     """
     help = 'Creates accounts for presale users from CSV file'
 
@@ -35,10 +35,10 @@ class Command(BaseCommand):
         success = False
         with transaction.atomic():
             for row in reader:
-                user, jnt_amount = self.process_row(row)
+                user, token_amount = self.process_row(row)
                 created_users.append(user)
                 enter_url = self.get_enter_url(user)
-                send_email_presale_account_created(user.username, user, enter_url, jnt_amount)
+                send_email_presale_account_created(user.username, user, enter_url, token_amount)
             success = True
 
         if success is True:
@@ -52,7 +52,7 @@ class Command(BaseCommand):
             date_of_birth = datetime.datetime.strptime(row[3].strip(), '%Y-%m-%d')
         else:
             date_of_birth = None
-        jnt_amount = float(row[4].strip().replace(',', ''))
+        token_amount = float(row[4].strip().replace(',', ''))
         email = row[5].strip()
         country = row[6].strip()
         document_url = row[8].strip()
@@ -91,18 +91,18 @@ class Command(BaseCommand):
                 self.style.SUCCESS('Account "{}" created'.format(user.username)))
 
         try:
-            jnt = PresaleJnt.objects.get(user=user)
+            token = PresaleToken.objects.get(user=user)
             self.stdout.write(
-                    self.style.SUCCESS('JNT for "{}" exist, {}'.format(user.username, jnt.jnt_value)))
-        except PresaleJnt.DoesNotExist:
-            jnt = PresaleJnt.objects.create(
+                    self.style.SUCCESS('TOKEN for "{}" exist, {}'.format(user.username, token.token_value)))
+        except PresaleToken.DoesNotExist:
+            token = PresaleToken.objects.create(
                 user=user,
-                jnt_value=jnt_amount,
+                token_value=token_amount,
                 created=datetime.datetime(2017, 11, 27, 12)
             )
             self.stdout.write(
-                self.style.SUCCESS('JNT for "{}" created, {}'.format(user.username, jnt.jnt_value)))
-        return user, jnt.jnt_value
+                self.style.SUCCESS('TOKEN for "{}" created, {}'.format(user.username, token.token_value)))
+        return user, token.token_value
 
     def get_enter_url(self, user):
         uid = urlsafe_base64_encode(force_bytes(user.pk)).decode()

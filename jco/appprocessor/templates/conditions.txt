@@ -53,24 +53,24 @@ Emails sent by the backend app
 - Filename: transactions_01.html
 
 ## We received withdrawal request
-- Condition: user requested withdrawal of JNT, we send confirmation URL
+- Condition: user requested withdrawal of TOKEN, we send confirmation URL
 - Filename: transactions_02_01.html
 
 ## We received withdrawal request
-- Condition: user confirmed JNT withdrawal via URL from the email
+- Condition: user confirmed TOKEN withdrawal via URL from the email
 - Filename: transactions_02_2.html
 
-## Withdrawal of JNT succeeded
-- Condition: we succesfully processed user`s request to withdraw JNT
+## Withdrawal of TOKEN succeeded
+- Condition: we succesfully processed user`s request to withdraw TOKEN
 - Filename: transactions_03.html
 
-## We received BTC/ETH, but JNT are sold out
-- Condition: we received ETH/BTC, but all JNT are sold out -> we will return BTC/ETH back manually
+## We received BTC/ETH, but TOKEN are sold out
+- Condition: we received ETH/BTC, but all TOKEN are sold out -> we will return BTC/ETH back manually
 - Filename: transactions_04.html
 
 
 # Presale
 
 ## We created account for an presale investor
-- Condition: we created account for an presale investor and assigned required number of JNT
+- Condition: we created account for an presale investor and assigned required number of TOKEN
 - Filename: presale_01.html

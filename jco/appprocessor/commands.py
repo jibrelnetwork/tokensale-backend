@@ -44,7 +44,7 @@ from jco.commonutils.utils import *
 from jco.commonutils.ga_integration import *
 from jco.commonutils.formats import *
 from jco.commonutils.ethaddress_verify import is_valid_address
-from jco.commonutils.contract import mintJNT, getTransactionInfo
+from jco.commonutils.contract import mintTOKEN, getTransactionInfo
 
 
 #
@@ -685,9 +685,9 @@ def get_eth_investments(address_str: str) -> List[Transaction]:
 
 
 def get_user_custom_price(user_id: int) -> Optional[float]:
-    price = session.query(UserJntPrice.value) \
-        .filter(UserJntPrice.user_id == user_id) \
-        .order_by(UserJntPrice.created_at.desc()) \
+    price = session.query(UserTokenPrice.value) \
+        .filter(UserTokenPrice.user_id == user_id) \
+        .order_by(UserTokenPrice.created_at.desc()) \
         .first()  # type: Optional[Tuple[float]]
 
     if price is None:
@@ -697,112 +697,112 @@ def get_user_custom_price(user_id: int) -> Optional[float]:
 
 
 #
-# Get total JNT tokens
+# Get total TOKEN tokens
 #
-def get_total_jnt_amount() -> float:
-    total_presale_jnt = session.query(func.coalesce(func.sum(PresaleJnt.jnt_value), 0)) \
-        .filter(PresaleJnt.is_sale_allocation == True).as_scalar()
+def get_total_token_amount() -> float:
+    total_presale_token = session.query(func.coalesce(func.sum(PresaleToken.token_value), 0)) \
+        .filter(PresaleToken.is_sale_allocation == True).as_scalar()
 
-    total_ico_jnt = session.query(func.coalesce(func.sum(JNT.jnt_value), 0)) \
-        .filter(JNT.is_sale_allocation == True).as_scalar()
+    total_ico_token = session.query(func.coalesce(func.sum(TOKEN.token_value), 0)) \
+        .filter(TOKEN.is_sale_allocation == True).as_scalar()
 
-    jnt_sum = session.query(total_presale_jnt + total_ico_jnt) \
+    token_sum = session.query(total_presale_token + total_ico_token) \
         .one()  # type: tuple[float]
-    return RAISED_TOKENS_SHIFT + jnt_sum[0]
+    return RAISED_TOKENS_SHIFT + token_sum[0]
 
 
 #
-# Create JNT records and notify about new transactions
+# Create TOKEN records and notify about new transactions
 #
 
-def calculate_jnt_purchases():
+def calculate_token_purchases():
     # noinspection PyBroadException
     try:
-        logging.getLogger(__name__).info("Start to calculate JNT purchases")
+        logging.getLogger(__name__).info("Start to calculate TOKEN purchases")
 
         current_time = datetime.utcnow()
 
         #if current_time < INVESTMENTS__PUBLIC_SALE__START_DATE:
-        #    logging.getLogger(__name__).info("Finished to calculate JNT purchases")
+        #    logging.getLogger(__name__).info("Finished to calculate TOKEN purchases")
         #    return
 
-        processed_tx_ids = session.query(JNT.transaction_id).subquery()
+        processed_tx_ids = session.query(TOKEN.transaction_id).subquery()
         records = session.query(Transaction, Account) \
             .outerjoin(Address, Address.id == Transaction.address_id) \
             .outerjoin(Account, Account.user_id == Address.user_id) \
             .filter(not_(Transaction.id.in_(processed_tx_ids))) \
-            .filter(not_(and_(Transaction.meta.has_key(Transaction.meta_key_skip_jnt_calculation),
-                              Transaction.meta[Transaction.meta_key_skip_jnt_calculation].astext.cast(Boolean) == True))) \
+            .filter(not_(and_(Transaction.meta.has_key(Transaction.meta_key_skip_token_calculation),
+                              Transaction.meta[Transaction.meta_key_skip_token_calculation].astext.cast(Boolean) == True))) \
             .all()  # type: List[Tuple[Transaction, Account]]
 
-        jnt_price = 0.25
+        token_price = 0.25
 
         for tx, account in records:
             # noinspection PyBroadException
             try:
                 if tx.mined >= INVESTMENTS__PUBLIC_SALE__END_DATE.replace(tzinfo=tz.FixedOffsetTimezone(offset=0, name=None)):
                     send_email_transaction_received_sold_out(tx.address.user.email, tx.address.user_id, tx.as_dict())
-                    tx.set_skip_jnt_calculation(True)
+                    tx.set_skip_token_calculation(True)
                     session.commit()
                     continue
                 #elif tx.mined < INVESTMENTS__PUBLIC_SALE__START_DATE.replace(tzinfo=tz.FixedOffsetTimezone(offset=0, name=None)):
                 #    continue
 
-                custom_jnt_price = get_user_custom_price(tx.address.user_id)
+                custom_token_price = get_user_custom_price(tx.address.user_id)
 
                 currency_to_usd_rate = get_ticker_price(tx.address.type, CurrencyType.usd, tx.mined)
                 if currency_to_usd_rate is None:
                     logging.getLogger(__name__).error("Failed to get currency exchange rate. Skip transaction: {}"
                                                       .format(tx))
-                    tx.set_skip_jnt_calculation(True)
+                    tx.set_skip_token_calculation(True)
                     session.commit()
                     continue
 
                 tx_usd_value = tx.value * currency_to_usd_rate
-                tx_jnt_value = tx_usd_value / (jnt_price if not custom_jnt_price else custom_jnt_price)
+                tx_token_value = tx_usd_value / (token_price if not custom_token_price else custom_token_price)
 
                 if account and account.is_sale_allocation == False:
                     logging.getLogger(__name__).error("processing tx for special user: {}"
                                                       .format(account.user_id))
-                elif get_total_jnt_amount() + tx_jnt_value > TOKENS__TOTAL_SUPPLY:
-                    tx.set_skip_jnt_calculation(True)
+                elif get_total_token_amount() + tx_token_value > TOKENS__TOTAL_SUPPLY:
+                    tx.set_skip_token_calculation(True)
                     session.commit()
                     if account and account.is_sale_allocation:
                         send_email_transaction_received_sold_out(tx.address.user.email, tx.address.user_id, tx.as_dict())
                     continue
 
-                jnt = JNT()
-                jnt.currency_to_usd_rate = currency_to_usd_rate
-                jnt.usd_value = tx_usd_value
-                jnt.jnt_to_usd_rate = jnt_price if not custom_jnt_price else custom_jnt_price
-                jnt.jnt_value = tx_jnt_value
-                jnt.transaction = tx
-                jnt.is_sale_allocation = account.is_sale_allocation if account else True
+                token = TOKEN()
+                token.currency_to_usd_rate = currency_to_usd_rate
+                token.usd_value = tx_usd_value
+                token.token_to_usd_rate = token_price if not custom_token_price else custom_token_price
+                token.token_value = tx_token_value
+                token.transaction = tx
+                token.is_sale_allocation = account.is_sale_allocation if account else True
 
                 session.commit()
 
                 send_email_transaction_received(tx.address.user.email, tx.address.user_id,
-                                                tx.as_dict(), jnt.as_dict())
+                                                tx.as_dict(), token.as_dict())
 
                 try:
-                    on_transaction_received(tx.address.user.account, tx, jnt)
+                    on_transaction_received(tx.address.user.account, tx, token)
                 except Exception:
                     exception_str = ''.join(traceback.format_exception(*sys.exc_info()))
                     logging.getLogger(__name__).error(
                         "Failed GA tracking for TX {} due to exception:\n{}"
                         .format(tx.id, exception_str))
 
-                logging.getLogger(__name__).info("New JNT purchase persisted: {}".format(jnt))
+                logging.getLogger(__name__).info("New TOKEN purchase persisted: {}".format(token))
             except Exception:
                 exception_str = ''.join(traceback.format_exception(*sys.exc_info()))
-                logging.getLogger(__name__).error("Failed to calculate JNT purchases for TX {} due to exception:\n{}"
+                logging.getLogger(__name__).error("Failed to calculate TOKEN purchases for TX {} due to exception:\n{}"
                                                   .format(tx.id, exception_str))
                 session.rollback()
 
-        logging.getLogger(__name__).info("Finished to calculate JNT purchases")
+        logging.getLogger(__name__).info("Finished to calculate TOKEN purchases")
     except Exception:
         exception_str = ''.join(traceback.format_exception(*sys.exc_info()))
-        logging.getLogger(__name__).error("Failed to calculate JNT purchases due to exception:\n{}"
+        logging.getLogger(__name__).error("Failed to calculate TOKEN purchases due to exception:\n{}"
                                           .format(exception_str))
         session.rollback()
 
@@ -1179,7 +1179,7 @@ def withdraw_processing():
 
         for withdraw in withdraws:
             try:
-                tx_id = mintJNT(withdraw.to, withdraw.value)
+                tx_id = mintTOKEN(withdraw.to, withdraw.value)
                 if tx_id:
                     withdraw.transaction_id = tx_id
                     withdraw.status = TransactionStatus.pending
@@ -1245,13 +1245,13 @@ def check_withdraw_transactions():
 
 
 #
-# Persist withdraw operation of JNT to the database
+# Persist withdraw operation of TOKEN to the database
 #
 
-def add_withdraw_jnt(user_id: int) -> Optional[int]:
+def add_withdraw_token(user_id: int) -> Optional[int]:
     # noinspection PyBroadException
     try:
-        logging.getLogger(__name__).info("Start persist withdraw operation of JNT to the database. account_id: {}"
+        logging.getLogger(__name__).info("Start persist withdraw operation of TOKEN to the database. account_id: {}"
                                          .format(user_id))
         account = session.query(Account) \
             .filter(Account.user_id == user_id) \
@@ -1268,18 +1268,18 @@ def add_withdraw_jnt(user_id: int) -> Optional[int]:
             session.rollback()
             return None
 
-        total_jnt = session.query(func.coalesce(func.sum(JNT.jnt_value), 0)) \
-            .outerjoin(Transaction, Transaction.id == JNT.transaction_id) \
+        total_token = session.query(func.coalesce(func.sum(TOKEN.token_value), 0)) \
+            .outerjoin(Transaction, Transaction.id == TOKEN.transaction_id) \
             .outerjoin(Address, Address.id == Transaction.address_id) \
             .filter(Address.id.in_(addresses_ids), Transaction.status == TransactionStatus.success).as_scalar()
 
-        total_presale_jnt = session.query(func.coalesce(func.sum(PresaleJnt.jnt_value), 0)) \
-            .filter(PresaleJnt.user_id == user_id).as_scalar()
+        total_presale_token = session.query(func.coalesce(func.sum(PresaleToken.token_value), 0)) \
+            .filter(PresaleToken.user_id == user_id).as_scalar()
 
-        total_withdraw_jnt = session.query(func.coalesce(func.sum(Withdraw.value), 0)) \
+        total_withdraw_token = session.query(func.coalesce(func.sum(Withdraw.value), 0)) \
             .filter(Withdraw.user_id == user_id).as_scalar()
 
-        withdrawable_balance = session.query(total_jnt + total_presale_jnt - total_withdraw_jnt).one()
+        withdrawable_balance = session.query(total_token + total_presale_token - total_withdraw_token).one()
         if withdrawable_balance[0] <= 0.0:
             session.rollback()
             return None
@@ -1288,13 +1288,13 @@ def add_withdraw_jnt(user_id: int) -> Optional[int]:
             .values(user_id=user_id,
                     status=TransactionStatus.not_confirmed,
                     to=account.withdraw_address,
-                    value=total_jnt + total_presale_jnt - total_withdraw_jnt,
+                    value=total_token + total_presale_token - total_withdraw_token,
                     transaction_id='')
 
         result = session.execute(insert_query)
         session.commit()
 
-        logging.getLogger(__name__).info("Finished to persist withdraw operation of JNT to the database. account_id: {}"
+        logging.getLogger(__name__).info("Finished to persist withdraw operation of TOKEN to the database. account_id: {}"
                                          .format(user_id))
 
         return result.inserted_primary_key[0]
@@ -1343,15 +1343,15 @@ def add_notification(email: str, type: str, user_id: Optional[int] = None, data:
 
 
 def send_email_transaction_received(email: str, user_id: int, transaction: dict,
-                                    jnt: dict, type: Optional[str] = NotificationType.transaction_received) -> bool:
+                                    token: dict, type: Optional[str] = NotificationType.transaction_received) -> bool:
     ctx = {
-        'jnt_id': jnt['id'],
+        'token_id': token['id'],
         'transaction_id': transaction['id'],
-        'transaction_jnt_amount': format_jnt_value(jnt['jnt_value']),
-        'transaction_usd_amount': format_fiat_value(jnt['usd_value']),
+        'transaction_token_amount': format_token_value(token['token_value']),
+        'transaction_usd_amount': format_fiat_value(token['usd_value']),
         'transaction_currency_amount': format_coin_value(transaction['value']),
         'transaction_currency_name': transaction['currency'],
-        'transaction_currency_conversion_rate': format_conversion_rate(jnt['currency_to_usd_rate']),
+        'transaction_currency_conversion_rate': format_conversion_rate(token['currency_to_usd_rate']),
     }
 
     return add_notification(email, user_id=user_id, type=type, data=ctx)
@@ -1362,7 +1362,7 @@ def send_email_withdrawal_request(email: str, user_id: int, withdraw: dict,
     ctx = {
         'withdraw_id': withdraw['id'],
         'withdraw_address': withdraw['to'],
-        'withdraw_jnt_amount': format_jnt_value(withdraw['value']),
+        'withdraw_token_amount': format_token_value(withdraw['value']),
     }
     return add_notification(email, user_id=user_id, type=type, data=ctx)
 

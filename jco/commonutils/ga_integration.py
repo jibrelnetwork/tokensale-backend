@@ -132,12 +132,12 @@ def on_status_not_verified_manual(account):
     get_ga_client(account).send_status('NotVerifiedManual')
 
 
-def on_transaction_received(account, tx, jnt):
+def on_transaction_received(account, tx, token):
     get_ga_client(account).send_status('SuccessBuy')
     transaction_id = tx.transaction_id
-    summ = jnt.usd_value
-    quantity = jnt.jnt_value
-    item_price = jnt.jnt_to_usd_rate
+    summ = token.usd_value
+    quantity = token.token_value
+    item_price = token.token_to_usd_rate
     get_ga_client(account).send_tx_with_item(transaction_id, summ, quantity, item_price)
 
 

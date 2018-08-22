@@ -102,16 +102,16 @@ class Account(models.Model):
         notify.send_email_kyc_account_rejected(self.user.email if self.user else None,
                                                self.user.id if self.user else None)
 
-    def get_jnt_balance(self):
-        presale_balance = PresaleJnt.objects.filter(
-            user=self.user).aggregate(models.Sum('jnt_value'))['jnt_value__sum'] or 0
-        jnt_balance = (Jnt.objects.filter(transaction__address__user=self.user,
+    def get_token_balance(self):
+        presale_balance = PresaleToken.objects.filter(
+            user=self.user).aggregate(models.Sum('token_value'))['token_value__sum'] or 0
+        token_balance = (Token.objects.filter(transaction__address__user=self.user,
                                           transaction__status=TransactionStatus.success)
-                       .aggregate(models.Sum('jnt_value')))['jnt_value__sum'] or 0
+                       .aggregate(models.Sum('token_value')))['token_value__sum'] or 0
 
         withdraws = Withdraw.objects.filter(
             user=self.user).aggregate(models.Sum('value'))['value__sum'] or 0
-        return jnt_balance + presale_balance - withdraws
+        return token_balance + presale_balance - withdraws
 
     def __str__(self):
         return '{} {}'.format(self.first_name, self.last_name)
@@ -181,38 +181,38 @@ class Price(models.Model):
         db_table = 'price'
 
 
-class Jnt(models.Model):
+class Token(models.Model):
     currency_to_usd_rate = models.FloatField()
     usd_value = models.FloatField()
-    jnt_to_usd_rate = models.FloatField(help_text='If you change this value and save - jnt_value'
+    token_to_usd_rate = models.FloatField(help_text='If you change this value and save - token_value'
                                                   ' will be recalculated as '
-                                                  'jnt_value = usd_value / jnt_to_usd_rate')
-    jnt_value = models.FloatField()
+                                                  'token_value = usd_value / token_to_usd_rate')
+    token_value = models.FloatField()
     active = models.BooleanField()
     created = models.DateTimeField()
     is_sale_allocation = models.BooleanField(default=True)
     transaction = models.OneToOneField('Transaction', models.DO_NOTHING,
-                                       unique=True, related_name='jnt')
+                                       unique=True, related_name='token')
     meta = JSONField(default={})  # This field type is a guess.
 
     class Meta:
-        db_table = 'JNT'
+        db_table = 'TOKEN'
 
     def __str__(self):
-        return '{} [{}]'.format(str(self.created), self.jnt_value)
+        return '{} [{}]'.format(str(self.created), self.token_value)
 
 
 def get_raised_tokens():
     """
     Get raised tokens amount
     """
-    manual_jnt = (PresaleJnt.objects.filter(is_sale_allocation=True, is_presale_round=False)
-                  .aggregate(models.Sum('jnt_value'))['jnt_value__sum'] or 0)
+    manual_token = (PresaleToken.objects.filter(is_sale_allocation=True, is_presale_round=False)
+                  .aggregate(models.Sum('token_value'))['token_value__sum'] or 0)
 
-    jnt = (Jnt.objects.filter(is_sale_allocation=True)
-           .aggregate(models.Sum('jnt_value'))['jnt_value__sum'] or 0)
+    token = (Token.objects.filter(is_sale_allocation=True)
+           .aggregate(models.Sum('token_value'))['token_value__sum'] or 0)
 
-    return manual_jnt + jnt + settings.RAISED_TOKENS_SHIFT
+    return manual_token + token + settings.RAISED_TOKENS_SHIFT
 
 
 class Withdraw(models.Model):
@@ -263,12 +263,12 @@ class Notification(models.Model):
         return render_to_string(self.get_template(), self.meta)
 
 
-class PresaleJnt(models.Model):
+class PresaleToken(models.Model):
     """
-    JNT from presale round
+    TOKEN from presale round
     """
     user = models.ForeignKey(settings.AUTH_USER_MODEL)
-    jnt_value = models.FloatField()
+    token_value = models.FloatField()
     currency_to_usd_rate = models.FloatField(default=0)
     usd_value = models.FloatField(default=0)
     created = models.DateTimeField()
@@ -277,7 +277,7 @@ class PresaleJnt(models.Model):
     is_presale_round = models.BooleanField()
 
     class Meta:
-        db_table = 'presale_jnt'
+        db_table = 'presale_token'
 
 
 class Affiliate(models.Model):
@@ -338,19 +338,19 @@ class ChangeAddressHandler:
             email, type=NotificationType.withdraw_address_changed)
 
 
-class WithdrawJntHandler:
+class WithdrawTokenHandler:
 
     def send_confirmation_email(self, email, confirmation_url, params):
         data = {
             'confirm_url': confirmation_url,
-            'withdraw_jnt_amount': params['jnt_amount'],
+            'withdraw_token_amount': params['token_amount'],
             'withdraw_address': params['address'],
         }
         return notify.add_notification(
             email, type=NotificationType.withdrawal_request, data=data)
 
     def run(self, user, params):
-        logger.info('Running WithdrawJntHandler for %s', user.username)
+        logger.info('Running WithdrawTokenHandler for %s', user.username)
         withdraw = Withdraw.objects.get(user=user, pk=params['withdraw_id'])
         if withdraw.status == TransactionStatus.not_confirmed:
             withdraw.status = TransactionStatus.confirmed
@@ -361,7 +361,7 @@ class WithdrawJntHandler:
 
     def notify_completed(self, email, params):
         data = {
-            'withdraw_jnt_amount': params['jnt_amount'],
+            'withdraw_token_amount': params['token_amount'],
             'withdraw_address': params['address'],
         }
         return notify.add_notification(
@@ -373,16 +373,16 @@ class Operation(models.Model):
     Some operations are requires email confirmation
     """
     OP_CHANGE_ADDRESS = 'change_address'
-    OP_WITHDRAW_JNT = 'withdraw_jnt'
+    OP_WITHDRAW_TOKEN = 'withdraw_token'
 
     OP_CHOICES = [
         (OP_CHANGE_ADDRESS, 'Change Withdraw Address'),
-        (OP_WITHDRAW_JNT, 'Withdraw JNT '),
+        (OP_WITHDRAW_TOKEN, 'Withdraw TOKEN '),
     ]
 
     handlers = {
         OP_CHANGE_ADDRESS: ChangeAddressHandler(),
-        OP_WITHDRAW_JNT: WithdrawJntHandler(),
+        OP_WITHDRAW_TOKEN: WithdrawTokenHandler(),
     }
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -436,7 +436,7 @@ class Operation(models.Model):
     def make_confirmation_url(self):
         site = get_current_site(None)
         op_url_map = {
-            self.OP_WITHDRAW_JNT: 'withdraw-confirm',
+            self.OP_WITHDRAW_TOKEN: 'withdraw-confirm',
             self.OP_CHANGE_ADDRESS: 'change-address-confirm',
         }
         return 'https://{}/#/welcome/{}/request/{}/{}'.format(
@@ -459,20 +459,20 @@ class Operation(models.Model):
             return op
 
 
-class UserJntPrice(models.Model):
+class UserTokenPrice(models.Model):
     """
-    # 71 Custom JNT price for user
+    # 71 Custom TOKEN price for user
     """
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.DO_NOTHING,
-                             related_name='custom_jnt_prices')
+                             related_name='custom_token_prices')
     created_at = models.DateTimeField(auto_now_add=True)
     value = models.FloatField()
 
     class Meta:
-        db_table = 'user_jnt_price'
+        db_table = 'user_token_price'
 
     def __str__(self):
-        return 'Custom Price for {}: {}$/JNT'.format(self.user.username, self.value)
+        return 'Custom Price for {}: {}$/TOKEN'.format(self.user.username, self.value)
 
 
 def is_user_email_confirmed(user):

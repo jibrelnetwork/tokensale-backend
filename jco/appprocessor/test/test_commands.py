@@ -18,7 +18,7 @@ from jco.appdb.db import session
 from jco.appdb.models import *
 from jco.commonutils.utils import *
 from jco.commonutils.app_init import initialize_app
-from jco.commonutils.contract import mintJNT
+from jco.commonutils.contract import mintTOKEN
 from jco.appprocessor.affiliate import (
     scan_affiliates,
     check_new_transactions,
@@ -45,17 +45,17 @@ from jco.appprocessor.commands import (
     get_account_list,
     get_all_proposals,
     get_all_transactions,
-    add_withdraw_jnt,
+    add_withdraw_token,
     assign_addresses,
     withdraw_processing,
     add_notification,
-    calculate_jnt_purchases,
+    calculate_token_purchases,
     check_withdraw_addresses,
     get_btc_addresses_with_positive_balance,
     get_eth_addresses_with_positive_balance,
     check_withdraw_transactions,
     get_user_custom_price,
-    get_total_jnt_amount
+    get_total_token_amount
 )
 
 
@@ -78,16 +78,16 @@ def create_user(user_name, email) -> User:
 
 class TestCommands(unittest.TestCase):
     def clear_all_tables(selfself):
-        session.query(UserJntPrice).delete()
+        session.query(UserTokenPrice).delete()
         session.query(Notification).delete()
         session.query(Withdraw).delete()
-        session.query(JNT).delete()
+        session.query(TOKEN).delete()
         session.query(Transaction).delete()
         session.query(Affiliate).delete()
         session.query(Price).delete()
         session.query(Address).delete()
         session.query(Account).delete()
-        session.query(PresaleJnt).delete()
+        session.query(PresaleToken).delete()
         session.query(User).delete()
         session.commit()
         pass
@@ -465,7 +465,7 @@ class TestCommands(unittest.TestCase):
         transaction_value = 20000000000000000000
         transaction_mined = datetime.utcnow()
         eth_currency_rate = get_ticker_price(CurrencyType.eth, CurrencyType.usd, transaction_mined)
-        jnt_usd_value = transaction_value * eth_currency_rate / (10 ** 18)
+        token_usd_value = transaction_value * eth_currency_rate / (10 ** 18)
 
         transaction_1 = Transaction()
         transaction_1.transaction_id = transaction_id
@@ -508,7 +508,7 @@ class TestCommands(unittest.TestCase):
         #self.assertTrue(success, "some keys not present in transaction")
 
 
-    def test_add_withdraw_jnt(self):
+    def test_add_withdraw_token(self):
         # fetch last prices BTC and ETH
         fetch_tickers_price()
 
@@ -516,11 +516,11 @@ class TestCommands(unittest.TestCase):
         generate_btc_addresses(self.mnemonic, 1)
 
         user = create_user("user1", "user1@local")
-        presale_jnt = PresaleJnt(user_id=user.id,
-                                 jnt_value=1000,
+        presale_token = PresaleToken(user_id=user.id,
+                                 token_value=1000,
                                  is_sale_allocation=False,
                                  is_presale_round=False)
-        session.add(presale_jnt)
+        session.add(presale_token)
         session.commit()
 
         account = Account(fullname="user1",
@@ -553,9 +553,9 @@ class TestCommands(unittest.TestCase):
 
         self.assertTrue(eth_currency_rate > 0, "eth_currency_rate must be greater than 0")
 
-        jnt_usd_value = transaction_value * eth_currency_rate / (10 ** 18)
+        token_usd_value = transaction_value * eth_currency_rate / (10 ** 18)
 
-        self.assertTrue(jnt_usd_value > 0, "transaction_usd_value must be greater than 0")
+        self.assertTrue(token_usd_value > 0, "transaction_usd_value must be greater than 0")
 
         transaction_eth = Transaction(transaction_id=transaction_id,
                                       value=transaction_value,
@@ -571,43 +571,43 @@ class TestCommands(unittest.TestCase):
                                       block_height=32,
                                       status=TransactionStatus.success)
 
-        jnt = JNT(currency_to_usd_rate=eth_currency_rate,
-                    jnt_value=jnt_usd_value / INVESTMENTS__TOKEN_PRICE_IN_USD,
-                    usd_value=jnt_usd_value,
-                    jnt_to_usd_rate=INVESTMENTS__TOKEN_PRICE_IN_USD)
+        token = TOKEN(currency_to_usd_rate=eth_currency_rate,
+                    token_value=token_usd_value / INVESTMENTS__TOKEN_PRICE_IN_USD,
+                    usd_value=token_usd_value,
+                    token_to_usd_rate=INVESTMENTS__TOKEN_PRICE_IN_USD)
 
-        jnt.transaction = transaction_eth
+        token.transaction = transaction_eth
         session.add(transaction_eth)
-        session.add(jnt)
+        session.add(token)
 
-        jnt_usd_value2 = transaction_value * btc_currency_rate / (10 ** 18)
-        jnt2 = JNT(currency_to_usd_rate=btc_currency_rate,
-                    jnt_value=jnt_usd_value2 / INVESTMENTS__TOKEN_PRICE_IN_USD,
-                    usd_value=jnt_usd_value2,
-                    jnt_to_usd_rate=INVESTMENTS__TOKEN_PRICE_IN_USD)
+        token_usd_value2 = transaction_value * btc_currency_rate / (10 ** 18)
+        token2 = TOKEN(currency_to_usd_rate=btc_currency_rate,
+                    token_value=token_usd_value2 / INVESTMENTS__TOKEN_PRICE_IN_USD,
+                    usd_value=token_usd_value2,
+                    token_to_usd_rate=INVESTMENTS__TOKEN_PRICE_IN_USD)
 
-        jnt2.transaction = transaction_btc
+        token2.transaction = transaction_btc
         session.add(transaction_btc)
-        session.add(jnt2)
+        session.add(token2)
 
 
         session.commit()
 
-        success = add_withdraw_jnt(user.id)
+        success = add_withdraw_token(user.id)
         self.assertTrue(success, 'withdrawal should be successful')
 
-        success = add_withdraw_jnt(user.id)
+        success = add_withdraw_token(user.id)
         self.assertFalse(success, 'withdrawal should fail')
 
         withdraw_sum = session.query(func.sum(Withdraw.value)) \
             .one()  # type: tuple[float]
 
         self.assertTrue(withdraw_sum[0] > 0, 'should be non-negative and greater than zero')
-        self.assertAlmostEqual(withdraw_sum[0], jnt.jnt_value + jnt2.jnt_value + presale_jnt.jnt_value, places=5, msg='sum of withdraws must be equal to sum of jnts')
+        self.assertAlmostEqual(withdraw_sum[0], token.token_value + token2.token_value + presale_token.token_value, places=5, msg='sum of withdraws must be equal to sum of tokens')
 
         transaction_id = "0xeeaaaddcc"
         transaction_value = 10000 * (10 ** 18)
-        jnt_usd_value = transaction_value * eth_currency_rate / (10 ** 18)
+        token_usd_value = transaction_value * eth_currency_rate / (10 ** 18)
         transaction_mined = datetime.utcnow()
 
         transaction = Transaction(transaction_id=transaction_id,
@@ -617,26 +617,26 @@ class TestCommands(unittest.TestCase):
                                   block_height=2,
                                   status=TransactionStatus.success)
 
-        jnt = JNT(currency_to_usd_rate=eth_currency_rate,
-                  jnt_value=jnt_usd_value / INVESTMENTS__TOKEN_PRICE_IN_USD,
-                  usd_value=jnt_usd_value,
-                  jnt_to_usd_rate=INVESTMENTS__TOKEN_PRICE_IN_USD)
+        token = TOKEN(currency_to_usd_rate=eth_currency_rate,
+                  token_value=token_usd_value / INVESTMENTS__TOKEN_PRICE_IN_USD,
+                  usd_value=token_usd_value,
+                  token_to_usd_rate=INVESTMENTS__TOKEN_PRICE_IN_USD)
 
-        jnt.transaction = transaction
+        token.transaction = transaction
         session.add(transaction)
-        session.add(jnt)
+        session.add(token)
         session.commit()
 
-        success = add_withdraw_jnt(user.id)
+        success = add_withdraw_token(user.id)
         self.assertTrue(success, 'withdrawal should be successful')
 
         withdraw_sum = session.query(func.sum(Withdraw.value)) \
             .one()  # type: tuple[float]
 
-        jnt_sum = session.query(func.sum(JNT.jnt_value)) \
+        token_sum = session.query(func.sum(TOKEN.token_value)) \
             .one()  # type: tuple[float]
 
-        self.assertAlmostEqual(withdraw_sum[0], jnt_sum[0] + presale_jnt.jnt_value, places=5, msg='sum of withdraws must be equal to sum of jnts')
+        self.assertAlmostEqual(withdraw_sum[0], token_sum[0] + presale_token.token_value, places=5, msg='sum of withdraws must be equal to sum of tokens')
 
 
     def test_withdraw_processing(self):
@@ -668,9 +668,9 @@ class TestCommands(unittest.TestCase):
 
         self.assertTrue(eth_currency_rate > 0, "eth_currency_rate must be greater than 0")
 
-        jnt_usd_value = transaction_value * eth_currency_rate / (10 ** 18)
+        token_usd_value = transaction_value * eth_currency_rate / (10 ** 18)
 
-        self.assertTrue(jnt_usd_value > 0, "transaction_usd_value must be greater than 0")
+        self.assertTrue(token_usd_value > 0, "transaction_usd_value must be greater than 0")
 
         transaction = Transaction(transaction_id=transaction_id,
                                     value=transaction_value,
@@ -678,17 +678,17 @@ class TestCommands(unittest.TestCase):
                                     mined=transaction_mined,
                                     block_height=2)
 
-        jnt = JNT(currency_to_usd_rate=eth_currency_rate,
-                  jnt_value=jnt_usd_value / INVESTMENTS__TOKEN_PRICE_IN_USD,
-                  usd_value=jnt_usd_value,
-                  jnt_to_usd_rate=INVESTMENTS__TOKEN_PRICE_IN_USD)
+        token = TOKEN(currency_to_usd_rate=eth_currency_rate,
+                  token_value=token_usd_value / INVESTMENTS__TOKEN_PRICE_IN_USD,
+                  usd_value=token_usd_value,
+                  token_to_usd_rate=INVESTMENTS__TOKEN_PRICE_IN_USD)
 
-        jnt.transaction = transaction
+        token.transaction = transaction
         session.add(transaction)
-        session.add(jnt)
+        session.add(token)
         session.commit()
 
-        add_withdraw_jnt(user.id)
+        add_withdraw_token(user.id)
 
         #withdraw_processing()
         withdraw = session.query(Withdraw) \
@@ -751,7 +751,7 @@ class TestCommands(unittest.TestCase):
         self.assertTrue(len(notifications[0].meta) == 1, "meta should be a nonempty")
         self.assertTrue("test" in notifications[0].meta, "a given key should be exists in a dictionary")
 
-    def test_a_calculate_jnt_purchases(self):
+    def test_a_calculate_token_purchases(self):
         # fetch last prices BTC and ETH
         fetch_tickers_price()
 
@@ -801,27 +801,27 @@ class TestCommands(unittest.TestCase):
         session.add(eth_transaction2)
         session.commit()
 
-        calculate_jnt_purchases()
+        calculate_token_purchases()
 
-        jnt = session.query(JNT) \
-            .filter(JNT.transaction_id == eth_transaction1.id) \
+        token = session.query(TOKEN) \
+            .filter(TOKEN.transaction_id == eth_transaction1.id) \
             .one()
         notify = session.query(Notification) \
             .filter(Notification.user_id == user1.id) \
             .filter(Notification.type == NotificationType.transaction_received) \
             .one()
 
-        self.assertTrue(jnt and notify and account1.is_sale_allocation and jnt.is_sale_allocation)
+        self.assertTrue(token and notify and account1.is_sale_allocation and token.is_sale_allocation)
 
-        jnt = session.query(JNT) \
-            .filter(JNT.transaction_id == eth_transaction2.id) \
+        token = session.query(TOKEN) \
+            .filter(TOKEN.transaction_id == eth_transaction2.id) \
             .one()
         notify = session.query(Notification) \
             .filter(Notification.user_id == user2.id) \
             .filter(Notification.type == NotificationType.transaction_received) \
             .one()
 
-        self.assertTrue(jnt and notify and not account2.is_sale_allocation and not jnt.is_sale_allocation)
+        self.assertTrue(token and notify and not account2.is_sale_allocation and not token.is_sale_allocation)
 
     def test_check_withdraw_addresses(self):
         user = create_user('user1@local', 'user1@local')
@@ -911,8 +911,8 @@ class TestCommands(unittest.TestCase):
         self.assertEqual(len(withdraws), 1)
         self.assertEqual(withdraws[0].status, TransactionStatus.fail)
 
-    def test_mintJNT(self):
-        #tx_id = mintJNT("0xa5e03f38d0a6811d38aa1cf1ddb22a5c6cfa0bd2", 0.001)
+    def test_mintTOKEN(self):
+        #tx_id = mintTOKEN("0xa5e03f38d0a6811d38aa1cf1ddb22a5c6cfa0bd2", 0.001)
         #self.assertTrue(not tx_id is None)
         pass
 
@@ -1061,10 +1061,10 @@ class TestCommands(unittest.TestCase):
         new_price = original_price if not custom_price else custom_price
         self.assertEqual(new_price, original_price)
 
-        user_jnt_price = UserJntPrice(user_id=user.id,
+        user_token_price = UserTokenPrice(user_id=user.id,
                                       value=0.2)
 
-        session.add(user_jnt_price)
+        session.add(user_token_price)
         session.commit()
 
         custom_price = get_user_custom_price(user.id)
@@ -1073,18 +1073,18 @@ class TestCommands(unittest.TestCase):
         new_price = original_price if not custom_price else custom_price
         self.assertEqual(new_price, custom_price)
 
-        user_jnt_price = UserJntPrice(user_id=user.id,
+        user_token_price = UserTokenPrice(user_id=user.id,
                                       value=0.1)
 
-        session.add(user_jnt_price)
+        session.add(user_token_price)
         session.commit()
 
         custom_price = get_user_custom_price(user.id)
         self.assertEqual(custom_price, 0.1)
 
-    def test_a_get_total_jnt_amount(self):
-        total_jnt = get_total_jnt_amount()
-        self.assertTrue(total_jnt == RAISED_TOKENS_SHIFT)
+    def test_a_get_total_token_amount(self):
+        total_token = get_total_token_amount()
+        self.assertTrue(total_token == RAISED_TOKENS_SHIFT)
 
         fetch_tickers_price()
 
@@ -1122,13 +1122,13 @@ class TestCommands(unittest.TestCase):
 
         self.assertTrue(eth_currency_rate > 0, "eth_currency_rate must be greater than 0")
 
-        jnt_usd_value1 = transaction_value1 * eth_currency_rate / (10 ** 18)
-        jnt_usd_value2 = transaction_value2 * eth_currency_rate / (10 ** 18)
-        jnt_value1 = jnt_usd_value1 / INVESTMENTS__TOKEN_PRICE_IN_USD
-        jnt_value2 = jnt_usd_value2 / INVESTMENTS__TOKEN_PRICE_IN_USD
+        token_usd_value1 = transaction_value1 * eth_currency_rate / (10 ** 18)
+        token_usd_value2 = transaction_value2 * eth_currency_rate / (10 ** 18)
+        token_value1 = token_usd_value1 / INVESTMENTS__TOKEN_PRICE_IN_USD
+        token_value2 = token_usd_value2 / INVESTMENTS__TOKEN_PRICE_IN_USD
 
-        self.assertTrue(jnt_usd_value1 > 0, "transaction_usd_value must be greater than 0")
-        self.assertTrue(jnt_usd_value2 > 0, "transaction_usd_value must be greater than 0")
+        self.assertTrue(token_usd_value1 > 0, "transaction_usd_value must be greater than 0")
+        self.assertTrue(token_usd_value2 > 0, "transaction_usd_value must be greater than 0")
 
         transaction1 = Transaction(transaction_id="0xffaaaddcc",
                                    value=transaction_value1,
@@ -1146,33 +1146,33 @@ class TestCommands(unittest.TestCase):
         session.add(transaction2)
         session.commit()
 
-        jnt1 = JNT(currency_to_usd_rate=eth_currency_rate,
-                   jnt_value=jnt_value1,
-                   usd_value=jnt_usd_value1,
-                   jnt_to_usd_rate=INVESTMENTS__TOKEN_PRICE_IN_USD,
+        token1 = TOKEN(currency_to_usd_rate=eth_currency_rate,
+                   token_value=token_value1,
+                   usd_value=token_usd_value1,
+                   token_to_usd_rate=INVESTMENTS__TOKEN_PRICE_IN_USD,
                    transaction=transaction1)
 
-        jnt2 = JNT(currency_to_usd_rate=eth_currency_rate,
-                   jnt_value=jnt_value2,
-                   usd_value=jnt_usd_value2,
-                   jnt_to_usd_rate=INVESTMENTS__TOKEN_PRICE_IN_USD,
+        token2 = TOKEN(currency_to_usd_rate=eth_currency_rate,
+                   token_value=token_value2,
+                   usd_value=token_usd_value2,
+                   token_to_usd_rate=INVESTMENTS__TOKEN_PRICE_IN_USD,
                    transaction=transaction2,
                    is_sale_allocation=False)
 
-        session.add(jnt1)
-        session.add(jnt2)
+        session.add(token1)
+        session.add(token2)
         session.commit()
 
-        presale_jnt_value1 = 3000000
-        presale_jnt_value2 = 1500000
-        presale1 = PresaleJnt(user_id=user2.id,
-                              jnt_value=presale_jnt_value1,
+        presale_token_value1 = 3000000
+        presale_token_value2 = 1500000
+        presale1 = PresaleToken(user_id=user2.id,
+                              token_value=presale_token_value1,
                               currency_to_usd_rate=700,
                               usd_value=750000,
                               is_sale_allocation=True,
                               is_presale_round=False)
-        presale2 = PresaleJnt(user_id=user2.id,
-                              jnt_value=presale_jnt_value2,
+        presale2 = PresaleToken(user_id=user2.id,
+                              token_value=presale_token_value2,
                               currency_to_usd_rate=700,
                               usd_value=375000,
                               is_sale_allocation=False,
@@ -1182,9 +1182,9 @@ class TestCommands(unittest.TestCase):
         session.add(presale2)
         session.commit()
 
-        total_jnt = get_total_jnt_amount()
+        total_token = get_total_token_amount()
 
-        self.assertAlmostEqual(total_jnt, RAISED_TOKENS_SHIFT + presale_jnt_value1 + jnt_value1, places=5)
+        self.assertAlmostEqual(total_token, RAISED_TOKENS_SHIFT + presale_token_value1 + token_value1, places=5)
 
 
 if __name__ == '__main__':
