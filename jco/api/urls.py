@@ -23,4 +23,5 @@ urlpatterns = [
     
     url(r'^withdraw-tokens/$', views.WithdrawRequestView.as_view()),
     url(r'^withdraw-tokens/confirm/', views.WithdrawConfirmView.as_view()),
+    url(r'^ico-status/', views.ICOStausView.as_view()),
 ]

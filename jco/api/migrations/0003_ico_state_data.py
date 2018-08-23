@@ -7,10 +7,10 @@ from django.db import migrations
 
 def add_ico_states(apps, schema_editor):
     ICOState = apps.get_model('api', 'ICOState')
-    ICOState.objects.create(id='NOT_STARTED', order=0)
-    ICOState.objects.create(id='SALE_STARTED', order=1)
-    ICOState.objects.create(id='SALE_FINISHED', order=2)
-    ICOState.objects.create(id='ICO_FINISHED', order=3)
+    from jco.api.models import ICO_STATES
+
+    for i, state in enumerate(ICO_STATES):
+        ICOState.objects.create(id=state, order=i)
 
 
 class Migration(migrations.Migration):

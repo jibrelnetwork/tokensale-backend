@@ -207,11 +207,11 @@ def get_raised_tokens():
     Get raised tokens amount
     """
     manual_token = (PresaleToken.objects.filter(is_sale_allocation=True, is_presale_round=False)
-                  .aggregate(models.Sum('token_value'))['token_value__sum'] or 0)
+                    .aggregate(models.Sum('token_value'))['token_value__sum'] or 0)
 
     token = (Token.objects.filter(is_sale_allocation=True)
-           .aggregate(models.Sum('token_value'))['token_value__sum'] or 0)
-
+             .aggregate(models.Sum('token_value'))['token_value__sum'] or 0)
+    # import ipdb; ipdb.set_trace();
     return manual_token + token + settings.RAISED_TOKENS_SHIFT
 
 
@@ -484,6 +484,20 @@ def is_user_email_confirmed(user):
         return False
 
 
+ICO_STATE_NOT_STARTED = 'NOT_STARTED'
+ICO_STATE_SALE_STARTED = 'SALE_STARTED'
+ICO_STATE_SALE_FINISHED = 'SALE_FINISHED'
+ICO_STATE_ICO_FINISHED = 'ICO_FINISHED'
+
+
+ICO_STATES = (
+    ICO_STATE_NOT_STARTED,
+    ICO_STATE_SALE_STARTED,
+    ICO_STATE_SALE_FINISHED,
+    ICO_STATE_ICO_FINISHED,
+)
+
+
 class ICOState(models.Model):
     id = models.CharField(primary_key=True, max_length=20)
     order = models.PositiveIntegerField(default=0)
@@ -493,3 +507,21 @@ class ICOState(models.Model):
 
     class Meta:
         ordering = ['order']
+
+
+def get_ico_current_state():
+    """
+    Get current ICO state
+    """
+    now_time = now()
+    state = ICOState.objects.get(start_date__lte=now_time, finish_date__gt=now_time)
+    return state
+
+
+def get_ico_next_state():
+    """
+    Get next ICO state
+    """
+    now_time = now()
+    state = ICOState.objects.filter(start_date__gte=now_time).first()
+    return state
