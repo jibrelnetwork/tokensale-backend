@@ -2,6 +2,7 @@ from datetime import datetime
 from unittest import mock
 
 import pytest
+import pytz
 from django.test import TestCase
 
 from rest_framework.test import RequestsClient
@@ -27,7 +28,7 @@ class ApiClient(RequestsClient):
 
     def request(self, method, url, *args, **kwargs):
         resp = super().request(method, self.base_url + url, *args, **kwargs)
-        print('RESPONSE', resp.content)
+        # print('RESPONSE', resp.content)
         return resp
 
     def authenticate(self, username, password):
@@ -54,8 +55,8 @@ def test_transactions(client, users, addresses, transactions, token):
     models.Withdraw.objects.create(
         transaction_id='3000',
         value=30000,
-        mined=datetime(2017, 11, 15),
-        created=datetime(2017, 11, 15),
+        mined=datetime(2017, 11, 15, tzinfo=pytz.utc),
+        created=datetime(2017, 11, 15, tzinfo=pytz.utc),
         block_height=200,
         status='success',
         user=users[0],
@@ -166,7 +167,7 @@ def test_update_account(client, users, transactions):
         usd_value=1.0,
         token_to_usd_rate=1.0,
         active=True,
-        created=datetime.now(),
+        created=datetime.now().replace(tzinfo=pytz.utc),
         transaction=transactions[0])
     client.authenticate('user1@main.com', 'password1')
     resp = client.put('/api/account/', {'first_name': 'John', 'terms_confirmed': True})
@@ -609,3 +610,38 @@ def test_withdraw_token_request_kyc_not_verified(client, accounts, settings, tok
     assert 0 == models.Withdraw.objects.count()
     assert 0 == models.Operation.objects.count()
     assert 0 == models.Notification.objects.count()
+
+
+@mock.patch('jco.api.models.now')
+def test_get_ico_status(mock_now, db, transactions, client, settings):
+    mock_now.return_value = datetime(2018, 8, 4)
+    models.ICOState.objects.create(id='A', order=0, start_date=datetime(2018, 8, 1, tzinfo=pytz.utc),
+                                   finish_date=datetime(2018, 8, 3, tzinfo=pytz.utc))
+    models.ICOState.objects.create(id='B', order=1, start_date=datetime(2018, 8, 3, tzinfo=pytz.utc),
+                                   finish_date=datetime(2018, 8, 5, tzinfo=pytz.utc))
+    models.ICOState.objects.create(id='C', order=2, start_date=datetime(2018, 8, 6, tzinfo=pytz.utc),
+                                   finish_date=datetime(2018, 8, 7, tzinfo=pytz.utc))
+    models.ICOState.objects.create(id='D', order=3, start_date=datetime(2018, 8, 7, tzinfo=pytz.utc),
+                                   finish_date=datetime(2018, 8, 8, tzinfo=pytz.utc))
+
+    models.Token.objects.create(
+        token_value=100,
+        currency_to_usd_rate=1.0,
+        usd_value=1.0,
+        token_to_usd_rate=1.0,
+        active=True,
+        created=datetime.now(),
+        transaction=transactions[0],
+        is_sale_allocation=True)
+
+    resp = client.get('/api/ico-status/')
+
+    assert resp.status_code == 200
+    assert resp.json() == {'currentState': 'B',
+                           'currentStateEndsAt': '2018-08-05T00:00:00+00:00',
+                           'nextState': 'C',
+                           'nextStateStartsAt': '2018-08-06T00:00:00+00:00',
+                           'pricePerToken': settings.INVESTMENTS__TOKEN_PRICE_IN_USD,
+                           'tokenInitial': settings.RAISED_TOKENS_SHIFT,
+                           'tokenRaised': settings.RAISED_TOKENS_SHIFT + 100,
+                           'tokenTotal': settings.TOKENS__TOTAL_SUPPLY}

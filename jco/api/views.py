@@ -373,14 +373,14 @@ class ICOStausView(APIView):
     def get(self, request):
         current_state = get_ico_current_state()
         next_state = get_ico_next_state()
-        status = {
+        ico_status = {
             "currentState": current_state.id,
             "nextState": next_state.id,
-            "currentStateEndsAt": current_state.isoformat(),
-            "nextStateStartsAt": next_state.isoformat(),
+            "currentStateEndsAt": current_state.finish_date.isoformat(),
+            "nextStateStartsAt": next_state.start_date.isoformat(),
             "tokenRaised": get_raised_tokens(),
             "tokenTotal": settings.TOKENS__TOTAL_SUPPLY,
-            "tokenInitial": "number",
-            "pricePerToken": 0.25,
+            "tokenInitial": settings.RAISED_TOKENS_SHIFT,
+            "pricePerToken": settings.INVESTMENTS__TOKEN_PRICE_IN_USD,
         }
-        return Response(status)
+        return Response(ico_status)
