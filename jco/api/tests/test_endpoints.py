@@ -2,6 +2,7 @@ from datetime import datetime
 from unittest import mock
 
 import pytest
+import pytz
 from django.test import TestCase
 
 from rest_framework.test import RequestsClient
@@ -27,7 +28,7 @@ class ApiClient(RequestsClient):
 
     def request(self, method, url, *args, **kwargs):
         resp = super().request(method, self.base_url + url, *args, **kwargs)
-        print('RESPONSE', resp.content)
+        # print('RESPONSE', resp.content)
         return resp
 
     def authenticate(self, username, password):
@@ -54,8 +55,8 @@ def test_transactions(client, users, addresses, transactions, token):
     models.Withdraw.objects.create(
         transaction_id='3000',
         value=30000,
-        mined=datetime(2017, 11, 15),
-        created=datetime(2017, 11, 15),
+        mined=datetime(2017, 11, 15, tzinfo=pytz.utc),
+        created=datetime(2017, 11, 15, tzinfo=pytz.utc),
         block_height=200,
         status='success',
         user=users[0],
@@ -166,7 +167,7 @@ def test_update_account(client, users, transactions):
         usd_value=1.0,
         token_to_usd_rate=1.0,
         active=True,
-        created=datetime.now(),
+        created=datetime.now().replace(tzinfo=pytz.utc),
         transaction=transactions[0])
     client.authenticate('user1@main.com', 'password1')
     resp = client.put('/api/account/', {'first_name': 'John', 'terms_confirmed': True})
@@ -207,13 +208,23 @@ def test_update_account(client, users, transactions):
     assert resp.json()['verification_form_status'] == 'passport_uploaded'
 
 
-def test_get_raised_tokens_empty(client, users, settings):
-    resp = client.get('/api/raised-tokens/')
-    assert resp.status_code == 200
-    assert resp.json() == {'raised_tokens': settings.RAISED_TOKENS_SHIFT + 0}
+# def test_get_raised_tokens_empty(client, users, settings):
+#     settings.CACHES = {
+#         'default': {
+#             'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+#         }
+#     }
+#     resp = client.get('/api/raised-tokens/')
+#     assert resp.status_code == 200
+#     assert resp.json() == {'raised_tokens': settings.RAISED_TOKENS_SHIFT + 0}
 
 
 def test_get_raised_tokens(client, users, transactions, settings):
+    settings.CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        }
+    }
     models.Token.objects.create(
         token_value=1.5,
         currency_to_usd_rate=1.0,
@@ -230,14 +241,16 @@ def test_get_raised_tokens(client, users, transactions, settings):
         token_to_usd_rate=1.0,
         active=True,
         created=datetime.now(),
+        is_sale_allocation=True,
         transaction=transactions[1])
-    
+
     models.PresaleToken.objects.create(
         token_value=10.00,
         created=datetime.now(),
         user=users[0],
         is_presale_round=True,
         is_sale_allocation=True,
+
     )
 
     models.PresaleToken.objects.create(
@@ -255,7 +268,6 @@ def test_get_raised_tokens(client, users, transactions, settings):
         is_presale_round=False,
         is_sale_allocation=False,
     )
-    
     resp = client.get('/api/raised-tokens/')
     assert resp.status_code == 200
     assert resp.json() == {'raised_tokens': settings.RAISED_TOKENS_SHIFT + 0.75 + 30}
@@ -332,7 +344,7 @@ def test_withdraw_token(client, users, addresses, token, settings):
     client.authenticate('user1@main.com', 'password1')
     account = models.Account.objects.create(withdraw_address='aaaxxx', user=users[0], is_identity_verified=True)
     assert account.get_token_balance() == 30
-    resp = client.post('/api/withdraw-token/')
+    resp = client.post('/api/withdraw-tokens/')
     assert resp.status_code == 200
     assert resp.json() == {'detail': 'TOKEN withdrawal is requested. Check you email for confirmation.'}
 
@@ -369,7 +381,7 @@ def test_withdraw_token_no_token(client, users, addresses, token, settings):
 
     client.authenticate('user3@main.com', 'password3')
     assert account.get_token_balance() == 0
-    resp = client.post('/api/withdraw-token/')
+    resp = client.post('/api/withdraw-tokens/')
     assert resp.status_code == 400
     assert resp.json() == {'detail': 'Impossible withdrawal. Check you balance.'}
 
@@ -494,7 +506,7 @@ def test_operation_confirm_withdraw_token_ok(client, users, accounts, settings):
     }
 
     assert withdraw.status == models.TransactionStatus.not_confirmed
-    resp = client.post('/api/withdraw-token/confirm/', data)
+    resp = client.post('/api/withdraw-tokens/confirm/', data)
     withdraw.refresh_from_db()
     assert resp.status_code == 200
     assert withdraw.status == models.TransactionStatus.confirmed
@@ -509,7 +521,7 @@ def test_operation_confirm_withdraw_token_email_not_confirmed(client, users, acc
     settings.WITHDRAW_AVAILABLE_SINCE = datetime.now()
     client.authenticate('user1@main.com', 'password1')
     data = {'token': '123', 'operation_id': 'qwe'}
-    resp = client.post('/api/withdraw-token/confirm/', data)
+    resp = client.post('/api/withdraw-tokens/confirm/', data)
     assert resp.status_code == 403
 
 
@@ -520,7 +532,7 @@ def test_operation_confirm_withdraw_token_invalid_params(client, users, accounts
     accounts[0].save()
     client.authenticate('user1@main.com', 'password1')
     data = {}
-    resp = client.post('/api/withdraw-token/confirm/', data)
+    resp = client.post('/api/withdraw-tokens/confirm/', data)
     assert resp.status_code == 400
     assert resp.json() == {'token': ['This field is required.'],
                            'operation_id': ['This field is required.']}
@@ -571,7 +583,7 @@ def test_withdraw_token_request_notify_error(api_models, client, accounts, setti
     EmailAddress.objects.filter(email='user1@main.com').update(verified=True)
     client.authenticate('user1@main.com', 'password1')
     data = {}
-    resp = client.post('/api/withdraw-token/', data)
+    resp = client.post('/api/withdraw-tokens/', data)
 
     assert resp.status_code == 500
     assert resp.json() == {'detail': 'Unexpected error, please try again'}
@@ -590,7 +602,7 @@ def test_withdraw_token_request_kyc_not_verified(client, accounts, settings, tok
     EmailAddress.objects.filter(email='user1@main.com').update(verified=True)
     client.authenticate('user1@main.com', 'password1')
     data = {}
-    resp = client.post('/api/withdraw-token/', data)
+    resp = client.post('/api/withdraw-tokens/', data)
 
     assert resp.status_code == 403
     assert resp.json() == {'detail': 'Please confirm your identity to withdraw TOKEN'}
@@ -598,3 +610,38 @@ def test_withdraw_token_request_kyc_not_verified(client, accounts, settings, tok
     assert 0 == models.Withdraw.objects.count()
     assert 0 == models.Operation.objects.count()
     assert 0 == models.Notification.objects.count()
+
+
+@mock.patch('jco.api.models.now')
+def test_get_ico_status(mock_now, db, transactions, client, settings):
+    mock_now.return_value = datetime(2018, 8, 4)
+    models.ICOState.objects.create(id='A', order=0, start_date=datetime(2018, 8, 1, tzinfo=pytz.utc),
+                                   finish_date=datetime(2018, 8, 3, tzinfo=pytz.utc))
+    models.ICOState.objects.create(id='B', order=1, start_date=datetime(2018, 8, 3, tzinfo=pytz.utc),
+                                   finish_date=datetime(2018, 8, 5, tzinfo=pytz.utc))
+    models.ICOState.objects.create(id='C', order=2, start_date=datetime(2018, 8, 6, tzinfo=pytz.utc),
+                                   finish_date=datetime(2018, 8, 7, tzinfo=pytz.utc))
+    models.ICOState.objects.create(id='D', order=3, start_date=datetime(2018, 8, 7, tzinfo=pytz.utc),
+                                   finish_date=datetime(2018, 8, 8, tzinfo=pytz.utc))
+
+    models.Token.objects.create(
+        token_value=100,
+        currency_to_usd_rate=1.0,
+        usd_value=1.0,
+        token_to_usd_rate=1.0,
+        active=True,
+        created=datetime.now(),
+        transaction=transactions[0],
+        is_sale_allocation=True)
+
+    resp = client.get('/api/ico-status/')
+
+    assert resp.status_code == 200
+    assert resp.json() == {'currentState': 'B',
+                           'currentStateEndsAt': '2018-08-05T00:00:00+00:00',
+                           'nextState': 'C',
+                           'nextStateStartsAt': '2018-08-06T00:00:00+00:00',
+                           'pricePerToken': settings.INVESTMENTS__TOKEN_PRICE_IN_USD,
+                           'tokenInitial': settings.RAISED_TOKENS_SHIFT,
+                           'tokenRaised': settings.RAISED_TOKENS_SHIFT + 100,
+                           'tokenTotal': settings.TOKENS__TOTAL_SUPPLY}

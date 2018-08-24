@@ -27,6 +27,7 @@ from jco.api.models import (
     Transaction,
     UserTokenPrice,
     Withdraw,
+    ICOState,
 )
 
 from jco.api import tasks
@@ -386,3 +387,9 @@ def export_csv(request):
     resp['Content-Disposition'] = 'attachment; filename=export.zip'
     return resp
 export_csv = admin.site.admin_view(export_csv)
+
+
+@admin.register(ICOState)
+class ICOStateAdmin(admin.ModelAdmin):
+    list_display = ['id', 'order', 'is_active', 'start_date', 'finish_date']
+    list_editable = ['order', 'is_active', 'start_date', 'finish_date']

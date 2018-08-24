@@ -1,6 +1,7 @@
 from datetime import datetime
 
 import pytest
+import pytz
 
 from django.contrib.auth.models import User
 from allauth.account.models import EmailAddress
@@ -72,31 +73,31 @@ def transactions(addresses):
     return [
         models.Transaction.objects.create(transaction_id='1000',
                                           value=0.5,
-                                          mined=datetime(2017, 11, 14),
+                                          mined=datetime(2017, 11, 14, tzinfo=pytz.utc),
                                           block_height=100,
                                           status='success',
                                           address=addresses[0]),
         models.Transaction.objects.create(transaction_id='2000',
                                           value=2.5,
-                                          mined=datetime(2017, 11, 12, 12),
+                                          mined=datetime(2017, 11, 12, 12, tzinfo=pytz.utc),
                                           block_height=200,
                                           status='success',
                                           address=addresses[3]),
         models.Transaction.objects.create(transaction_id='3000',
                                           value=2.5,
-                                          mined=datetime(2017, 11, 13),
+                                          mined=datetime(2017, 11, 13, tzinfo=pytz.utc),
                                           block_height=300,
                                           status='success',
                                           address=addresses[2]),
         models.Transaction.objects.create(transaction_id='1500',
                                           value=0.5,
-                                          mined=datetime(2017, 11, 13),
+                                          mined=datetime(2017, 11, 13, tzinfo=pytz.utc),
                                           block_height=110,
                                           status='pending',
                                           address=addresses[0]),
         models.Transaction.objects.create(transaction_id='999',
                                           value=0.5,
-                                          mined=datetime(2017, 11, 13),
+                                          mined=datetime(2017, 11, 13, tzinfo=pytz.utc),
                                           block_height=111,
                                           status='success',
                                           address=addresses[0]),
@@ -112,7 +113,7 @@ def token(transactions):
             usd_value=1.0,
             token_to_usd_rate=1.0,
             active=True,
-            created=datetime(2017, 10, 22, 10),
+            created=datetime(2017, 10, 22, 10, tzinfo=pytz.utc),
             transaction=transactions[0]),
         models.Token.objects.create(
             token_value=20,
@@ -120,7 +121,7 @@ def token(transactions):
             usd_value=2.0,
             token_to_usd_rate=1.0,
             active=True,
-            created=datetime(2017, 10, 22, 11),
+            created=datetime(2017, 10, 22, 11, tzinfo=pytz.utc),
             transaction=transactions[1]),
         models.Token.objects.create(
             token_value=30,
@@ -128,7 +129,7 @@ def token(transactions):
             usd_value=3.0,
             token_to_usd_rate=1.0,
             active=True,
-            created=datetime(2017, 10, 22, 12),
+            created=datetime(2017, 10, 22, 12, tzinfo=pytz.utc),
             transaction=transactions[2]),
         models.Token.objects.create(
             token_value=30,
@@ -136,6 +137,6 @@ def token(transactions):
             usd_value=3.0,
             token_to_usd_rate=1.0,
             active=True,
-            created=datetime(2017, 10, 22, 12),
+            created=datetime(2017, 10, 22, 12, tzinfo=pytz.utc),
             transaction=transactions[3]),
     ]

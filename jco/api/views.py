@@ -25,7 +25,9 @@ from jco.api.models import (
     Withdraw,
     PresaleToken,
     Operation,
-    OperationError
+    OperationError,
+    get_ico_current_state,
+    get_ico_next_state,
 )
 from jco.api.serializers import (
     AccountSerializer,
@@ -363,3 +365,22 @@ class DocumentView(APIView):
             serializer.save(account)
             return Response({'success': True}, 201)
         return Response({'success': False, 'error': [_('An upload has failed')]}, status=400)
+
+
+class ICOStausView(APIView):
+    permission_classes = (permissions.AllowAny,)
+
+    def get(self, request):
+        current_state = get_ico_current_state()
+        next_state = get_ico_next_state()
+        ico_status = {
+            "currentState": current_state.id,
+            "nextState": next_state.id,
+            "currentStateEndsAt": current_state.finish_date.isoformat(),
+            "nextStateStartsAt": next_state.start_date.isoformat(),
+            "tokenRaised": get_raised_tokens(),
+            "tokenTotal": settings.TOKENS__TOTAL_SUPPLY,
+            "tokenInitial": settings.RAISED_TOKENS_SHIFT,
+            "pricePerToken": settings.INVESTMENTS__TOKEN_PRICE_IN_USD,
+        }
+        return Response(ico_status)
