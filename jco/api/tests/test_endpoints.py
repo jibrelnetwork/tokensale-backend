@@ -34,7 +34,7 @@ class ApiClient(RequestsClient):
     def authenticate(self, username, password):
         resp = self.post('/auth/login/',
                          {'email': username, 'password': password, 'captcha': '123'})
-        token = resp.json()['key']
+        token = resp.json()['data']['key']
         self.headers = {'Authorization': 'Token ' + token}
 
 
@@ -48,7 +48,7 @@ def test_transactions_empty(client, users):
     client.authenticate('user1@main.com', 'password1')
     resp = client.get('/api/transactions/')
     assert resp.status_code == 200
-    assert resp.json() == []
+    assert resp.json() == {'success': True, 'data': []}
 
 
 def test_transactions(client, users, addresses, transactions, token):
@@ -64,8 +64,8 @@ def test_transactions(client, users, addresses, transactions, token):
     client.authenticate('user1@main.com', 'password1')
     resp = client.get('/api/transactions/')
     assert resp.status_code == 200
-    assert len(resp.json()) == 4
-    assert resp.json() == [
+    assert len(resp.json()['data']) == 4
+    assert resp.json() == {'success': True, 'data': [
         {'token': 30000,
          'type': 'outgoing',
          'date': '00:00 11/15/2017',
@@ -98,7 +98,7 @@ def test_transactions(client, users, addresses, transactions, token):
          'status': 'success',
          'amount_usd': 2,
          'amount_cryptocurrency': 2.5},
-    ]
+    ]}
 
 
 def test_transactions_anon(client):
@@ -110,7 +110,7 @@ def test_get_account_empty(client, users):
     client.authenticate('user1@main.com', 'password1')
     resp = client.get('/api/account/')
     assert resp.status_code == 200
-    assert resp.json() == {'date_of_birth': None,
+    assert resp.json() == {'success': True, 'data': {'date_of_birth': None,
                            'username': 'user1@main.com',
                            'first_name': '',
                            'last_name': '',
@@ -125,7 +125,7 @@ def test_get_account_empty(client, users):
                            'is_email_confirmed': False,
                            'btc_address': None,
                            'eth_address': None,
-                           'token_balance': 0}
+                           'token_balance': 0}}
 
 
 def test_account_verification_statuses(client, accounts):
@@ -141,23 +141,23 @@ def test_account_verification_statuses(client, accounts):
 
     client.authenticate('user1@main.com', 'password1')
     resp = client.get('/api/account/')
-    assert resp.json()['identity_verification_status'] is None
+    assert resp.json()['data']['identity_verification_status'] is None
 
     client.authenticate('user2@main.com', 'password2')
     resp = client.get('/api/account/')
-    assert resp.json()['identity_verification_status'] == 'Pending'
+    assert resp.json()['data']['identity_verification_status'] == 'Pending'
 
     client.authenticate('user3@main.com', 'password3')
     resp = client.get('/api/account/')
-    assert resp.json()['identity_verification_status'] == 'Approved'
+    assert resp.json()['data']['identity_verification_status'] == 'Approved'
 
     client.authenticate('user4@main.com', 'password4')
     resp = client.get('/api/account/')
-    assert resp.json()['identity_verification_status'] == 'Declined'
+    assert resp.json()['data']['identity_verification_status'] == 'Declined'
 
     client.authenticate('user5@main.com', 'password5')
     resp = client.get('/api/account/')
-    assert resp.json()['identity_verification_status'] == 'Preliminarily Approved'
+    assert resp.json()['data']['identity_verification_status'] == 'Preliminarily Approved'
 
 
 def test_update_account(client, users, transactions):
@@ -172,7 +172,7 @@ def test_update_account(client, users, transactions):
     client.authenticate('user1@main.com', 'password1')
     resp = client.put('/api/account/', {'first_name': 'John', 'terms_confirmed': True})
     assert resp.status_code == 200
-    assert resp.json() == {'date_of_birth': None,
+    assert resp.json() == {'success': True, 'data': {'date_of_birth': None,
                            'username': 'user1@main.com',
                            'first_name': 'John',
                            'last_name': '',
@@ -187,7 +187,7 @@ def test_update_account(client, users, transactions):
                            'is_email_confirmed': False,
                            'btc_address': 'aba',
                            'eth_address': 'aaa',
-                           'token_balance': 1.5}
+                           'token_balance': 1.5}}
 
     resp = client.put('/api/account/',
                       {'first_name': 'John',
@@ -197,26 +197,21 @@ def test_update_account(client, users, transactions):
                        'date_of_birth': '1999-12-22',
                        })
     assert resp.status_code == 200
-    assert resp.json()['verification_form_status'] == 'personal_data_filled'
+    assert resp.json()['data']['verification_form_status'] == 'personal_data_filled'
 
     resp = client.put('/api/account/', {'is_document_skipped': True})
     assert resp.status_code == 200
-    assert resp.json()['verification_form_status'] == 'passport_skipped'
+    assert resp.json()['data']['verification_form_status'] == 'passport_skipped'
 
     resp = client.put('/api/account/', {'document_url': 'http://qwe.rt'})
     assert resp.status_code == 200
-    assert resp.json()['verification_form_status'] == 'passport_uploaded'
+    assert resp.json()['data']['verification_form_status'] == 'passport_uploaded'
 
 
 # def test_get_raised_tokens_empty(client, users, settings):
-#     settings.CACHES = {
-#         'default': {
-#             'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
-#         }
-#     }
 #     resp = client.get('/api/raised-tokens/')
 #     assert resp.status_code == 200
-#     assert resp.json() == {'raised_tokens': settings.RAISED_TOKENS_SHIFT + 0}
+#     assert resp.json() == {'success': True, 'data': {'raised_tokens': settings.RAISED_TOKENS_SHIFT + 0}}
 
 
 def test_get_raised_tokens(client, users, transactions, settings):
@@ -270,14 +265,14 @@ def test_get_raised_tokens(client, users, transactions, settings):
     )
     resp = client.get('/api/raised-tokens/')
     assert resp.status_code == 200
-    assert resp.json() == {'raised_tokens': settings.RAISED_TOKENS_SHIFT + 0.75 + 30}
+    assert resp.json() == {'success': True, 'data': {'raised_tokens': settings.RAISED_TOKENS_SHIFT + 0.75 + 30}}
 
 
 def test_get_withdraw_address_empty(client, users):
     client.authenticate('user1@main.com', 'password1')
     resp = client.get('/api/withdraw-address/')
     assert resp.status_code == 200
-    assert resp.json() == {'address': None}
+    assert resp.json() == {'success': True, 'data': {'address': None}}
 
 
 def test_get_withdraw_address(client, users):
@@ -285,7 +280,7 @@ def test_get_withdraw_address(client, users):
     client.authenticate('user1@main.com', 'password1')
     resp = client.get('/api/withdraw-address/')
     assert resp.status_code == 200
-    assert resp.json() == {'address': 'aaaxxx'}
+    assert resp.json() == {'success': True, 'data': {'address': 'aaaxxx'}}
 
 
 def test_put_withdraw_address_empty(client, users):
@@ -294,7 +289,7 @@ def test_put_withdraw_address_empty(client, users):
     client.authenticate('user1@main.com', 'password1')
     resp = client.get('/api/withdraw-address/')
     assert resp.status_code == 200
-    assert resp.json() == {'address': None}
+    assert resp.json() == {'data': {'address': None}, 'success': True}
     resp = client.put('/api/withdraw-address/', {})
     assert resp.status_code == 400
     resp = client.put('/api/withdraw-address/', {'address': None})
@@ -305,11 +300,11 @@ def test_put_withdraw_address_email_not_confirmed(client, users):
     client.authenticate('user1@main.com', 'password1')
     resp = client.get('/api/withdraw-address/')
     assert resp.status_code == 200
-    assert resp.json() == {'address': None}
+    assert resp.json() == {'data': {'address': None}, 'success': True}
     resp = client.put('/api/withdraw-address/',
                       {'address': '0x3BA2E2565dB2c018aDd0b24483fE99fC2cCCDa8e'})
     assert resp.status_code == 403
-    assert resp.json() == {'detail': 'Please confirm the e-mail before submitting the Ethereum address'}
+    assert resp.json() == {'success': False, 'error': 'Please confirm the e-mail before submitting the Ethereum address'}
 
 
 def test_put_withdraw_address_validate(client, users):
@@ -318,7 +313,7 @@ def test_put_withdraw_address_validate(client, users):
     client.authenticate('user1@main.com', 'password1')
     resp = client.get('/api/withdraw-address/')
     assert resp.status_code == 200
-    assert resp.json() == {'address': None}
+    assert resp.json() == {'data': {'address': None}, 'success': True}
     resp = client.put('/api/withdraw-address/', {'address': ''})
     assert resp.status_code == 400
     resp = client.put('/api/withdraw-address/', {'address': '1HEVUxtxGjGnuRT5NsamD6V4RdUduRHqFv'})
@@ -331,10 +326,10 @@ def test_put_withdraw_address_validate(client, users):
     assert resp.status_code == 400
     resp = client.put('/api/withdraw-address/', {'address': '0x3BA2E2565dB2c018aDd0b24483fE99fC2cCCDa8e'})
     assert resp.status_code == 200
-    assert resp.json() == {'address': '0x3BA2E2565dB2c018aDd0b24483fE99fC2cCCDa8e'}
+    assert resp.json() == {'success': True, 'data': {'address': '0x3BA2E2565dB2c018aDd0b24483fE99fC2cCCDa8e'}}
     resp = client.put('/api/withdraw-address/', {'address': '0xde709f2102306220921060314715629080e2fb77'})
     assert resp.status_code == 200
-    assert resp.json() == {'address': '0xde709f2102306220921060314715629080e2fb77'}
+    assert resp.json() == {'success': True, 'data': {'address': '0xde709f2102306220921060314715629080e2fb77'}}
 
 
 def test_withdraw_token(client, users, addresses, token, settings):
@@ -346,7 +341,7 @@ def test_withdraw_token(client, users, addresses, token, settings):
     assert account.get_token_balance() == 30
     resp = client.post('/api/withdraw-tokens/')
     assert resp.status_code == 200
-    assert resp.json() == {'detail': 'TOKEN withdrawal is requested. Check you email for confirmation.'}
+    assert resp.json() == {'success': True, 'message': 'TOKEN withdrawal is requested. Check you email for confirmation.'}
 
     op = models.Operation.objects.first()
     withdrawals = models.Withdraw.objects.all()
@@ -383,7 +378,7 @@ def test_withdraw_token_no_token(client, users, addresses, token, settings):
     assert account.get_token_balance() == 0
     resp = client.post('/api/withdraw-tokens/')
     assert resp.status_code == 400
-    assert resp.json() == {'detail': 'Impossible withdrawal. Check you balance.'}
+    assert resp.json() == {'success': False, 'error': 'Impossible withdrawal. Check you balance.'}
 
 
 def test_registration(client, addresses):
@@ -398,7 +393,7 @@ def test_registration(client, addresses):
     assert resp.status_code == 201
     account = models.Account.objects.get(user__username=user_data['email'])
     assert account.tracking == user_data['tracking']
-    assert 'key' in resp.json()
+    assert 'key' in resp.json()['data']
 
     assert EmailAddress.objects.get(email=user_data['email']).verified is False
 
@@ -534,8 +529,8 @@ def test_operation_confirm_withdraw_token_invalid_params(client, users, accounts
     data = {}
     resp = client.post('/api/withdraw-tokens/confirm/', data)
     assert resp.status_code == 400
-    assert resp.json() == {'token': ['This field is required.'],
-                           'operation_id': ['This field is required.']}
+    assert resp.json() == {'success': False, 'errors': {'token': ['This field is required.'],
+                           'operation_id': ['This field is required.']}}
 
 
 def test_operation_confirm_change_address_email_not_confirmed(client, users, accounts, settings):
@@ -553,8 +548,8 @@ def test_operation_confirm_change_address_invalid_params(client, users, accounts
     data = {}
     resp = client.post('/api/withdraw-address/confirm/', data)
     assert resp.status_code == 400
-    assert resp.json() == {'token': ['This field is required.'],
-                           'operation_id': ['This field is required.']}
+    assert resp.json() == {'success': False, 'errors': {'token': ['This field is required.'],
+                           'operation_id': ['This field is required.']}}
 
 
 @mock.patch('jco.appprocessor.notify.api_models')
@@ -566,7 +561,7 @@ def test_change_withdraw_address_request_notify_error(api_models, client, accoun
     data = {'address': '0x3BA2E2565dB2c018aDd0b24483fE99fC2cCCDa8e'}
     resp = client.put('/api/withdraw-address/', data)
     assert resp.status_code == 500
-    assert resp.json() == {'detail': 'Unexpected error, please try again'}
+    assert resp.json() == {'success': False, 'error': 'Unexpected error, please try again'}
 
     assert 0 == models.Operation.objects.count()
     assert 0 == models.Notification.objects.count()
@@ -586,7 +581,7 @@ def test_withdraw_token_request_notify_error(api_models, client, accounts, setti
     resp = client.post('/api/withdraw-tokens/', data)
 
     assert resp.status_code == 500
-    assert resp.json() == {'detail': 'Unexpected error, please try again'}
+    assert resp.json() == {'success': False, 'error': 'Unexpected error, please try again'}
 
     assert 1 == models.Withdraw.objects.count()
     assert 0 == models.Operation.objects.count()
@@ -605,7 +600,7 @@ def test_withdraw_token_request_kyc_not_verified(client, accounts, settings, tok
     resp = client.post('/api/withdraw-tokens/', data)
 
     assert resp.status_code == 403
-    assert resp.json() == {'detail': 'Please confirm your identity to withdraw TOKEN'}
+    assert resp.json() == {'success': False, 'error': 'Please confirm your identity to withdraw TOKEN'}
 
     assert 0 == models.Withdraw.objects.count()
     assert 0 == models.Operation.objects.count()
@@ -637,11 +632,11 @@ def test_get_ico_status(mock_now, db, transactions, client, settings):
     resp = client.get('/api/ico-status/')
 
     assert resp.status_code == 200
-    assert resp.json() == {'currentState': 'B',
+    assert resp.json() == {'success': True, 'data': {'currentState': 'B',
                            'currentStateEndsAt': '2018-08-05T00:00:00+00:00',
                            'nextState': 'C',
                            'nextStateStartsAt': '2018-08-06T00:00:00+00:00',
                            'pricePerToken': settings.INVESTMENTS__TOKEN_PRICE_IN_USD,
                            'tokenInitial': settings.RAISED_TOKENS_SHIFT,
                            'tokenRaised': settings.RAISED_TOKENS_SHIFT + 100,
-                           'tokenTotal': settings.TOKENS__TOTAL_SUPPLY}
+                           'tokenTotal': settings.TOKENS__TOTAL_SUPPLY}}
