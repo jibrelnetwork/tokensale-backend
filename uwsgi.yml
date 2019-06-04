@@ -1,0 +1,26 @@
+uwsgi:
+  master: true
+
+  http: 0.0.0.0:8080
+
+  enable-threads: true
+  pcre-jit: true
+  thunder-lock: true
+
+  uid: app
+  gid: app
+
+  chdir: /app
+  module: jco.wsgi:application
+
+  log-format: %(addr) - %(user) [%(ltime)] "%(method) %(uri) %(proto)" %(status) %(size) "%(referer)" "%(uagent)"
+
+  processes: 5
+  max-requests: 5000
+
+  static-map: /media=/app/media/
+  static-map: /static=/app/static/
+
+  static-skip-ext: .po
+  static-skip-ext: .py
+  static-skip-ext: .pyc

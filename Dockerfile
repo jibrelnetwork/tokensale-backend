@@ -1,6 +1,9 @@
 FROM python:3.6
 
-RUN mkdir -p /app
+RUN addgroup --system --gid 1000 app \
+ && adduser --system -u 1000 --gid 1000 --shell /bin/sh --disabled-login app \
+ && mkdir /app \
+ && chmod -R ugo=rX /app
 WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
@@ -12,4 +15,4 @@ EXPOSE 8080
 
 CMD python jco/dj-manage.py migrate --noinput \
  && python jco/dj-manage.py collectstatic --noinput \
- && gunicorn --access-logfile - --workers 4 --bind 0.0.0.0:8080 jco.wsgi:application
+ && uwsgi --yaml /app/uwsgi.yml
