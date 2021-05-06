@@ -25,7 +25,7 @@ docker-py==1.8.0
 drf-extensions==0.3.1
 flake8==3.5.0
 Flask==0.12.2
-Flask-Cors==3.0.3
+Flask-Cors==3.0.9
 flask-jsontools==0.1.1.post0
 Flask-Mail==0.9.1
 Flask-Migrate==2.1.1
