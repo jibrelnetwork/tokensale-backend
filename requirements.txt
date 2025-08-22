@@ -33,7 +33,7 @@ Flask-RESTful==0.3.6
 Flask-Script==2.0.6
 Flask-SQLAlchemy==2.3.1
 funcsigs==1.0.2
-future==0.16.0
+future==1.0.0
 gunicorn==19.7.1
 idna==2.6
 ipython==6.2.1
